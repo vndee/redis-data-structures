@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from redis.exceptions import RedisError
 
@@ -8,12 +8,13 @@ from redis_data_structures import Deque
 
 class TestDeque(unittest.TestCase):
     def setUp(self):
-        self.deque = Deque(host="localhost", port=6379, db=0)
+        self.deque = Deque()
         self.test_key = "test_deque"
         self.deque.clear(self.test_key)
 
     def tearDown(self):
         self.deque.clear(self.test_key)
+        self.deque.close()
 
     def test_push_front_and_pop_front(self):
         # Test push_front and pop_front operations
@@ -104,31 +105,31 @@ class TestDeque(unittest.TestCase):
         assert self.deque.pop_back(self.test_key) == test_list
 
     def test_push_front_error_handling(self):
-        with patch.object(self.deque.redis_client, "lpush", side_effect=RedisError):
+        with patch.object(self.deque.connection_manager, "execute", side_effect=RedisError):
             assert self.deque.push_front(self.test_key, "data") is False
 
     def test_push_back_error_handling(self):
-        with patch.object(self.deque.redis_client, "rpush", side_effect=RedisError):
+        with patch.object(self.deque.connection_manager, "execute", side_effect=RedisError):
             assert self.deque.push_back(self.test_key, "data") is False
 
     def test_pop_front_error_handling(self):
-        with patch.object(self.deque.redis_client, "lpop", side_effect=RedisError):
+        with patch.object(self.deque.connection_manager, "execute", side_effect=RedisError):
             assert self.deque.pop_front(self.test_key) is None
 
     def test_pop_back_error_handling(self):
-        with patch.object(self.deque.redis_client, "rpop", side_effect=RedisError):
+        with patch.object(self.deque.connection_manager, "execute", side_effect=RedisError):
             assert self.deque.pop_back(self.test_key) is None
 
     def test_peek_front_error_handling(self):
-        with patch.object(self.deque.redis_client, "lindex", side_effect=RedisError):
+        with patch.object(self.deque.connection_manager, "execute", side_effect=RedisError):
             assert self.deque.peek_front(self.test_key) is None
 
     def test_peek_back_error_handling(self):
-        with patch.object(self.deque.redis_client, "lindex", side_effect=RedisError):
+        with patch.object(self.deque.connection_manager, "execute", side_effect=RedisError):
             assert self.deque.peek_back(self.test_key) is None
 
     def test_size_error_handling(self):
-        with patch.object(self.deque.redis_client, "llen", side_effect=RedisError):
+        with patch.object(self.deque.connection_manager, "execute", side_effect=RedisError):
             assert self.deque.size(self.test_key) == 0
 
 

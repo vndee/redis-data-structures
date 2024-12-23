@@ -16,7 +16,7 @@ def demonstrate_graph():
         "alice": {"name": "Alice Smith", "age": 28},
         "bob": {"name": "Bob Johnson", "age": 32},
         "carol": {"name": "Carol Williams", "age": 25},
-        "david": {"name": "David Brown", "age": 35}
+        "david": {"name": "David Brown", "age": 35},
     }
 
     print("\nAdding users to the network...")
@@ -27,12 +27,12 @@ def demonstrate_graph():
     # Create friendships (edges)
     print("\nCreating friendships...")
     friendships = [
-        ("alice", "bob", 0.8),    # Alice and Bob are close friends
-        ("bob", "alice", 0.8),    # Friendship is mutual
+        ("alice", "bob", 0.8),  # Alice and Bob are close friends
+        ("bob", "alice", 0.8),  # Friendship is mutual
         ("alice", "carol", 0.6),  # Alice and Carol are friends
         ("carol", "alice", 0.6),  # Friendship is mutual
-        ("bob", "david", 0.4),    # Bob and David are acquaintances
-        ("david", "bob", 0.4),    # Friendship is mutual
+        ("bob", "david", 0.4),  # Bob and David are acquaintances
+        ("david", "bob", 0.4),  # Friendship is mutual
     ]
 
     for from_user, to_user, strength in friendships:
@@ -48,7 +48,7 @@ def demonstrate_graph():
     for user_id in graph.get_vertices(graph_key):
         profile = graph.get_vertex_data(graph_key, user_id)
         friends = graph.get_neighbors(graph_key, user_id)
-        
+
         print(f"\n{profile['name']} ({user_id}):")
         print("Friends:")
         for friend_id, strength in friends.items():
@@ -58,15 +58,15 @@ def demonstrate_graph():
     # Remove a user
     print("\nRemoving David from the network...")
     graph.remove_vertex(graph_key, "david")
-    
+
     # Show updated network
     print("\nUpdated Network Information:")
     print(f"Total users: {len(graph.get_vertices(graph_key))}")
-    
+
     # Clean up
     graph.clear(graph_key)
     print("\nNetwork cleared!")
 
 
 if __name__ == "__main__":
-    demonstrate_graph() 
+    demonstrate_graph()

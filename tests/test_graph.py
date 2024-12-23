@@ -55,7 +55,7 @@ class TestGraph(unittest.TestCase):
         # Test removing vertex
         assert self.graph.remove_vertex(self.test_key, "v2")
         assert not self.graph.vertex_exists(self.test_key, "v2")
-        
+
         # Verify edges are removed
         assert not self.graph.get_edge_weight(self.test_key, "v1", "v2")
         assert not self.graph.get_edge_weight(self.test_key, "v2", "v1")
@@ -186,4 +186,4 @@ class TestGraph(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()

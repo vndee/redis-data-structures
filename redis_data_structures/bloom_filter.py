@@ -1,12 +1,18 @@
 import math
+import logging
 from typing import Any, Optional
 
 try:
     import mmh3  # MurmurHash3 for efficient hashing
 except ImportError:
-    raise ImportError("mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.")
+    raise ImportError(
+        "mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.",
+    )
 
 from .base import RedisDataStructure
+from .metrics import track_operation
+
+logger = logging.getLogger(__name__)
 
 
 class BloomFilter(RedisDataStructure):
@@ -21,24 +27,16 @@ class BloomFilter(RedisDataStructure):
         self,
         expected_elements: int = 10000,
         false_positive_rate: float = 0.01,
-        host: str = "localhost",
-        port: int = 6379,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        db: int = 0,
+        **kwargs
     ):
         """Initialize Bloom Filter.
 
         Args:
             expected_elements: Expected number of elements to be added
             false_positive_rate: Desired false positive probability
-            host: Redis host address
-            port: Redis port number
-            username: Redis username for authentication
-            password: Redis password for authentication
-            db: Redis database number
+            **kwargs: Additional Redis connection parameters
         """
-        super().__init__(host=host, port=port, username=username, password=password, db=db)
+        super().__init__(**kwargs)
 
         # Calculate optimal filter size and number of hash functions
         self.bit_size = self._get_optimal_size(expected_elements, false_positive_rate)
@@ -87,6 +85,7 @@ class BloomFilter(RedisDataStructure):
             hash_values.append(abs(hash_val))
         return hash_values
 
+    @track_operation("add")
     def add(self, key: str, item: Any) -> bool:
         """Add an item to the Bloom filter.
 
@@ -99,17 +98,19 @@ class BloomFilter(RedisDataStructure):
         """
         try:
             hash_values = self._get_hash_values(item)
-            pipe = self.redis_client.pipeline()
+            pipeline = self.connection_manager.pipeline()
+            bloom_key = self._get_key(key)
 
             for hash_val in hash_values:
-                pipe.setbit(key, hash_val, 1)
+                pipeline.setbit(bloom_key, hash_val, 1)
 
-            pipe.execute()
+            pipeline.execute()
             return True
         except Exception as e:
-            print(f"Error adding item to Bloom filter: {e}")
+            logger.error(f"Error adding item to Bloom filter: {e}")
             return False
 
+    @track_operation("contains")
     def contains(self, key: str, item: Any) -> bool:
         """Check if an item might exist in the Bloom filter.
 
@@ -122,16 +123,18 @@ class BloomFilter(RedisDataStructure):
         """
         try:
             hash_values = self._get_hash_values(item)
+            bloom_key = self._get_key(key)
 
             # Check if all bits are set
             for hash_val in hash_values:
-                if not self.redis_client.getbit(key, hash_val):
+                if not self.connection_manager.execute("getbit", bloom_key, hash_val):
                     return False
             return True
         except Exception as e:
-            print(f"Error checking item in Bloom filter: {e}")
+            logger.error(f"Error checking item in Bloom filter: {e}")
             return False
 
+    @track_operation("clear")
     def clear(self, key: str) -> bool:
         """Clear the Bloom filter.
 
@@ -143,6 +146,7 @@ class BloomFilter(RedisDataStructure):
         """
         return super().clear(key)
 
+    @track_operation("size")
     def size(self) -> int:
         """Get the size of the Bloom filter in bits.
 

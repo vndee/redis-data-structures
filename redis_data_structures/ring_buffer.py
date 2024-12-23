@@ -1,4 +1,5 @@
-from typing import Any, Optional, List
+from typing import Any, List
+
 from .base import RedisDataStructure
 
 
@@ -51,13 +52,13 @@ class RingBuffer(RedisDataStructure):
         try:
             # Serialize data
             serialized = self._serialize(data)
-            
+
             # Use transaction to ensure atomicity
             pipe = self.redis_client.pipeline()
-            
+
             # Get current size
             current_size = self.size(key)
-            
+
             if current_size < self.capacity:
                 # If we haven't reached capacity, just append
                 pipe.rpush(key, serialized)
@@ -65,7 +66,7 @@ class RingBuffer(RedisDataStructure):
                 # If at capacity, remove oldest and append new
                 pipe.lpop(key)
                 pipe.rpush(key, serialized)
-            
+
             # Execute transaction
             pipe.execute()
             return True
@@ -85,7 +86,7 @@ class RingBuffer(RedisDataStructure):
         try:
             # Get all items
             items = self.redis_client.lrange(key, 0, -1)
-            
+
             # Deserialize items
             return [
                 self._deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
@@ -110,13 +111,13 @@ class RingBuffer(RedisDataStructure):
             size = self.size(key)
             if size == 0:
                 return []
-            
+
             # Ensure n doesn't exceed buffer size
             n = min(n, size)
-            
+
             # Get latest n items
             items = self.redis_client.lrange(key, -n, -1)
-            
+
             # Deserialize items in reverse order (newest first)
             return [
                 self._deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
@@ -154,4 +155,4 @@ class RingBuffer(RedisDataStructure):
             return self.redis_client.llen(key)
         except Exception as e:
             print(f"Error getting ring buffer size: {e}")
-            return 0 
+            return 0

@@ -1,6 +1,10 @@
 from typing import Any, Optional
+import logging
 
 from .base import RedisDataStructure
+from .metrics import track_operation
+
+logger = logging.getLogger(__name__)
 
 
 class Queue(RedisDataStructure):
@@ -10,6 +14,7 @@ class Queue(RedisDataStructure):
     are added to the back and removed from the front, following FIFO order.
     """
 
+    @track_operation("push")
     def push(self, key: str, data: Any) -> bool:
         """Push an item to the back of the queue.
 
@@ -22,11 +27,18 @@ class Queue(RedisDataStructure):
         """
         try:
             serialized = self._serialize(data)
-            return bool(self.redis_client.rpush(key, serialized))
+            return bool(
+                self.connection_manager.execute(
+                    "rpush",
+                    self._get_key(key),
+                    serialized
+                )
+            )
         except Exception as e:
-            print(f"Error pushing to queue: {e}")
+            logger.error(f"Error pushing to queue: {e}")
             return False
 
+    @track_operation("pop")
     def pop(self, key: str) -> Optional[Any]:
         """Pop an item from the front of the queue.
 
@@ -37,7 +49,10 @@ class Queue(RedisDataStructure):
             Optional[Any]: The data if successful, None otherwise
         """
         try:
-            data = self.redis_client.lpop(key)
+            data = self.connection_manager.execute(
+                "lpop",
+                self._get_key(key)
+            )
             if data:
                 # Handle bytes response from Redis
                 if isinstance(data, bytes):
@@ -45,9 +60,10 @@ class Queue(RedisDataStructure):
                 return self._deserialize(data)
             return None
         except Exception as e:
-            print(f"Error popping from queue: {e}")
+            logger.error(f"Error popping from queue: {e}")
             return None
 
+    @track_operation("peek")
     def peek(self, key: str) -> Optional[Any]:
         """Peek at the front item without removing it.
 
@@ -58,7 +74,11 @@ class Queue(RedisDataStructure):
             Optional[Any]: The data if successful, None otherwise
         """
         try:
-            data = self.redis_client.lindex(key, 0)
+            data = self.connection_manager.execute(
+                "lindex",
+                self._get_key(key),
+                0
+            )
             if data:
                 # Handle bytes response from Redis
                 if isinstance(data, bytes):
@@ -66,9 +86,10 @@ class Queue(RedisDataStructure):
                 return self._deserialize(data)
             return None
         except Exception as e:
-            print(f"Error peeking queue: {e}")
+            logger.error(f"Error peeking queue: {e}")
             return None
 
+    @track_operation("size")
     def size(self, key: str) -> int:
         """Get the size of the queue.
 
@@ -79,7 +100,10 @@ class Queue(RedisDataStructure):
             int: Number of elements in the queue
         """
         try:
-            return self.redis_client.llen(key)
+            return self.connection_manager.execute(
+                "llen",
+                self._get_key(key)
+            ) or 0
         except Exception as e:
-            print(f"Error getting queue size: {e}")
+            logger.error(f"Error getting queue size: {e}")
             return 0

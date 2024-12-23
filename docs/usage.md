@@ -3,26 +3,13 @@
 ## Table of Contents
 
 1. [Installation](#installation)
-2. [Basic Setup](#basic-setup)
-3. [Data Structures](#data-structures)
-   - [Queue (FIFO)](#queue)
-   - [Stack (LIFO)](#stack)
-   - [Priority Queue](#priority-queue)
-   - [Set](#set)
-   - [Hash Map](#hash-map)
-   - [Deque](#deque)
-   - [Bloom Filter](#bloom-filter)
-   - [LRU Cache](#lru-cache)
-   - [Trie](#trie)
-   - [Graph](#graph)
-   - [Ring Buffer](#ring-buffer)
-4. [Common Features](#common-features)
-5. [Connection Options](#connection-options)
-6. [Advanced Topics](#advanced-topics)
-   - [Type Preservation](type_preservation.md)
-   - [Error Handling](#error-handling)
-   - [Performance Optimization](#performance-optimization)
-7. [Best Practices](#best-practices)
+2. [Configuration](#configuration)
+3. [Connection Management](#connection-management)
+4. [Data Structures](#data-structures)
+5. [Type System](#type-system)
+6. [Monitoring](#monitoring)
+7. [Error Handling](#error-handling)
+8. [Best Practices](#best-practices)
 
 ## Installation
 
@@ -30,445 +17,372 @@
 pip install redis-data-structures
 ```
 
-## Basic Setup
+## Configuration
+
+### Environment Variables
+
+```bash
+# Redis connection
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export REDIS_DB=0
+export REDIS_PASSWORD=secret
+export REDIS_SSL=true
+export REDIS_MAX_CONNECTIONS=10
+
+# Data structure settings
+export REDIS_DS_PREFIX=myapp
+export REDIS_DS_COMPRESSION=true
+export REDIS_DS_METRICS=true
+export REDIS_DS_DEBUG=true
+```
+
+### YAML Configuration
+
+```yaml
+redis:
+  host: localhost
+  port: 6379
+  db: 0
+  password: secret
+  ssl: true
+  max_connections: 10
+  retry_max_attempts: 3
+  circuit_breaker_threshold: 5
+  circuit_breaker_timeout: 60
+
+data_structures:
+  prefix: myapp
+  compression_enabled: true
+  compression_threshold: 1024
+  metrics_enabled: true
+  debug_enabled: true
+```
+
+### Using Configuration
 
 ```python
-from redis_data_structures import (
-    Queue, Stack, PriorityQueue, Set,
-    HashMap, Deque, BloomFilter, LRUCache,
-    Trie, Graph, RingBuffer
+from redis_data_structures import Config, Queue
+
+# Load from environment
+config = Config.from_env()
+
+# Or load from YAML
+config = Config.from_yaml('config.yaml')
+
+# Customize configuration
+config.data_structures.compression_enabled = True
+config.data_structures.compression_threshold = 2048
+
+# Use configuration
+queue = Queue(config=config)
+```
+
+## Connection Management
+
+### Basic Connection
+
+```python
+from redis_data_structures import Queue
+
+# Default connection (localhost:6379)
+queue = Queue()
+
+# Custom connection
+queue = Queue(host='redis.example.com', port=6380)
+
+# With SSL
+queue = Queue(
+    host='redis.example.com',
+    port=6380,
+    ssl=True,
+    ssl_cert_reqs='required',
+    ssl_ca_certs='/path/to/ca.pem'
+)
+```
+
+### Advanced Connection Management
+
+```python
+from redis_data_structures import ConnectionManager, Queue
+from datetime import timedelta
+
+# Create connection manager with advanced features
+manager = ConnectionManager(
+    host='redis.example.com',
+    port=6380,
+    max_connections=20,
+    retry_max_attempts=5,
+    circuit_breaker_threshold=10,
+    circuit_breaker_timeout=timedelta(minutes=5),
+    ssl=True,
+    ssl_cert_reqs='required',
+    ssl_ca_certs='/path/to/ca.pem'
 )
 
-# Common connection parameters
-redis_config = {
-    "host": "localhost",
-    "port": 6379,
-    "db": 0,
-    # Optional parameters
-    "username": "your_username",
-    "password": "your_password",
-    "socket_timeout": 5,
-}
+# Use connection manager
+queue = Queue(connection_manager=manager)
+
+# Check connection health
+health = manager.health_check()
+print(f"Status: {health['status']}")
+print(f"Latency: {health['latency_ms']}ms")
+print(f"Pool: {health['connection_pool']}")
+print(f"Circuit Breaker: {health['circuit_breaker']}")
 ```
 
 ## Data Structures
 
-### Queue
-
-FIFO (First-In-First-Out) queue implementation. Perfect for task queues, message processing, and job scheduling.
+### Deque (Double-ended Queue)
 
 ```python
-# Initialize
-queue = Queue(**redis_config)
+from redis_data_structures import Deque
 
-# Basic operations
-queue.push("my_queue", "first")
-queue.push("my_queue", "second")
-first = queue.pop("my_queue")  # Returns "first"
+deque = Deque()
 
-# Check size
-size = queue.size("my_queue")  # Returns 1
+# Front operations
+deque.push_front('my_deque', 'first')
+deque.push_front('my_deque', 'second')
+item = deque.pop_front('my_deque')  # Returns 'second'
+front = deque.peek_front('my_deque')  # Returns 'first' without removing
 
-# Clear
-queue.clear("my_queue")
+# Back operations
+deque.push_back('my_deque', 'last')
+item = deque.pop_back('my_deque')  # Returns 'last'
+back = deque.peek_back('my_deque')  # Returns 'first' without removing
+
+# Other operations
+size = deque.size('my_deque')
+deque.clear('my_deque')
+
+# With type preservation
+from datetime import datetime
+deque.push_front('my_deque', {
+    'timestamp': datetime.now(),
+    'data': [1, 2, 3]
+})
+data = deque.pop_front('my_deque')  # Returns dict with datetime preserved
 ```
 
-### Stack
-
-LIFO (Last-In-First-Out) stack implementation. Ideal for undo/redo operations, parsing, and depth-first algorithms.
+### Queue (FIFO)
 
 ```python
-# Initialize
-stack = Stack(**redis_config)
+from redis_data_structures import Queue
+
+queue = Queue()
 
 # Basic operations
-stack.push("my_stack", "first")
-stack.push("my_stack", "second")
-last = stack.pop("my_stack")  # Returns "second"
+queue.push('my_queue', 'item1')
+item = queue.pop('my_queue')  # Returns 'item1'
+
+# With TTL
+from datetime import timedelta
+queue.set_ttl('my_queue', timedelta(minutes=5))
 
 # Check size
-size = stack.size("my_stack")  # Returns 1
-
-# Clear
-stack.clear("my_stack")
+size = queue.size('my_queue')
 ```
 
-### Priority Queue
-
-Priority-based queue with O(log N) operations. Great for task scheduling, emergency systems, and resource allocation.
+### Stack (LIFO)
 
 ```python
-# Initialize
-pq = PriorityQueue(**redis_config)
+from redis_data_structures import Stack
 
-# Add items with priorities (lower number = higher priority)
-pq.push("my_pq", "critical task", priority=1)
-pq.push("my_pq", "normal task", priority=2)
-pq.push("my_pq", "low priority task", priority=3)
+stack = Stack()
 
-# Pop highest priority item
-task, priority = pq.pop("my_pq")  # Returns ("critical task", 1)
+# Basic operations
+stack.push('my_stack', 'item1')
+item = stack.pop('my_stack')  # Returns 'item1'
 
 # Peek without removing
-task, priority = pq.peek("my_pq")  # Returns ("normal task", 2)
-
-# Clear
-pq.clear("my_pq")
-```
-
-### Set
-
-Collection of unique items with O(1) operations. Perfect for tracking unique items, managing sessions, and filtering duplicates.
-
-```python
-# Initialize
-set_ds = Set(**redis_config)
-
-# Add items
-set_ds.add("my_set", "unique1")
-set_ds.add("my_set", "unique2")
-set_ds.add("my_set", "unique1")  # Won't add duplicate
-
-# Check membership
-exists = set_ds.contains("my_set", "unique1")  # Returns True
-
-# Get all members
-members = set_ds.members("my_set")  # Returns {"unique1", "unique2"}
-
-# Remove item
-set_ds.remove("my_set", "unique1")
-
-# Clear
-set_ds.clear("my_set")
+item = stack.peek('my_stack')
 ```
 
 ### Hash Map
 
-Key-value store with field-based access. Ideal for user profiles, configuration management, and structured data.
-
 ```python
-# Initialize
-hash_map = HashMap(**redis_config)
+from redis_data_structures import HashMap
+from datetime import datetime
 
-# Set values
-hash_map.set("my_hash", "field1", "value1")
-hash_map.set("my_hash", "field2", {"nested": "data"})
+hm = HashMap()
 
-# Get values
-value = hash_map.get("my_hash", "field1")  # Returns "value1"
+# Store complex types
+data = {
+    'name': 'John',
+    'joined': datetime.now(),
+    'scores': [1, 2, 3]
+}
+hm.set('users', 'john', data)
 
-# Get all fields and values
-all_items = hash_map.get_all("my_hash")
+# Retrieve with types preserved
+user = hm.get('users', 'john')
+print(f"Joined: {user['joined']}")  # datetime object
 
-# Remove field
-hash_map.remove("my_hash", "field1")
-
-# Clear
-hash_map.clear("my_hash")
-```
-
-### Deque
-
-Double-ended queue with O(1) operations at both ends. Perfect for sliding windows, browser history, and work-stealing algorithms.
-
-```python
-# Initialize
-deque = Deque(**redis_config)
-
-# Add items at both ends
-deque.push_front("my_deque", "front1")
-deque.push_back("my_deque", "back1")
-
-# Remove items from both ends
-front = deque.pop_front("my_deque")
-back = deque.pop_back("my_deque")
-
-# Peek without removing
-front = deque.peek_front("my_deque")
-back = deque.peek_back("my_deque")
-
-# Clear
-deque.clear("my_deque")
+# Get all fields
+all_data = hm.get_all('users')
+fields = hm.get_fields('users')
 ```
 
 ### Bloom Filter
 
-Space-efficient probabilistic data structure. Ideal for reducing unnecessary lookups, deduplication, and caching optimization.
-
 ```python
-# Initialize with expected elements and false positive rate
-bloom = BloomFilter(
-    expected_elements=10000,
-    false_positive_rate=0.01,
-    **redis_config
-)
+from redis_data_structures import BloomFilter
+
+# Create with expected elements and false positive rate
+bf = BloomFilter(expected_elements=10000, false_positive_rate=0.01)
 
 # Add items
-bloom.add("my_filter", "item1")
-bloom.add("my_filter", "item2")
+bf.add('my_filter', 'item1')
+bf.add('my_filter', {'complex': 'data'})
 
 # Check membership
-exists = bloom.contains("my_filter", "item1")  # Returns True
-exists = bloom.contains("my_filter", "unknown")  # Returns False if definitely not in set
+exists = bf.contains('my_filter', 'item1')  # True
+exists = bf.contains('my_filter', 'item2')  # False
 
-# Clear
-bloom.clear("my_filter")
+# Get size in bits
+size = bf.size()
 ```
 
-### LRU Cache
+## Type System
 
-Least Recently Used cache with automatic eviction. Perfect for caching with size limits.
-
-```python
-# Initialize with capacity
-cache = LRUCache(capacity=1000, **redis_config)
-
-# Add items
-cache.put("my_cache", "key1", {"name": "John", "age": 30})
-cache.put("my_cache", "key2", ("tuple", "data"))  # Tuples preserved
-cache.put("my_cache", "key3", {1, 2, 3})         # Sets preserved
-
-# Get items (updates access time)
-value = cache.get("my_cache", "key1")
-
-# Peek (doesn't update access time)
-value = cache.peek("my_cache", "key1")
-
-# Get all items
-all_items = cache.get_all("my_cache")
-
-# Get items in LRU order
-lru_order = cache.get_lru_order("my_cache")
-
-# Clear
-cache.clear("my_cache")
-```
-
-### Trie
-
-Prefix tree implementation for efficient string operations. Perfect for autocomplete, spell checking, and prefix matching.
+### Custom Types
 
 ```python
-# Initialize
-trie = Trie(**redis_config)
+from redis_data_structures import CustomRedisDataType
+from datetime import datetime
 
-# Add words
-trie.insert("my_trie", "apple")
-trie.insert("my_trie", "app")
-trie.insert("my_trie", "application")
+class Event(CustomRedisDataType):
+    def __init__(self, name: str, timestamp: datetime):
+        self.name = name
+        self.timestamp = timestamp
 
-# Search for words
-exists = trie.search("my_trie", "apple")  # Returns True
-
-# Find words with prefix
-words = trie.find_words_with_prefix("my_trie", "app")
-# Returns ["app", "apple", "application"]
-
-# Clear
-trie.clear("my_trie")
-```
-
-### Graph
-
-A Redis-backed directed graph implementation using adjacency lists. Perfect for representing relationships between entities, social networks, dependency graphs, and other connected data structures.
-
-```python
-# Initialize
-graph = Graph(**redis_config)
-
-# Add vertices with data
-graph.add_vertex("my_graph", "v1", {"name": "Vertex 1", "value": 42})
-graph.add_vertex("my_graph", "v2", {"name": "Vertex 2", "value": 84})
-
-# Add weighted edges
-graph.add_edge("my_graph", "v1", "v2", weight=1.5)
-
-# Get vertex data
-data = graph.get_vertex_data("my_graph", "v1")
-
-# Get neighbors with weights
-neighbors = graph.get_neighbors("my_graph", "v1")
-
-# Remove vertex (and all its edges)
-graph.remove_vertex("my_graph", "v1")
-
-# Clear
-graph.clear("my_graph")
-```
-
-### Ring Buffer
-
-Fixed-size circular buffer implementation. Perfect for log rotation, streaming data processing, and sliding window analytics.
-
-```python
-# Initialize ring buffer with capacity
-buffer = RingBuffer(
-    capacity=1000,  # Maximum number of items
-    host='localhost',
-    port=6379,
-    db=0,
-    username=None,  # Optional
-    password=None   # Optional
-)
-
-# Add items (overwrites oldest when full)
-buffer.push('my_buffer', 'item1')
-buffer.push('my_buffer', {'complex': 'item'})
-
-# Get all items (oldest to newest)
-items = buffer.get_all('my_buffer')
-
-# Get latest 5 items (newest to oldest)
-latest = buffer.get_latest('my_buffer', 5)
-
-# Get current size
-size = buffer.size('my_buffer')
-
-# Clear buffer
-buffer.clear('my_buffer')
-```
-
-Example use cases:
-
-1. Log Rotation
-```python
-class LogRotator:
-    def __init__(self, max_logs: int = 1000):
-        self.buffer = RingBuffer(capacity=max_logs, host='localhost', port=6379)
-        self.log_key = 'app:logs'
-    
-    def log(self, level: str, message: str):
-        """Add a log entry."""
-        entry = {
-            'timestamp': datetime.now().isoformat(),
-            'level': level,
-            'message': message
+    def to_dict(self) -> dict:
+        return {
+            'name': self.name,
+            'timestamp': self.timestamp.isoformat()
         }
-        self.buffer.push(self.log_key, entry)
-    
-    def get_recent_logs(self, n: int = 100) -> list:
-        """Get most recent log entries."""
-        return self.buffer.get_latest(self.log_key, n)
 
-# Usage
-logger = LogRotator(max_logs=1000)
-logger.log('INFO', 'Application started')
-recent_logs = logger.get_recent_logs(10)  # Get last 10 logs
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Event':
+        return cls(
+            name=data['name'],
+            timestamp=datetime.fromisoformat(data['timestamp'])
+        )
+
+# Use in data structures
+from redis_data_structures import Queue
+
+queue = Queue()
+event = Event('user_login', datetime.now())
+queue.push('events', event)
+
+# Retrieve with type preserved
+retrieved = queue.pop('events')  # Returns Event object
+print(f"Event: {retrieved.name} at {retrieved.timestamp}")
 ```
 
-2. Streaming Data
+### Pydantic Integration
+
 ```python
-class DataStream:
-    def __init__(self, window_size: int):
-        self.buffer = RingBuffer(capacity=window_size, host='localhost', port=6379)
-        self.stream_key = 'data:stream'
-    
-    def add_datapoint(self, value: float):
-        """Add a data point to the stream."""
-        data = {'value': value, 'timestamp': time.time()}
-        self.buffer.push(self.stream_key, data)
-    
-    def get_window(self) -> list:
-        """Get all data points in the current window."""
-        return self.buffer.get_all(self.stream_key)
+from pydantic import BaseModel
+from datetime import datetime
 
-# Usage
-stream = DataStream(window_size=100)  # Keep last 100 points
-stream.add_datapoint(42.0)
-window_data = stream.get_window()
-```
+# Pydantic models work automatically
+class UserModel(BaseModel):
+    name: str
+    email: str
+    joined: datetime
+    scores: list[int]
 
-## Common Features
+# Use with any data structure
+from redis_data_structures import HashMap
 
-All data structures share these features:
-- Thread-safe operations
-- Persistent storage with Redis
-- JSON serialization for complex data types
-- Atomic operations
-- Size tracking
-- Clear operation
-
-## Connection Options
-
-All data structures accept these connection parameters:
-```python
-structure = DataStructure(
-    host='localhost',      # Redis host
-    port=6379,            # Redis port
-    db=0,                 # Redis database
-    username=None,        # Optional username
-    password=None,        # Optional password
-    socket_timeout=None,  # Optional timeout
-    socket_connect_timeout=None,  # Optional connection timeout
-    socket_keepalive=None,       # Optional keepalive
-    socket_keepalive_options=None,  # Optional keepalive options
-    connection_pool=None,        # Optional connection pool
-    unix_socket_path=None,       # Optional Unix socket path
-    encoding='utf-8',            # Optional encoding
-    encoding_errors='strict',    # Optional encoding error handling
-    decode_responses=True,       # Optional response decoding
-    retry_on_timeout=False,      # Optional timeout retry
-    ssl=False,                   # Optional SSL
-    ssl_keyfile=None,           # Optional SSL key file
-    ssl_certfile=None,          # Optional SSL cert file
-    ssl_cert_reqs='required',   # Optional SSL cert requirements
-    ssl_ca_certs=None,          # Optional SSL CA certs
-    max_connections=None        # Optional max connections
+hm = HashMap()
+user = UserModel(
+    name="John",
+    email="john@example.com",
+    joined=datetime.now(),
+    scores=[1, 2, 3]
 )
+
+# Store and retrieve with full type preservation
+hm.set('users', 'john', user)
+retrieved = hm.get('users', 'john')  # Returns UserModel instance
 ```
 
-## Advanced Topics
+## Monitoring
 
-### Error Handling
+### Operation Metrics
+
+All operations are automatically tracked with metrics:
 
 ```python
-try:
-    structure.operation('key', value)
-except redis.RedisError as e:
-    logger.error(f"Redis error: {e}")
-    # Handle error...
-except Exception as e:
-    logger.error(f"Unexpected error: {e}")
-    # Handle error...
+from redis_data_structures import Queue, Config
+
+config = Config()
+config.data_structures.metrics_enabled = True
+queue = Queue(config=config)
+
+# Operations are tracked
+queue.push('my_queue', 'item')
+queue.pop('my_queue')
+
+# Check connection health
+health = queue.connection_manager.health_check()
+print(f"Status: {health['status']}")
+print(f"Latency: {health['latency_ms']}ms")
+print(f"Pool: {health['connection_pool']}")
+print(f"Circuit Breaker: {health['circuit_breaker']}")
 ```
 
-### Performance Optimization
+## Error Handling
 
-1. **Use Connection Pooling**
-   ```python
-   from redis import ConnectionPool
-   
-   pool = ConnectionPool(**redis_config)
-   structure = DataStructure(connection_pool=pool)
-   ```
+All data structures use proper error handling and logging:
 
-2. **Batch Operations**
-   - Use multi-key operations when possible
-   - Consider pipeline for multiple operations
+```python
+import logging
 
-3. **Memory Management**
-   - Monitor Redis memory usage
-   - Implement cleanup strategies
-   - Use TTL for temporary data
+# Enable debug logging
+logging.basicConfig(level=logging.DEBUG)
+
+from redis_data_structures import Queue
+
+queue = Queue()
+
+# Operations handle errors gracefully
+success = queue.push('my_queue', 'item')
+if not success:
+    print("Operation failed")
+
+# Check connection health
+health = queue.connection_manager.health_check()
+if health['status'] != 'healthy':
+    print(f"Connection issue: {health['error']}")
+```
 
 ## Best Practices
 
-1. **Key Management**
-   - Use descriptive key prefixes
-   - Consider implementing key expiration
-   - Clear unused structures
+1. **Connection Management**:
+   - Use connection pooling for better performance
+   - Enable circuit breaker for fault tolerance
+   - Monitor connection health regularly
 
-2. **Error Handling**
-   - Always wrap Redis operations in try-except
-   - Log errors appropriately
-   - Implement retry mechanisms for timeouts
+2. **Error Handling**:
+   - Enable logging for better debugging
+   - Check operation return values
+   - Use health checks proactively
 
-3. **Memory Management**
-   - Monitor structure sizes
-   - Implement size limits where appropriate
-   - Regular cleanup of old data
-
-4. **Performance**
+3. **Performance**:
+   - Enable compression for large values
    - Use batch operations when possible
-   - Consider cleanup strategies
-   - Monitor Redis memory usage
+   - Monitor memory usage
+
+4. **Type Safety**:
+   - Use custom types or Pydantic models
+   - Validate data before storing
+   - Handle serialization errors
+
+5. **Monitoring**:
+   - Enable metrics collection
+   - Monitor connection pool usage
+   - Check circuit breaker status

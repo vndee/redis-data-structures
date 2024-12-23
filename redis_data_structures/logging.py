@@ -4,18 +4,17 @@ import logging
 import sys
 from typing import Optional
 
+
 def setup_logging(
-    level: int = logging.INFO,
-    format_string: Optional[str] = None,
-    filename: Optional[str] = None
+    level: int = logging.INFO, format_string: Optional[str] = None, filename: Optional[str] = None,
 ) -> logging.Logger:
     """Set up logging configuration.
-    
+
     Args:
         level: The logging level (default: logging.INFO)
         format_string: Custom format string for logs
         filename: Optional file to write logs to
-    
+
     Returns:
         logging.Logger: Configured logger instance
     """
@@ -37,5 +36,6 @@ def setup_logging(
 
     return logger
 
+
 # Default logger instance
-logger = setup_logging() 
+logger = setup_logging()
