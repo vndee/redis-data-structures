@@ -1,140 +1,143 @@
 # Redis Data Structures
 
-[![PyPI version](https://badge.fury.io/py/redis-data-structures.svg)](https://badge.fury.io/py/redis-data-structures)
-[![Python Versions](https://img.shields.io/pypi/pyversions/redis-data-structures.svg)](https://pypi.org/project/redis-data-structures/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Documentation Status](https://readthedocs.org/projects/redis-data-structures/badge/?version=latest)](https://redis-data-structures.readthedocs.io/en/latest/?badge=latest)
+A Python library providing high-level, Redis-backed data structures with a clean, Pythonic interface. Perfect for distributed systems, microservices, and any application requiring persistent, thread-safe data structures.
 
-A Python package providing Redis-backed implementations of common data structures for building scalable and resilient applications. This package offers thread-safe, persistent, and distributed data structures built on top of Redis, making them perfect for microservices, distributed systems, and applications requiring persistence.
+## Features
 
-## 🌟 Key Features
+- Thread-safe data structures backed by Redis
+- Clean, Pythonic interface
+- Connection pooling and automatic retries
+- Circuit breaker pattern for fault tolerance
+- JSON serialization for complex types
+- Comprehensive documentation and examples
 
-- **Rich Data Structure Support**:
-  - Queue (FIFO)
-  - Stack (LIFO)
-  - Priority Queue
-  - Set (Unique items)
-  - Hash Map (Key-value pairs)
-  - Deque (Double-ended queue)
-  - Bloom Filter (Probabilistic membership testing)
-  - Trie (Prefix tree)
-  - LRU Cache (Least Recently Used cache)
-  - Graph (Directed graph with weighted edges)
-  - Ring Buffer (Fixed-size circular buffer)
-
-- **Advanced Connection Management**:
-  - Connection pooling with configurable pool size
-  - Automatic reconnection with exponential backoff
-  - Circuit breaker pattern for fault tolerance
-  - Health checks
-  - SSL/TLS support
-
-- **Robust Error Handling**:
-  - Custom exception hierarchy
-  - Proper logging and error tracking
-  - Graceful fallbacks
-  - Comprehensive error messages
-
-- **Configuration Management**:
-  - Environment variable support
-  - YAML configuration files
-  - Dynamic configuration updates
-  - Type-safe configuration with validation
-
-- **Performance Features**:
-  - O(1) operations for most data structures
-  - Connection pooling
-  - Batch operations support
-  - Data compression
-  - Automatic type preservation
-
-- **Type System**:
-  - Automatic type preservation
-  - Custom type support
-  - Pydantic integration
-  - Built-in support for datetime, bytes, etc.
-  - Nested type support
-
-## 📚 Documentation
-
-- [Usage Guide](docs/usage.md) - Comprehensive guide for all data structures
-- [Examples](examples/) - Example code for each data structure
-
-## 🚀 Quick Start
-
-### Installation
+## Installation
 
 ```bash
 pip install redis-data-structures
 ```
 
-### Prerequisites
-
-- Python 3.7+
-- Redis server (local installation or Docker)
-- Dependencies:
-  ```
-  redis>=4.5.0
-  pydantic>=2.0.0  # Optional, for enhanced type support
-  mmh3>=5.0.1  # Optional, for BloomFilter
-  pyyaml>=6.0  # Optional, for YAML configuration
-  ```
-
-### Basic Usage
+## Quick Start
 
 ```python
-from redis_data_structures import Queue, Stack, PriorityQueue, ConnectionManager
+from redis_data_structures import Queue, Stack, Set, ConnectionManager
 
 # Initialize connection manager
 connection_manager = ConnectionManager(
-    host="localhost",
+    host='localhost',
     port=6379,
-    db=0,
-    max_connections=10
+    db=0
 )
 
-# Initialize data structures with connection manager
+# Create data structures
 queue = Queue(connection_manager=connection_manager)
 stack = Stack(connection_manager=connection_manager)
+set_ds = Set(connection_manager=connection_manager)
 
-# Basic operations
-queue.push('my_queue', 'item1')
-item = queue.pop('my_queue')  # Returns 'item1'
-
-# With type preservation
-from datetime import datetime
-stack.push('my_stack', {'timestamp': datetime.now(), 'value': 42})
-data = stack.pop('my_stack')  # Returns dict with datetime preserved
+# Use them like regular Python data structures
+queue.push('tasks', {'id': 1, 'action': 'process'})
+stack.push('history', {'event': 'user_login'})
+set_ds.add('users', {'id': 'user1', 'name': 'Alice'})
 ```
 
-### Advanced Usage
+## Available Data Structures
+
+- **Queue**: FIFO queue for job processing and message passing
+- **Stack**: LIFO stack for undo systems and execution contexts
+- **Set**: Unique collection for membership testing and deduplication
+- **HashMap**: Key-value store for caching and metadata
+- **PriorityQueue**: Priority-based queue for task scheduling
+- **RingBuffer**: Fixed-size circular buffer for logs and metrics
+- **Graph**: Directed graph for relationships and networks
+- **Trie**: Prefix tree for autocomplete and spell checking
+- **BloomFilter**: Probabilistic set for membership testing
+- **Deque**: Double-ended queue for sliding windows
+
+## Basic Usage
+
+### Queue Example
 
 ```python
-from redis_data_structures import Graph, ConnectionManager, CustomRedisDataType
-from datetime import datetime, timedelta
+from redis_data_structures import Queue, ConnectionManager
 
-# Custom type example
-class User(CustomRedisDataType):
-    def __init__(self, name: str, joined: datetime):
-        self.name = name
-        self.joined = joined
-
-    def to_dict(self) -> dict:
-        return {
-            "name": self.name,
-            "joined": self.joined.isoformat()
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict) -> 'User':
-        return cls(
-            name=data["name"],
-            joined=datetime.fromisoformat(data["joined"])
-        )
-
-# Create connection manager with advanced settings
+# Initialize connection manager
 connection_manager = ConnectionManager(
-    host="redis.example.com",
+    host='localhost',
+    port=6379,
+    db=0
+)
+
+# Create queue
+queue = Queue(connection_manager=connection_manager)
+
+# Add items
+queue.push('tasks', {'id': 1, 'action': 'process'})
+queue.push('tasks', {'id': 2, 'action': 'analyze'})
+
+# Process items
+task = queue.pop('tasks')  # Returns first task
+size = queue.size('tasks')  # Get current size
+```
+
+### Stack Example
+
+```python
+from redis_data_structures import Stack, ConnectionManager
+
+# Initialize connection manager
+connection_manager = ConnectionManager(
+    host='localhost',
+    port=6379,
+    db=0
+)
+
+# Create stack
+stack = Stack(connection_manager=connection_manager)
+
+# Add items
+stack.push('commands', {'action': 'create', 'data': {'id': 1}})
+stack.push('commands', {'action': 'update', 'data': {'id': 1}})
+
+# Process items
+command = stack.pop('commands')  # Returns last command
+size = stack.size('commands')    # Get current size
+```
+
+### Set Example
+
+```python
+from redis_data_structures import Set, ConnectionManager
+
+# Initialize connection manager
+connection_manager = ConnectionManager(
+    host='localhost',
+    port=6379,
+    db=0
+)
+
+# Create set
+set_ds = Set(connection_manager=connection_manager)
+
+# Add items
+set_ds.add('users', {'id': 'user1', 'name': 'Alice'})
+set_ds.add('users', {'id': 'user2', 'name': 'Bob'})
+
+# Check membership
+exists = set_ds.contains('users', {'id': 'user1'})
+members = set_ds.get_all('users')
+```
+
+## Advanced Usage
+
+### Connection Management
+
+```python
+from redis_data_structures import ConnectionManager
+from datetime import timedelta
+
+# Create connection manager with advanced features
+connection_manager = ConnectionManager(
+    host='redis.example.com',
     port=6380,
     max_connections=20,
     retry_max_attempts=5,
@@ -145,111 +148,64 @@ connection_manager = ConnectionManager(
     ssl_ca_certs='/path/to/ca.pem'
 )
 
-# Initialize graph with connection manager
-graph = Graph(connection_manager=connection_manager)
-
-# Add vertices with custom type
-user1 = User("Alice", datetime.now())
-user2 = User("Bob", datetime.now())
-
-graph.add_vertex('my_graph', 'v1', user1)
-graph.add_vertex('my_graph', 'v2', user2)
-graph.add_edge('my_graph', 'v1', 'v2', weight=1.5)
-
-# Get vertex data (automatically deserializes to User object)
-alice = graph.get_vertex_data('my_graph', 'v1')
-print(f"User: {alice.name}, Joined: {alice.joined}")
-```
-
-## 🔧 Redis Setup
-
-### Using Docker (Recommended)
-```bash
-# Pull and run Redis
-docker run --name redis-ds -p 6379:6379 -d redis:latest
-```
-
-### Local Installation
-```bash
-# macOS
-brew install redis
-brew services start redis
-
-# Ubuntu/Debian
-sudo apt-get install redis-server
-sudo systemctl start redis-server
-```
-
-## 🔍 Configuration
-
-### Environment Variables
-
-```bash
-# Redis connection
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
-export REDIS_DB=0
-export REDIS_PASSWORD=secret
-export REDIS_SSL=true
-export REDIS_MAX_CONNECTIONS=10
-export REDIS_RETRY_MAX_ATTEMPTS=3
-export REDIS_CIRCUIT_BREAKER_THRESHOLD=5
-export REDIS_CIRCUIT_BREAKER_TIMEOUT=60
-```
-
-## 🛠️ Advanced Features
-
-### Connection Management
-```python
-from redis_data_structures import Queue, ConnectionManager
-from datetime import timedelta
-
-# Custom connection manager
-connection_manager = ConnectionManager(
-    host="localhost",
-    max_connections=20,
-    retry_max_attempts=5,
-    circuit_breaker_threshold=10,
-    circuit_breaker_timeout=timedelta(minutes=5),
-    ssl=True,
-    ssl_cert_reqs='required',
-    ssl_ca_certs='/path/to/ca.pem'
-)
-
-# Initialize data structure with connection manager
+# Share connection manager across data structures
 queue = Queue(connection_manager=connection_manager)
-
-# Check connection health
-health = connection_manager.health_check()
-print(f"Status: {health['status']}")
-print(f"Latency: {health['latency_ms']}ms")
-print(f"Pool: {health['connection_pool']}")
-print(f"Circuit Breaker: {health['circuit_breaker']}")
+stack = Stack(connection_manager=connection_manager)
+set_ds = Set(connection_manager=connection_manager)
 ```
 
-## 🤝 Contributing
+### Complex Types
 
-We welcome contributions! Here's how you can help:
+```python
+from datetime import datetime
+
+# Store any JSON-serializable Python object
+user = {
+    'id': 'user1',
+    'name': 'Alice',
+    'joined': datetime.now().isoformat(),
+    'metadata': {
+        'role': 'admin',
+        'preferences': {'theme': 'dark'}
+    }
+}
+
+# The object will be automatically serialized/deserialized
+set_ds.add('users', user)
+stored_user = set_ds.get_all('users')[0]
+```
+
+## Best Practices
+
+1. **Connection Management**
+   - Use a shared connection manager for multiple data structures
+   - Configure appropriate connection pool size
+   - Enable automatic retries for transient failures
+
+2. **Error Handling**
+   ```python
+   try:
+       queue.push('tasks', task)
+   except Exception as e:
+       logger.error(f"Error adding task: {e}")
+       # Handle error...
+   ```
+
+3. **Health Checks**
+   ```python
+   health = connection_manager.health_check()
+   if health['status'] != 'healthy':
+       logger.warning(f"Connection issues: {health}")
+   ```
+
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Run tests with `pytest`
+5. Submit a pull request
 
-Please read our [Contributing Guidelines](CONTRIBUTING.md) for details.
+## License
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Redis team for the amazing database
-- All our contributors
-- Python community
-
-## 📬 Support
-
-- 🐛 [Report bugs](https://github.com/vndee/redis-data-structures/issues)
-- 💡 [Request features](https://github.com/vndee/redis-data-structures/issues)
+MIT License. See LICENSE file for details.
