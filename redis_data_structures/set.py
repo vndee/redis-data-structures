@@ -1,5 +1,6 @@
 from typing import Any, Optional
 from typing import Set as PySet
+import json
 
 from .base import RedisDataStructure
 
@@ -13,6 +14,22 @@ class Set(RedisDataStructure):
     implementing features that require set operations like unions and intersections.
     """
 
+    def _compare_data(self, data1: Any, data2: Any) -> bool:
+        """Compare two data items by their JSON representation.
+
+        Args:
+            data1: First data item
+            data2: Second data item
+
+        Returns:
+            bool: True if the items are equal, False otherwise
+        """
+        try:
+            return json.dumps(data1, sort_keys=True) == json.dumps(data2, sort_keys=True)
+        except (TypeError, ValueError):
+            # If JSON serialization fails, fall back to direct comparison
+            return data1 == data2
+
     def _find_item(self, key: str, data: Any) -> Optional[str]:
         """Find the serialized item in the set that matches the given data.
 
@@ -25,12 +42,21 @@ class Set(RedisDataStructure):
         """
         try:
             items = self.redis_client.smembers(key)
-            if isinstance(items, (set, list)):
-                for item in items:
+            if not items:
+                return None
+
+            for item in items:
+                try:
+                    # Handle bytes to string conversion if needed
                     if isinstance(item, bytes):
-                        item_str = item.decode("utf-8")
-                        if self._deserialize(item_str)["data"] == data:
-                            return item_str
+                        item = item.decode('utf-8')
+                    # Deserialize the item and extract the data
+                    deserialized = self._deserialize(item)["data"]
+                    if self._compare_data(deserialized, data):
+                        return item
+                except (json.JSONDecodeError, TypeError, KeyError) as e:
+                    print(f"Error deserializing item: {e}")
+                    continue
             return None
         except Exception as e:
             print(f"Error finding item: {e}")
@@ -52,9 +78,13 @@ class Set(RedisDataStructure):
                 return False
 
             # If not, add it
-            serialized = self._serialize(data)
-            result = self.redis_client.sadd(key, serialized)
-            return bool(result)
+            try:
+                serialized = self._serialize(data)
+                result = self.redis_client.sadd(key, serialized)
+                return bool(result)
+            except (TypeError, ValueError) as e:
+                print(f"Error serializing data: {e}")
+                return False
         except Exception as e:
             print(f"Error adding to set: {e}")
             return False
@@ -71,16 +101,12 @@ class Set(RedisDataStructure):
         """
         try:
             # Find the actual serialized item
-            items = self.redis_client.smembers(key)
-            if not items:
+            found_item = self._find_item(key, data)
+            if found_item is None:
                 return False
 
-            for item in items:
-                item_str = item.decode("utf-8") if isinstance(item, bytes) else item
-                if self._deserialize(item_str)["data"] == data:
-                    result = self.redis_client.srem(key, item)
-                    return bool(result)
-            return False
+            result = self.redis_client.srem(key, found_item)
+            return bool(result)
         except Exception as e:
             print(f"Error removing from set: {e}")
             return False
@@ -101,9 +127,17 @@ class Set(RedisDataStructure):
                 return False
 
             for item in items:
-                item_str = item.decode("utf-8") if isinstance(item, bytes) else item
-                if self._deserialize(item_str)["data"] == data:
-                    return True
+                try:
+                    # Handle bytes to string conversion if needed
+                    if isinstance(item, bytes):
+                        item = item.decode('utf-8')
+                    # Deserialize the item and extract the data
+                    deserialized = self._deserialize(item)["data"]
+                    if self._compare_data(deserialized, data):
+                        return True
+                except (json.JSONDecodeError, TypeError, KeyError) as e:
+                    print(f"Error deserializing item: {e}")
+                    continue
             return False
         except Exception as e:
             print(f"Error checking set membership: {e}")
@@ -116,18 +150,28 @@ class Set(RedisDataStructure):
             key (str): The Redis key for this set
 
         Returns:
-            Set[Any]: Set of all members
+            Set[Any]: Set of all members. Only hashable types are supported.
         """
         try:
             items = self.redis_client.smembers(key)
             if not items:
                 return set()
 
-            result = set()
+            # Create a set to store deserialized items
+            result_set = set()
             for item in items:
-                item_str = item.decode("utf-8") if isinstance(item, bytes) else item
-                result.add(self._deserialize(item_str)["data"])
-            return result
+                try:
+                    # Handle bytes to string conversion if needed
+                    if isinstance(item, bytes):
+                        item = item.decode('utf-8')
+                    # Deserialize the item and extract the data
+                    deserialized = self._deserialize(item)["data"]
+                    result_set.add(deserialized)
+                except (json.JSONDecodeError, TypeError, KeyError) as e:
+                    print(f"Error deserializing item: {e}")
+                    continue
+
+            return result_set
         except Exception as e:
             print(f"Error getting set members: {e}")
             return set()

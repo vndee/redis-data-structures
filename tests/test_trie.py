@@ -31,7 +31,12 @@ class TestTrie(unittest.TestCase):
             self.trie.insert(self.test_key, word)
 
         # Test various prefixes
-        assert set(self.trie.starts_with(self.test_key, "hel")) == {"hello", "help", "helper", "helping"}
+        assert set(self.trie.starts_with(self.test_key, "hel")) == {
+            "hello",
+            "help",
+            "helper",
+            "helping",
+        }
         assert set(self.trie.starts_with(self.test_key, "help")) == {"help", "helper", "helping"}
         assert set(self.trie.starts_with(self.test_key, "world")) == {"world"}
         assert set(self.trie.starts_with(self.test_key, "wor")) == {"world"}
@@ -85,4 +90,4 @@ class TestTrie(unittest.TestCase):
         assert self.trie.search(self.test_key, "")
         assert self.trie.size(self.test_key) == 1
         assert self.trie.delete(self.test_key, "")
-        assert not self.trie.search(self.test_key, "") 
+        assert not self.trie.search(self.test_key, "")

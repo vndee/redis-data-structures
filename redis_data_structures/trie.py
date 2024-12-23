@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Set
+from typing import List
 
 from .base import RedisDataStructure
 
@@ -116,7 +116,7 @@ class Trie(RedisDataStructure):
             words (List[str]): List to store found words
         """
         node_key = self._get_node_key(key, prefix)
-        
+
         # If this is a word, add it to results
         if self.redis_client.hexists(node_key, "*"):
             words.append(current_word)
@@ -124,7 +124,7 @@ class Trie(RedisDataStructure):
         # Get all children
         children = self.redis_client.hkeys(node_key)
         for child in children:
-            child_str = child.decode('utf-8')
+            child_str = child.decode("utf-8")
             if child_str != "*":
                 next_prefix = prefix + child_str if prefix else child_str
                 self._collect_words(key, next_prefix, current_word + child_str, words)
@@ -177,7 +177,7 @@ class Trie(RedisDataStructure):
         try:
             # Check root node for empty string
             count = 1 if self.redis_client.hexists(key, "*") else 0
-            
+
             # Check all other nodes
             pattern = f"{key}{self.delimiter}*"
             for k in self.redis_client.scan_iter(pattern):
@@ -207,4 +207,4 @@ class Trie(RedisDataStructure):
             return True
         except Exception as e:
             print(f"Error clearing trie: {e}")
-            return False 
+            return False
