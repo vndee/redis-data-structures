@@ -11,7 +11,7 @@ pip install redis-data-structures
 ## Quick Start
 
 ```python
-from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Deque, BloomFilter
+from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Deque, BloomFilter, Trie
 
 # Initialize any data structure
 queue = Queue(host='localhost', port=6379)
@@ -55,6 +55,12 @@ item = queue.pop('my_queue')
 - Space-efficient probabilistic data structure
 - Ideal for reducing unnecessary lookups, deduplication, and caching optimization
 - [View detailed documentation](docs/bloom_filter.md)
+
+### [Trie](docs/trie.md)
+- Prefix tree implementation for efficient string operations
+- Perfect for autocomplete, spell checking, and prefix matching
+- Supports empty string storage
+- [View detailed documentation](docs/trie.md)
 
 ## Common Features
 

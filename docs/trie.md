@@ -12,6 +12,7 @@ A Redis-backed trie (prefix tree) implementation perfect for building features l
 - Atomic operations
 - Size tracking
 - Clear operation
+- Empty string support
 
 ## Operations
 
@@ -57,6 +58,12 @@ trie.delete('my_trie', 'hello')
 # Get size and clear
 size = trie.size('my_trie')
 trie.clear('my_trie')
+
+# Empty string handling
+trie.insert('my_trie', '')  # Insert empty string
+exists = trie.search('my_trie', '')  # Returns True
+size = trie.size('my_trie')  # Returns 1 (counts empty string)
+trie.delete('my_trie', '')  # Delete empty string
 ```
 
 ## Example Use Cases
@@ -122,6 +129,7 @@ The trie implementation uses Redis hashes to store nodes, where:
 - Each node is a Redis hash containing its children
 - Special marker '*' indicates end of word
 - Keys are structured as `{trie_key}:{prefix}`
+- Empty strings are stored in the root node
 - Thread-safe operations using Redis atomic commands
 
 ## Best Practices
@@ -180,4 +188,4 @@ The trie implementation uses Redis hashes to store nodes, where:
 3. **Connection Issues**
    - Check Redis connection
    - Verify credentials
-   - Monitor network latency 
+   - Monitor network latency
