@@ -26,7 +26,7 @@ A Python package providing Redis-backed implementations of common data structure
   - Connection pooling with configurable pool size
   - Automatic reconnection with exponential backoff
   - Circuit breaker pattern for fault tolerance
-  - Health checks and monitoring
+  - Health checks
   - SSL/TLS support
 
 - **Robust Error Handling**:
@@ -48,13 +48,6 @@ A Python package providing Redis-backed implementations of common data structure
   - Data compression
   - Automatic type preservation
 
-- **Monitoring and Observability**:
-  - Operation timing metrics
-  - Success/failure rate tracking
-  - Performance statistics
-  - Health monitoring
-  - Debug logging
-
 - **Type System**:
   - Automatic type preservation
   - Custom type support
@@ -62,17 +55,9 @@ A Python package providing Redis-backed implementations of common data structure
   - Built-in support for datetime, bytes, etc.
   - Nested type support
 
-- **Production Ready**:
-  - Thread-safe operations
-  - Persistent storage
-  - Comprehensive error handling
-  - Monitoring support
-  - Graceful fallbacks
-
 ## 📚 Documentation
 
 - [Usage Guide](docs/usage.md) - Comprehensive guide for all data structures
-- [Type Preservation](docs/type_preservation.md) - Details about Python type preservation
 - [Examples](examples/) - Example code for each data structure
 
 ## 🚀 Quick Start
@@ -98,17 +83,19 @@ pip install redis-data-structures
 ### Basic Usage
 
 ```python
-from redis_data_structures import Queue, Stack, PriorityQueue, Config
+from redis_data_structures import Queue, Stack, PriorityQueue, ConnectionManager
 
-# Initialize with default configuration
-queue = Queue()
+# Initialize connection manager
+connection_manager = ConnectionManager(
+    host="localhost",
+    port=6379,
+    db=0,
+    max_connections=10
+)
 
-# Initialize with custom configuration
-config = Config.from_env()  # Load from environment variables
-# or
-config = Config.from_yaml('config.yaml')  # Load from YAML file
-
-stack = Stack(config=config)
+# Initialize data structures with connection manager
+queue = Queue(connection_manager=connection_manager)
+stack = Stack(connection_manager=connection_manager)
 
 # Basic operations
 queue.push('my_queue', 'item1')
@@ -123,8 +110,8 @@ data = stack.pop('my_stack')  # Returns dict with datetime preserved
 ### Advanced Usage
 
 ```python
-from redis_data_structures import Graph, Config, CustomRedisDataType
-from datetime import datetime
+from redis_data_structures import Graph, ConnectionManager, CustomRedisDataType
+from datetime import datetime, timedelta
 
 # Custom type example
 class User(CustomRedisDataType):
@@ -145,13 +132,21 @@ class User(CustomRedisDataType):
             joined=datetime.fromisoformat(data["joined"])
         )
 
-# Create configuration
-config = Config.from_env()
-config.data_structures.compression_enabled = True
-config.data_structures.debug_enabled = True
+# Create connection manager with advanced settings
+connection_manager = ConnectionManager(
+    host="redis.example.com",
+    port=6380,
+    max_connections=20,
+    retry_max_attempts=5,
+    circuit_breaker_threshold=10,
+    circuit_breaker_timeout=timedelta(minutes=5),
+    ssl=True,
+    ssl_cert_reqs='required',
+    ssl_ca_certs='/path/to/ca.pem'
+)
 
-# Initialize graph with configuration
-graph = Graph(config=config)
+# Initialize graph with connection manager
+graph = Graph(connection_manager=connection_manager)
 
 # Add vertices with custom type
 user1 = User("Alice", datetime.now())
@@ -197,51 +192,9 @@ export REDIS_DB=0
 export REDIS_PASSWORD=secret
 export REDIS_SSL=true
 export REDIS_MAX_CONNECTIONS=10
-
-# Data structure settings
-export REDIS_DS_PREFIX=myapp
-export REDIS_DS_COMPRESSION=true
-export REDIS_DS_METRICS=true
-export REDIS_DS_DEBUG=true
-```
-
-### YAML Configuration
-
-```yaml
-redis:
-  host: localhost
-  port: 6379
-  db: 0
-  password: secret
-  ssl: true
-  max_connections: 10
-  retry_max_attempts: 3
-  circuit_breaker_threshold: 5
-
-data_structures:
-  prefix: myapp
-  compression_enabled: true
-  compression_threshold: 1024
-  metrics_enabled: true
-  debug_enabled: true
-```
-
-## 📈 Monitoring
-
-```python
-from redis_data_structures import Queue, MetricsCollector
-from datetime import timedelta
-
-queue = Queue()
-
-# Get metrics for last 5 minutes
-metrics = MetricsCollector()
-stats = metrics.get_metrics("Queue").get_stats(window=timedelta(minutes=5))
-
-print(f"Total operations: {stats['total_operations']}")
-print(f"Success rate: {stats['success_rate']}%")
-print(f"Average duration: {stats['avg_duration_ms']}ms")
-print(f"Error count: {stats['error_count']}")
+export REDIS_RETRY_MAX_ATTEMPTS=3
+export REDIS_CIRCUIT_BREAKER_THRESHOLD=5
+export REDIS_CIRCUIT_BREAKER_TIMEOUT=60
 ```
 
 ## 🛠️ Advanced Features
@@ -257,31 +210,21 @@ connection_manager = ConnectionManager(
     max_connections=20,
     retry_max_attempts=5,
     circuit_breaker_threshold=10,
-    circuit_breaker_timeout=timedelta(minutes=5)
+    circuit_breaker_timeout=timedelta(minutes=5),
+    ssl=True,
+    ssl_cert_reqs='required',
+    ssl_ca_certs='/path/to/ca.pem'
 )
 
+# Initialize data structure with connection manager
 queue = Queue(connection_manager=connection_manager)
-```
 
-### Type Registry
-```python
-from redis_data_structures import TypeRegistry, CustomRedisDataType
-
-# Register custom type
-class Point(CustomRedisDataType):
-    def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
-
-    def to_dict(self) -> dict:
-        return {"x": self.x, "y": self.y}
-
-    @classmethod
-    def from_dict(cls, data: dict) -> 'Point':
-        return cls(data["x"], data["y"])
-
-registry = TypeRegistry()
-registry.register(Point)
+# Check connection health
+health = connection_manager.health_check()
+print(f"Status: {health['status']}")
+print(f"Latency: {health['latency_ms']}ms")
+print(f"Pool: {health['connection_pool']}")
+print(f"Circuit Breaker: {health['circuit_breaker']}")
 ```
 
 ## 🤝 Contributing

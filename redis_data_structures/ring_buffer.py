@@ -1,6 +1,9 @@
 from typing import Any, List
+import logging
 
 from .base import RedisDataStructure
+
+logger = logging.getLogger(__name__)
 
 
 class RingBuffer(RedisDataStructure):
@@ -26,15 +29,18 @@ class RingBuffer(RedisDataStructure):
 
     def _get_position_key(self, key: str) -> str:
         """Get the Redis key for storing the current write position."""
-        return f"{key}:pos"
+        return f"{self._get_key(key)}:pos"
 
     def _get_current_position(self, key: str) -> int:
         """Get the current write position for the buffer."""
         try:
-            pos = self.redis_client.get(self._get_position_key(key))
+            pos = self.connection_manager.execute(
+                "get",
+                self._get_position_key(key)
+            )
             return int(pos) if pos is not None else 0
         except Exception as e:
-            print(f"Error getting position: {e}")
+            logger.error(f"Error getting position: {e}")
             return 0
 
     def push(self, key: str, data: Any) -> bool:
@@ -53,25 +59,26 @@ class RingBuffer(RedisDataStructure):
             # Serialize data
             serialized = self._serialize(data)
 
-            # Use transaction to ensure atomicity
-            pipe = self.redis_client.pipeline()
-
             # Get current size
             current_size = self.size(key)
 
+            # Use pipeline for atomic operations
+            pipe = self.connection_manager.pipeline()
+
+            cache_key = self._get_key(key)
             if current_size < self.capacity:
                 # If we haven't reached capacity, just append
-                pipe.rpush(key, serialized)
+                pipe.rpush(cache_key, serialized)
             else:
                 # If at capacity, remove oldest and append new
-                pipe.lpop(key)
-                pipe.rpush(key, serialized)
+                pipe.lpop(cache_key)
+                pipe.rpush(cache_key, serialized)
 
-            # Execute transaction
+            # Execute pipeline
             pipe.execute()
             return True
         except Exception as e:
-            print(f"Error pushing to ring buffer: {e}")
+            logger.error(f"Error pushing to ring buffer: {e}")
             return False
 
     def get_all(self, key: str) -> List[Any]:
@@ -85,7 +92,12 @@ class RingBuffer(RedisDataStructure):
         """
         try:
             # Get all items
-            items = self.redis_client.lrange(key, 0, -1)
+            items = self.connection_manager.execute(
+                "lrange",
+                self._get_key(key),
+                0,
+                -1
+            )
 
             # Deserialize items
             return [
@@ -93,7 +105,7 @@ class RingBuffer(RedisDataStructure):
                 for item in items
             ]
         except Exception as e:
-            print(f"Error getting items from ring buffer: {e}")
+            logger.error(f"Error getting items from ring buffer: {e}")
             return []
 
     def get_latest(self, key: str, n: int = 1) -> List[Any]:
@@ -104,43 +116,25 @@ class RingBuffer(RedisDataStructure):
             n (int): Number of items to retrieve (default: 1)
 
         Returns:
-            List[Any]: List of most recent items (newest to oldest)
+            List[Any]: List of items in reverse order (newest to oldest)
         """
         try:
-            # Get current size
-            size = self.size(key)
-            if size == 0:
-                return []
-
-            # Ensure n doesn't exceed buffer size
-            n = min(n, size)
-
             # Get latest n items
-            items = self.redis_client.lrange(key, -n, -1)
+            items = self.connection_manager.execute(
+                "lrange",
+                self._get_key(key),
+                -n,
+                -1
+            )
 
-            # Deserialize items in reverse order (newest first)
+            # Deserialize items in reverse order
             return [
                 self._deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
                 for item in reversed(items)
             ]
         except Exception as e:
-            print(f"Error getting latest items from ring buffer: {e}")
+            logger.error(f"Error getting latest items from ring buffer: {e}")
             return []
-
-    def clear(self, key: str) -> bool:
-        """Clear the ring buffer.
-
-        Args:
-            key (str): The Redis key for this buffer
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            return bool(self.redis_client.delete(key))
-        except Exception as e:
-            print(f"Error clearing ring buffer: {e}")
-            return False
 
     def size(self, key: str) -> int:
         """Get the current number of items in the buffer.
@@ -152,7 +146,29 @@ class RingBuffer(RedisDataStructure):
             int: Number of items in the buffer
         """
         try:
-            return self.redis_client.llen(key)
+            return self.connection_manager.execute(
+                "llen",
+                self._get_key(key)
+            ) or 0
         except Exception as e:
-            print(f"Error getting ring buffer size: {e}")
+            logger.error(f"Error getting ring buffer size: {e}")
             return 0
+
+    def clear(self, key: str) -> bool:
+        """Clear all items from the buffer.
+
+        Args:
+            key (str): The Redis key for this buffer
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            pipe = self.connection_manager.pipeline()
+            pipe.delete(self._get_key(key))
+            pipe.delete(self._get_position_key(key))
+            pipe.execute()
+            return True
+        except Exception as e:
+            logger.error(f"Error clearing ring buffer: {e}")
+            return False

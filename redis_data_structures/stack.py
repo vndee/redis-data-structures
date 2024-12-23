@@ -2,7 +2,6 @@ from typing import Any, Optional
 import logging
 
 from .base import RedisDataStructure
-from .metrics import track_operation
 
 logger = logging.getLogger(__name__)
 
@@ -14,31 +13,28 @@ class Stack(RedisDataStructure):
     are added to the front and removed from the front, following LIFO order.
     """
 
-    @track_operation("push")
     def push(self, key: str, data: Any) -> bool:
         """Push an item onto the top of the stack.
 
         Args:
             key (str): The Redis key for this stack
-            data (Any): Data to be stored
+            data (Any): Data to be stored. Can be any serializable Python object.
 
         Returns:
             bool: True if successful, False otherwise
         """
         try:
-            serialized = self._serialize(data)
-            return bool(
-                self.connection_manager.execute(
-                    "lpush",
-                    self._get_key(key),
-                    serialized
-                )
+            serialized = self._serialize(data, include_timestamp=False)
+            result = self.connection_manager.execute(
+                "lpush",
+                self._get_key(key),
+                serialized
             )
+            return bool(result)
         except Exception as e:
             logger.error(f"Error pushing to stack: {e}")
             return False
 
-    @track_operation("pop")
     def pop(self, key: str) -> Optional[Any]:
         """Pop an item from the top of the stack.
 
@@ -53,8 +49,7 @@ class Stack(RedisDataStructure):
                 "lpop",
                 self._get_key(key)
             )
-            if data:
-                # Handle bytes response from Redis
+            if data is not None:
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
                 return self._deserialize(data)
@@ -63,7 +58,6 @@ class Stack(RedisDataStructure):
             logger.error(f"Error popping from stack: {e}")
             return None
 
-    @track_operation("peek")
     def peek(self, key: str) -> Optional[Any]:
         """Peek at the top item without removing it.
 
@@ -79,8 +73,7 @@ class Stack(RedisDataStructure):
                 self._get_key(key),
                 0
             )
-            if data:
-                # Handle bytes response from Redis
+            if data is not None:
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
                 return self._deserialize(data)
@@ -89,7 +82,6 @@ class Stack(RedisDataStructure):
             logger.error(f"Error peeking stack: {e}")
             return None
 
-    @track_operation("size")
     def size(self, key: str) -> int:
         """Get the size of the stack.
 
@@ -100,10 +92,30 @@ class Stack(RedisDataStructure):
             int: Number of elements in the stack
         """
         try:
-            return self.connection_manager.execute(
+            result = self.connection_manager.execute(
                 "llen",
                 self._get_key(key)
-            ) or 0
+            )
+            return int(result) if result is not None else 0
         except Exception as e:
             logger.error(f"Error getting stack size: {e}")
             return 0
+
+    def clear(self, key: str) -> bool:
+        """Remove all elements from the stack.
+
+        Args:
+            key (str): The Redis key for this stack
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            self.connection_manager.execute(
+                "delete",
+                self._get_key(key)
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Error clearing stack: {e}")
+            return False

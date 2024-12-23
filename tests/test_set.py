@@ -9,11 +9,13 @@ from redis_data_structures import Set
 
 class TestSet(unittest.TestCase):
     def setUp(self):
-        self.set_ds = Set(host="localhost", port=6379, db=0)
+        """Set up test cases."""
+        self.set_ds = Set()
         self.test_key = "test_set"
         self.set_ds.clear(self.test_key)
 
     def tearDown(self):
+        """Clean up after tests."""
         self.set_ds.clear(self.test_key)
 
     def test_add_and_remove(self):
@@ -75,7 +77,7 @@ class TestSet(unittest.TestCase):
 
         # Test members retrieval
         members = self.set_ds.members(self.test_key)
-        self.assertEqual(members, items, "Retrieved members should match added items")
+        self.assertEqual(set(members), items, "Retrieved members should match added items")
 
     def test_size(self):
         """Test size operations."""
@@ -113,7 +115,7 @@ class TestSet(unittest.TestCase):
         self.set_ds.add(self.test_key, "item2")
 
         # Clear and verify
-        self.set_ds.clear(self.test_key)
+        self.assertTrue(self.set_ds.clear(self.test_key))
         self.assertEqual(self.set_ds.size(self.test_key), 0, "Set should be empty after clear")
         self.assertEqual(
             self.set_ds.members(self.test_key),
@@ -143,8 +145,8 @@ class TestSet(unittest.TestCase):
     def test_complex_data_types(self):
         """Test with complex data types."""
         # Test with JSON data
-        test_json1 = json.dumps({"key": "value", "nested": {"data": True}})
-        test_json2 = json.dumps([1, 2, [3, 4]])
+        test_json1 = {"key": "value", "nested": {"data": True}}
+        test_json2 = [1, 2, [3, 4]]
 
         # Add complex items
         self.assertTrue(self.set_ds.add(self.test_key, test_json1), "Failed to add first JSON item")
@@ -166,8 +168,14 @@ class TestSet(unittest.TestCase):
         # Test members retrieval
         members = self.set_ds.members(self.test_key)
         self.assertEqual(len(members), 2, "Set should contain exactly 2 items")
-        self.assertIn(test_json1, members, "Members should contain first JSON item")
-        self.assertIn(test_json2, members, "Members should contain second JSON item")
+        self.assertTrue(
+            test_json1 in members,
+            "Members should contain first JSON item",
+        )
+        self.assertTrue(
+            test_json2 in members,
+            "Members should contain second JSON item",
+        )
 
     def test_serialization_edge_cases(self):
         """Test with various data types."""
@@ -179,9 +187,11 @@ class TestSet(unittest.TestCase):
             3.14,
             "",
             "Hello",
-            "[]",  # JSON string representing a list
-            "{}",  # JSON string representing a dict
-            '{"nested": {"data": [1, 2, 3]}}',  # Complex JSON string
+            [],
+            [1, 2, 3],
+            {},
+            {"a": 1, "b": 2},
+            {"nested": {"data": [1, 2, 3]}},
         ]
 
         for data in test_cases:
@@ -200,7 +210,10 @@ class TestSet(unittest.TestCase):
                 # Test members
                 members = self.set_ds.members(self.test_key)
                 self.assertEqual(len(members), 1, f"Set should contain exactly 1 item for {data!r}")
-                self.assertIn(data, members, f"Members should contain {data!r}")
+                self.assertTrue(
+                    data in members,
+                    f"Members should contain {data!r}",
+                )
 
                 # Test remove
                 self.assertTrue(
@@ -210,7 +223,7 @@ class TestSet(unittest.TestCase):
 
     def test_add_error_handling(self):
         """Test error handling in add method."""
-        with patch.object(self.set_ds.redis_client, "sadd", side_effect=RedisError):
+        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
             self.assertFalse(
                 self.set_ds.add(self.test_key, "data"),
                 "Should return False on Redis error",
@@ -218,24 +231,15 @@ class TestSet(unittest.TestCase):
 
     def test_remove_error_handling(self):
         """Test error handling in remove method."""
-        # Test error during smembers operation
-        with patch.object(self.set_ds.redis_client, "smembers", side_effect=RedisError):
+        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
             self.assertFalse(
                 self.set_ds.remove(self.test_key, "data"),
-                "Should return False on Redis error during find",
-            )
-
-        # Test error during srem operation
-        self.set_ds.add(self.test_key, "data")
-        with patch.object(self.set_ds.redis_client, "srem", side_effect=RedisError):
-            self.assertFalse(
-                self.set_ds.remove(self.test_key, "data"),
-                "Should return False on Redis error during remove",
+                "Should return False on Redis error",
             )
 
     def test_contains_error_handling(self):
         """Test error handling in contains method."""
-        with patch.object(self.set_ds.redis_client, "smembers", side_effect=RedisError):
+        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
             self.assertFalse(
                 self.set_ds.contains(self.test_key, "data"),
                 "Should return False on Redis error",
@@ -243,7 +247,7 @@ class TestSet(unittest.TestCase):
 
     def test_members_error_handling(self):
         """Test error handling in members method."""
-        with patch.object(self.set_ds.redis_client, "smembers", side_effect=RedisError):
+        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
             self.assertEqual(
                 self.set_ds.members(self.test_key),
                 set(),
@@ -252,12 +256,12 @@ class TestSet(unittest.TestCase):
 
     def test_size_error_handling(self):
         """Test error handling in size method."""
-        with patch.object(self.set_ds.redis_client, "scard", side_effect=RedisError):
+        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
             self.assertEqual(self.set_ds.size(self.test_key), 0, "Should return 0 on Redis error")
 
     def test_pop_error_handling(self):
         """Test error handling in pop method."""
-        with patch.object(self.set_ds.redis_client, "spop", side_effect=RedisError):
+        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
             self.assertIsNone(self.set_ds.pop(self.test_key), "Should return None on Redis error")
 
 

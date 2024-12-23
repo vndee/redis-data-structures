@@ -1,11 +1,13 @@
 import time
+from typing import Dict, Any
 
 from redis_data_structures import RingBuffer
 
 
 def demonstrate_log_rotation():
+    """Demonstrate ring buffer functionality with log rotation."""
     # Initialize buffer for log rotation
-    buffer = RingBuffer(capacity=5, host="localhost", port=6379, db=0)
+    buffer = RingBuffer(capacity=5)
     log_key = "example:logs"
 
     # Clear any existing data
@@ -24,8 +26,10 @@ def demonstrate_log_rotation():
     ]
 
     for log in logs:
-        buffer.push(log_key, log)
-        print(f"Added log: [{log['level']}] {log['message']}")
+        if buffer.push(log_key, log):
+            print(f"Added log: [{log['level']}] {log['message']}")
+        else:
+            print(f"Failed to add log: [{log['level']}] {log['message']}")
 
     # Show all logs
     print("\nAll logs in buffer:")
@@ -36,7 +40,10 @@ def demonstrate_log_rotation():
     # Add one more log (should cause rotation)
     new_log = {"level": "WARN", "message": "High memory usage", "timestamp": "2024-01-01T10:00:05"}
     print("\nAdding one more log (should rotate out oldest)...")
-    buffer.push(log_key, new_log)
+    if buffer.push(log_key, new_log):
+        print(f"Added log: [{new_log['level']}] {new_log['message']}")
+    else:
+        print(f"Failed to add log: [{new_log['level']}] {new_log['message']}")
 
     # Show latest logs
     print("\nLatest 3 logs:")
@@ -46,8 +53,9 @@ def demonstrate_log_rotation():
 
 
 def demonstrate_metrics_collection():
+    """Demonstrate ring buffer functionality with system metrics collection."""
     # Initialize buffer for system metrics
-    buffer = RingBuffer(capacity=10, host="localhost", port=6379, db=0)
+    buffer = RingBuffer(capacity=10)
     metrics_key = "example:metrics"
 
     # Clear any existing data
@@ -64,12 +72,14 @@ def demonstrate_metrics_collection():
             "memory_usage": 60 + i * 2,  # Simulated increasing memory usage
             "io_usage": 30 + i * 3,  # Simulated increasing I/O usage
         }
-        buffer.push(metrics_key, metrics)
-        print(
-            f"Recorded metrics: CPU: {metrics['cpu_usage']}%, "
-            f"Memory: {metrics['memory_usage']}%, "
-            f"I/O: {metrics['io_usage']}%",
-        )
+        if buffer.push(metrics_key, metrics):
+            print(
+                f"Recorded metrics: CPU: {metrics['cpu_usage']}%, "
+                f"Memory: {metrics['memory_usage']}%, "
+                f"I/O: {metrics['io_usage']}%"
+            )
+        else:
+            print("Failed to record metrics")
         time.sleep(0.5)  # Simulate time passing
 
     # Show latest metrics
@@ -79,13 +89,14 @@ def demonstrate_metrics_collection():
         print(
             f"CPU: {metrics['cpu_usage']}%, "
             f"Memory: {metrics['memory_usage']}%, "
-            f"I/O: {metrics['io_usage']}%",
+            f"I/O: {metrics['io_usage']}%"
         )
 
 
 def demonstrate_sliding_window():
+    """Demonstrate ring buffer functionality with price tracking."""
     # Initialize buffer for price tracking
-    buffer = RingBuffer(capacity=5, host="localhost", port=6379, db=0)
+    buffer = RingBuffer(capacity=5)
     prices_key = "example:prices"
 
     # Clear any existing data
@@ -104,8 +115,10 @@ def demonstrate_sliding_window():
     ]
 
     for update in prices:
-        buffer.push(prices_key, update)
-        print(f"Price update: ${update['price']} at {update['timestamp']}")
+        if buffer.push(prices_key, update):
+            print(f"Price update: ${update['price']} at {update['timestamp']}")
+        else:
+            print(f"Failed to update price: ${update['price']}")
 
     # Calculate average over window
     all_prices = buffer.get_all(prices_key)
@@ -115,7 +128,10 @@ def demonstrate_sliding_window():
     # Add new price (should rotate out oldest)
     new_price = {"timestamp": "2024-01-01T10:00:05", "price": 104.50}
     print(f"\nNew price update: ${new_price['price']}")
-    buffer.push(prices_key, new_price)
+    if buffer.push(prices_key, new_price):
+        print("Price update successful")
+    else:
+        print("Failed to update price")
 
     # Show latest prices
     print("\nLatest 3 prices:")

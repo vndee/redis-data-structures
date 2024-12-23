@@ -7,9 +7,8 @@
 3. [Connection Management](#connection-management)
 4. [Data Structures](#data-structures)
 5. [Type System](#type-system)
-6. [Monitoring](#monitoring)
-7. [Error Handling](#error-handling)
-8. [Best Practices](#best-practices)
+6. [Error Handling](#error-handling)
+7. [Best Practices](#best-practices)
 
 ## Installation
 
@@ -29,11 +28,13 @@ export REDIS_DB=0
 export REDIS_PASSWORD=secret
 export REDIS_SSL=true
 export REDIS_MAX_CONNECTIONS=10
+export REDIS_RETRY_MAX_ATTEMPTS=3
+export REDIS_CIRCUIT_BREAKER_THRESHOLD=5
+export REDIS_CIRCUIT_BREAKER_TIMEOUT=60
 
 # Data structure settings
 export REDIS_DS_PREFIX=myapp
 export REDIS_DS_COMPRESSION=true
-export REDIS_DS_METRICS=true
 export REDIS_DS_DEBUG=true
 ```
 
@@ -55,14 +56,13 @@ data_structures:
   prefix: myapp
   compression_enabled: true
   compression_threshold: 1024
-  metrics_enabled: true
   debug_enabled: true
 ```
 
 ### Using Configuration
 
 ```python
-from redis_data_structures import Config, Queue
+from redis_data_structures import Config, ConnectionManager, Queue
 
 # Load from environment
 config = Config.from_env()
@@ -70,12 +70,16 @@ config = Config.from_env()
 # Or load from YAML
 config = Config.from_yaml('config.yaml')
 
+# Create connection manager from config
+connection_manager = ConnectionManager.from_config(config)
+
+# Use connection manager with data structures
+queue = Queue(connection_manager=connection_manager)
+
 # Customize configuration
 config.data_structures.compression_enabled = True
 config.data_structures.compression_threshold = 2048
-
-# Use configuration
-queue = Queue(config=config)
+connection_manager = ConnectionManager.from_config(config)
 ```
 
 ## Connection Management
@@ -83,16 +87,20 @@ queue = Queue(config=config)
 ### Basic Connection
 
 ```python
-from redis_data_structures import Queue
+from redis_data_structures import ConnectionManager, Queue
 
-# Default connection (localhost:6379)
-queue = Queue()
+# Create a basic connection manager
+connection_manager = ConnectionManager(
+    host='localhost',
+    port=6379,
+    db=0
+)
 
-# Custom connection
-queue = Queue(host='redis.example.com', port=6380)
+# Initialize data structure with connection manager
+queue = Queue(connection_manager=connection_manager)
 
 # With SSL
-queue = Queue(
+connection_manager = ConnectionManager(
     host='redis.example.com',
     port=6380,
     ssl=True,
@@ -108,7 +116,7 @@ from redis_data_structures import ConnectionManager, Queue
 from datetime import timedelta
 
 # Create connection manager with advanced features
-manager = ConnectionManager(
+connection_manager = ConnectionManager(
     host='redis.example.com',
     port=6380,
     max_connections=20,
@@ -120,56 +128,72 @@ manager = ConnectionManager(
     ssl_ca_certs='/path/to/ca.pem'
 )
 
-# Use connection manager
-queue = Queue(connection_manager=manager)
+# Use connection manager with data structures
+queue = Queue(connection_manager=connection_manager)
 
 # Check connection health
-health = manager.health_check()
+health = connection_manager.health_check()
 print(f"Status: {health['status']}")
 print(f"Latency: {health['latency_ms']}ms")
 print(f"Pool: {health['connection_pool']}")
 print(f"Circuit Breaker: {health['circuit_breaker']}")
+
+# Connection manager features:
+# - Connection pooling with configurable pool size
+# - Automatic reconnection with exponential backoff
+# - Circuit breaker pattern for fault tolerance
+# - Health checks and monitoring
+# - SSL/TLS support
+# - Configurable retry attempts and timeouts
 ```
 
 ## Data Structures
 
-### Deque (Double-ended Queue)
+### Graph
 
 ```python
-from redis_data_structures import Deque
+from redis_data_structures import Graph, ConnectionManager
 
-deque = Deque()
+# Initialize connection manager
+connection_manager = ConnectionManager(host='localhost', port=6379)
 
-# Front operations
-deque.push_front('my_deque', 'first')
-deque.push_front('my_deque', 'second')
-item = deque.pop_front('my_deque')  # Returns 'second'
-front = deque.peek_front('my_deque')  # Returns 'first' without removing
+# Create graph with connection manager
+graph = Graph(connection_manager=connection_manager)
 
-# Back operations
-deque.push_back('my_deque', 'last')
-item = deque.pop_back('my_deque')  # Returns 'last'
-back = deque.peek_back('my_deque')  # Returns 'first' without removing
+# Add vertices with data
+graph.add_vertex('social_network', 'user1', {'name': 'Alice', 'age': 30})
+graph.add_vertex('social_network', 'user2', {'name': 'Bob', 'age': 25})
 
-# Other operations
-size = deque.size('my_deque')
-deque.clear('my_deque')
+# Add edges with weights (e.g., friendship strength)
+graph.add_edge('social_network', 'user1', 'user2', weight=0.8)
 
-# With type preservation
-from datetime import datetime
-deque.push_front('my_deque', {
-    'timestamp': datetime.now(),
-    'data': [1, 2, 3]
-})
-data = deque.pop_front('my_deque')  # Returns dict with datetime preserved
+# Get vertex data
+alice = graph.get_vertex_data('social_network', 'user1')
+print(f"Name: {alice['name']}, Age: {alice['age']}")
+
+# Get neighbors
+neighbors = graph.get_neighbors('social_network', 'user1')
+for neighbor, weight in neighbors.items():
+    print(f"Friend: {neighbor}, Strength: {weight}")
+
+# Remove vertices and edges
+graph.remove_edge('social_network', 'user1', 'user2')
+graph.remove_vertex('social_network', 'user1')
+
+# Clear the graph
+graph.clear('social_network')
 ```
 
 ### Queue (FIFO)
 
 ```python
-from redis_data_structures import Queue
+from redis_data_structures import Queue, ConnectionManager
 
-queue = Queue()
+# Initialize connection manager
+connection_manager = ConnectionManager(host='localhost', port=6379)
+
+# Create queue with connection manager
+queue = Queue(connection_manager=connection_manager)
 
 # Basic operations
 queue.push('my_queue', 'item1')
@@ -186,9 +210,13 @@ size = queue.size('my_queue')
 ### Stack (LIFO)
 
 ```python
-from redis_data_structures import Stack
+from redis_data_structures import Stack, ConnectionManager
 
-stack = Stack()
+# Initialize connection manager
+connection_manager = ConnectionManager(host='localhost', port=6379)
+
+# Create stack with connection manager
+stack = Stack(connection_manager=connection_manager)
 
 # Basic operations
 stack.push('my_stack', 'item1')
@@ -201,10 +229,14 @@ item = stack.peek('my_stack')
 ### Hash Map
 
 ```python
-from redis_data_structures import HashMap
+from redis_data_structures import HashMap, ConnectionManager
 from datetime import datetime
 
-hm = HashMap()
+# Initialize connection manager
+connection_manager = ConnectionManager(host='localhost', port=6379)
+
+# Create hash map with connection manager
+hm = HashMap(connection_manager=connection_manager)
 
 # Store complex types
 data = {
@@ -226,10 +258,17 @@ fields = hm.get_fields('users')
 ### Bloom Filter
 
 ```python
-from redis_data_structures import BloomFilter
+from redis_data_structures import BloomFilter, ConnectionManager
 
-# Create with expected elements and false positive rate
-bf = BloomFilter(expected_elements=10000, false_positive_rate=0.01)
+# Initialize connection manager
+connection_manager = ConnectionManager(host='localhost', port=6379)
+
+# Create bloom filter with connection manager and parameters
+bf = BloomFilter(
+    connection_manager=connection_manager,
+    expected_elements=10000,
+    false_positive_rate=0.01
+)
 
 # Add items
 bf.add('my_filter', 'item1')
@@ -310,31 +349,6 @@ hm.set('users', 'john', user)
 retrieved = hm.get('users', 'john')  # Returns UserModel instance
 ```
 
-## Monitoring
-
-### Operation Metrics
-
-All operations are automatically tracked with metrics:
-
-```python
-from redis_data_structures import Queue, Config
-
-config = Config()
-config.data_structures.metrics_enabled = True
-queue = Queue(config=config)
-
-# Operations are tracked
-queue.push('my_queue', 'item')
-queue.pop('my_queue')
-
-# Check connection health
-health = queue.connection_manager.health_check()
-print(f"Status: {health['status']}")
-print(f"Latency: {health['latency_ms']}ms")
-print(f"Pool: {health['connection_pool']}")
-print(f"Circuit Breaker: {health['circuit_breaker']}")
-```
-
 ## Error Handling
 
 All data structures use proper error handling and logging:
@@ -381,8 +395,3 @@ if health['status'] != 'healthy':
    - Use custom types or Pydantic models
    - Validate data before storing
    - Handle serialization errors
-
-5. **Monitoring**:
-   - Enable metrics collection
-   - Monitor connection pool usage
-   - Check circuit breaker status

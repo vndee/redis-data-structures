@@ -1,282 +1,235 @@
 # Graph
 
-A Redis-backed directed graph implementation using adjacency lists. Perfect for representing relationships between entities, social networks, dependency graphs, and other connected data structures. The implementation uses Redis Hashes to store vertex data and adjacency lists, providing O(1) operations for most graph operations.
+A Redis-backed directed graph implementation with support for weighted edges. Perfect for social networks, recommendation systems, and any application requiring graph-based data structures.
 
 ## Features
 
-- O(1) vertex and edge operations
-- Vertex data storage
-- Weighted edges
+- Directed graph with weighted edges
+- Vertex data storage with type preservation
+- Efficient edge traversal
 - Thread-safe operations
-- Persistent storage with Redis
-- JSON serialization for complex data types
-- Atomic operations
-
-## Operations
-
-| Operation        | Time Complexity | Description |
-|-----------------|----------------|-------------|
-| `add_vertex`    | O(1)          | Add a vertex with optional data |
-| `add_edge`      | O(1)          | Add a weighted edge between vertices |
-| `remove_vertex` | O(V + E)      | Remove a vertex and all its edges |
-| `remove_edge`   | O(1)          | Remove an edge between vertices |
-| `get_neighbors` | O(1)          | Get all neighbors of a vertex |
-| `get_vertices`  | O(V)          | Get all vertices in the graph |
-
-Where V is the number of vertices and E is the number of edges.
+- Persistent storage
+- Connection pooling and retries
+- Circuit breaker pattern
+- Health monitoring
 
 ## Basic Usage
 
 ```python
-from redis_data_structures import Graph
+from redis_data_structures import Graph, ConnectionManager
 
-# Initialize graph
-graph = Graph(
+# Initialize connection manager
+connection_manager = ConnectionManager(
     host='localhost',
     port=6379,
-    db=0,
-    username=None,  # Optional
-    password=None   # Optional
+    db=0
 )
 
-# Add vertices with data
-graph.add_vertex('my_graph', 'v1', {'name': 'Vertex 1', 'value': 42})
-graph.add_vertex('my_graph', 'v2', {'name': 'Vertex 2', 'value': 84})
+# Create graph with connection manager
+graph = Graph(connection_manager=connection_manager)
 
-# Add weighted edges
-graph.add_edge('my_graph', 'v1', 'v2', weight=1.5)
+# Add vertices with data
+graph.add_vertex('my_graph', 'v1', {'name': 'Alice', 'age': 30})
+graph.add_vertex('my_graph', 'v2', {'name': 'Bob', 'age': 25})
+
+# Add edges with weights
+graph.add_edge('my_graph', 'v1', 'v2', weight=0.8)
 
 # Get vertex data
-data = graph.get_vertex_data('my_graph', 'v1')
+alice = graph.get_vertex_data('my_graph', 'v1')
+print(f"Name: {alice['name']}, Age: {alice['age']}")
 
-# Get neighbors with weights
+# Get neighbors
 neighbors = graph.get_neighbors('my_graph', 'v1')
+for neighbor, weight in neighbors.items():
+    print(f"Neighbor: {neighbor}, Weight: {weight}")
 
-# Remove vertex (and all its edges)
+# Remove edges and vertices
+graph.remove_edge('my_graph', 'v1', 'v2')
 graph.remove_vertex('my_graph', 'v1')
 
-# Clear graph
+# Clear the graph
 graph.clear('my_graph')
+```
+
+## Advanced Usage
+
+```python
+from redis_data_structures import Graph, ConnectionManager
+from datetime import datetime, timedelta
+
+# Create connection manager with advanced features
+connection_manager = ConnectionManager(
+    host='redis.example.com',
+    port=6380,
+    max_connections=20,
+    retry_max_attempts=5,
+    circuit_breaker_threshold=10,
+    circuit_breaker_timeout=timedelta(minutes=5),
+    ssl=True,
+    ssl_cert_reqs='required',
+    ssl_ca_certs='/path/to/ca.pem'
+)
+
+# Create graph with connection manager
+graph = Graph(connection_manager=connection_manager)
+
+# Store complex types
+user_data = {
+    'name': 'Charlie',
+    'joined': datetime.now(),
+    'metadata': {'role': 'admin', 'status': 'active'}
+}
+graph.add_vertex('social_network', 'user3', user_data)
+
+# Batch operations
+vertices = [
+    ('user4', {'name': 'David', 'age': 28}),
+    ('user5', {'name': 'Eve', 'age': 32})
+]
+for vertex_id, data in vertices:
+    graph.add_vertex('social_network', vertex_id, data)
+
+# Monitor health
+health = connection_manager.health_check()
+print(f"Status: {health['status']}")
+print(f"Latency: {health['latency_ms']}ms")
 ```
 
 ## Example Use Cases
 
 ### 1. Social Network
 
-Perfect for representing user relationships with weighted connections.
-
 ```python
+from redis_data_structures import Graph, ConnectionManager
+from datetime import datetime
+
 class SocialNetwork:
     def __init__(self):
-        self.graph = Graph(host='localhost', port=6379)
-        self.network_key = 'social:network'
+        self.connection_manager = ConnectionManager(host='localhost', port=6379)
+        self.graph = Graph(connection_manager=self.connection_manager)
+        self.graph_key = 'social_network'
     
-    def add_user(self, user_id: str, profile: dict):
+    def add_user(self, user_id: str, data: dict):
         """Add a user to the network."""
-        return self.graph.add_vertex(self.network_key, user_id, profile)
+        data['joined'] = datetime.now()
+        self.graph.add_vertex(self.graph_key, user_id, data)
     
-    def add_friendship(self, user1: str, user2: str, strength: float):
-        """Create a bidirectional friendship between users."""
-        # Add both directions since friendship is mutual
-        self.graph.add_edge(self.network_key, user1, user2, strength)
-        self.graph.add_edge(self.network_key, user2, user1, strength)
+    def add_friendship(self, user1: str, user2: str, strength: float = 1.0):
+        """Create a bidirectional friendship."""
+        self.graph.add_edge(self.graph_key, user1, user2, weight=strength)
+        self.graph.add_edge(self.graph_key, user2, user1, weight=strength)
     
     def get_friends(self, user_id: str) -> dict:
-        """Get all friends of a user with friendship strengths."""
-        return self.graph.get_neighbors(self.network_key, user_id)
+        """Get user's friends with friendship strength."""
+        return self.graph.get_neighbors(self.graph_key, user_id)
     
-    def remove_user(self, user_id: str):
-        """Remove a user and all their connections."""
-        return self.graph.remove_vertex(self.network_key, user_id)
+    def get_user_info(self, user_id: str) -> dict:
+        """Get user information."""
+        return self.graph.get_vertex_data(self.graph_key, user_id)
 
 # Usage
 network = SocialNetwork()
-network.add_user('alice', {'name': 'Alice', 'age': 28})
-network.add_user('bob', {'name': 'Bob', 'age': 32})
-network.add_friendship('alice', 'bob', 0.8)  # Strong friendship
+network.add_user('alice', {'name': 'Alice', 'age': 30})
+network.add_user('bob', {'name': 'Bob', 'age': 25})
+network.add_friendship('alice', 'bob', 0.9)
 ```
 
-### 2. Dependency Graph
-
-Ideal for managing software dependencies or task dependencies.
+### 2. Recommendation System
 
 ```python
-class DependencyGraph:
+from redis_data_structures import Graph, ConnectionManager
+
+class RecommendationSystem:
     def __init__(self):
-        self.graph = Graph(host='localhost', port=6379)
-        self.dep_key = 'dependency:graph'
+        self.connection_manager = ConnectionManager(host='localhost', port=6379)
+        self.graph = Graph(connection_manager=self.connection_manager)
+        self.graph_key = 'recommendations'
     
-    def add_task(self, task_id: str, task_info: dict):
-        """Add a task to the dependency graph."""
-        return self.graph.add_vertex(self.dep_key, task_id, task_info)
+    def add_item(self, item_id: str, data: dict):
+        """Add an item to the system."""
+        self.graph.add_vertex(self.graph_key, item_id, data)
     
-    def add_dependency(self, task: str, depends_on: str, priority: float = 1.0):
-        """Add a dependency between tasks."""
-        return self.graph.add_edge(self.dep_key, task, depends_on, priority)
+    def add_similarity(self, item1: str, item2: str, score: float):
+        """Add similarity score between items."""
+        self.graph.add_edge(self.graph_key, item1, item2, weight=score)
     
-    def get_dependencies(self, task: str) -> dict:
-        """Get all dependencies for a task."""
-        return self.graph.get_neighbors(self.dep_key, task)
-    
-    def remove_task(self, task: str):
-        """Remove a task and its dependencies."""
-        return self.graph.remove_vertex(self.dep_key, task)
+    def get_recommendations(self, item_id: str, limit: int = 5) -> list:
+        """Get similar items sorted by similarity score."""
+        neighbors = self.graph.get_neighbors(self.graph_key, item_id)
+        sorted_items = sorted(neighbors.items(), key=lambda x: x[1], reverse=True)
+        return sorted_items[:limit]
 
 # Usage
-deps = DependencyGraph()
-deps.add_task('build', {'command': 'make build'})
-deps.add_task('test', {'command': 'make test'})
-deps.add_dependency('test', 'build', 1.0)  # test depends on build
-```
-
-### 3. Knowledge Graph
-
-Perfect for representing connected information with relationships.
-
-```python
-class KnowledgeGraph:
-    def __init__(self):
-        self.graph = Graph(host='localhost', port=6379)
-        self.kg_key = 'knowledge:graph'
-    
-    def add_entity(self, entity_id: str, properties: dict):
-        """Add an entity to the knowledge graph."""
-        return self.graph.add_vertex(self.kg_key, entity_id, properties)
-    
-    def add_relationship(self, from_entity: str, to_entity: str, 
-                        relationship: str, confidence: float):
-        """Add a relationship between entities."""
-        edge_data = {'type': relationship, 'confidence': confidence}
-        return self.graph.add_edge(self.kg_key, from_entity, to_entity, confidence)
-    
-    def get_relationships(self, entity: str) -> dict:
-        """Get all relationships for an entity."""
-        return self.graph.get_neighbors(self.kg_key, entity)
-
-# Usage
-kg = KnowledgeGraph()
-kg.add_entity('person:john', {'name': 'John', 'type': 'Person'})
-kg.add_entity('company:acme', {'name': 'ACME Corp', 'type': 'Company'})
-kg.add_relationship('person:john', 'company:acme', 'WORKS_FOR', 0.9)
+recommender = RecommendationSystem()
+recommender.add_item('book1', {'title': 'Python Programming'})
+recommender.add_item('book2', {'title': 'Data Science'})
+recommender.add_similarity('book1', 'book2', 0.8)
 ```
 
 ## Best Practices
 
-1. **Key Management**
-   - Use descriptive key prefixes: `graph:social`, `graph:deps`, etc.
-   - Consider implementing key expiration for temporary graphs
-   - Clear graphs that are no longer needed
+1. **Connection Management**
+   ```python
+   # Create a shared connection manager
+   connection_manager = ConnectionManager(
+       host='localhost',
+       max_connections=20,
+       retry_max_attempts=5
+   )
+   
+   # Reuse for multiple graphs
+   graph1 = Graph(connection_manager=connection_manager)
+   graph2 = Graph(connection_manager=connection_manager)
+   ```
 
 2. **Error Handling**
    ```python
    try:
-       graph.add_vertex('my_graph', 'v1', data)
-   except redis.RedisError as e:
-       logger.error(f"Redis error: {e}")
-       # Handle error...
+       graph.add_vertex('my_graph', vertex_id, data)
    except Exception as e:
-       logger.error(f"Unexpected error: {e}")
+       logger.error(f"Error adding vertex: {e}")
        # Handle error...
    ```
 
-3. **Memory Management**
-   - Monitor graph size to prevent memory issues
-   - Implement cleanup strategies for old/unused data
+3. **Health Monitoring**
    ```python
-   if len(graph.get_vertices('my_graph')) > MAX_VERTICES:
-       # Handle graph size limit...
-       pass
+   # Regular health checks
+   health = connection_manager.health_check()
+   if health['status'] != 'healthy':
+       logger.warning(f"Connection issues: {health}")
    ```
-
-4. **Performance**
-   - Use batch operations when possible
-   - Consider caching frequently accessed vertices/edges
-   - Monitor Redis memory usage
-
-## Common Patterns
-
-### 1. Bidirectional Relationships
-```python
-def add_bidirectional_edge(graph, key, v1, v2, weight=1.0):
-    """Add edges in both directions."""
-    graph.add_edge(key, v1, v2, weight)
-    graph.add_edge(key, v2, v1, weight)
-```
-
-### 2. Vertex Data Updates
-```python
-def update_vertex_data(graph, key, vertex, update_func):
-    """Update vertex data atomically."""
-    data = graph.get_vertex_data(key, vertex) or {}
-    updated_data = update_func(data)
-    graph.add_vertex(key, vertex, updated_data)
-```
-
-### 3. Graph Traversal
-```python
-def depth_first_search(graph, key, start_vertex):
-    """Perform DFS traversal."""
-    visited = set()
-    
-    def dfs(vertex):
-        visited.add(vertex)
-        for neighbor in graph.get_neighbors(key, vertex):
-            if neighbor not in visited:
-                dfs(neighbor)
-    
-    dfs(start_vertex)
-    return visited
-```
 
 ## Implementation Details
 
-The graph implementation uses Redis data structures efficiently:
-
-1. **Vertex Data Storage**
-   - Uses Redis Hashes: `{key}:vertex:{vertex_id}`
-   - Stores serialized vertex data
-   - O(1) access and updates
-
-2. **Edge Storage**
-   - Uses Redis Hashes: `{key}:adj:{vertex_id}`
-   - Maps neighbor vertices to edge weights
-   - O(1) edge operations
-
-3. **Vertex Management**
-   - Combines vertex data and adjacency lists
-   - Efficient vertex existence checks
-   - Atomic vertex operations
-
-## Performance Considerations
-
-1. **Network Latency**
-   - Redis operations are network calls
-   - Consider batch operations for better throughput
-
-2. **Memory Usage**
-   - Each vertex and edge consumes Redis memory
-   - Monitor Redis memory usage
-   - Implement cleanup strategies
-
-3. **Scalability**
-   - Graph operations are atomic
-   - Consider sharding for very large graphs
-   - Monitor Redis performance
+- Uses Redis hashes for vertex data
+- Uses Redis sorted sets for edges
+- Atomic operations for thread safety
+- Connection pooling for performance
+- Automatic reconnection with backoff
+- Circuit breaker for fault tolerance
+- JSON serialization for complex types
 
 ## Troubleshooting
 
-1. **Graph Always Empty**
-   - Check Redis connection
-   - Verify key names
-   - Check if vertices are being added correctly
+1. **Connection Issues**
+   ```python
+   # Check connection health
+   health = connection_manager.health_check()
+   print(f"Status: {health['status']}")
+   print(f"Latency: {health['latency_ms']}ms")
+   ```
 
-2. **Memory Issues**
-   - Monitor graph size
-   - Implement vertex/edge limits
-   - Clear old/unused graphs
+2. **Performance Issues**
+   ```python
+   # Monitor connection pool
+   health = connection_manager.health_check()
+   print(f"Pool Status: {health['connection_pool']}")
+   ```
 
-3. **Slow Operations**
-   - Check network latency
-   - Consider batch operations
-   - Monitor Redis performance
-``` 
+3. **Memory Usage**
+   ```python
+   # Monitor vertex count
+   vertices = graph.get_vertices('my_graph')
+   print(f"Number of vertices: {len(vertices)}")
+   ``` 
