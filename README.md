@@ -19,6 +19,7 @@ A Python package providing Redis-backed implementations of common data structure
   - Bloom Filter (Probabilistic membership testing)
   - Trie (Prefix tree)
   - LRU Cache (Least Recently Used cache)
+  - Graph (Directed graph with weighted edges)
 - **Thread-safe Operations**
 - **Persistent Storage**
 - **Type Preservation**:
@@ -65,18 +66,20 @@ pip install redis-data-structures
 ### Basic Usage
 
 ```python
-from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap
+from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Graph
 
 # Initialize with Redis connection
 queue = Queue(host='localhost', port=6379, db=0)
+graph = Graph(host='localhost', port=6379, db=0)
 
 # Basic operations
 queue.push('my_queue', 'item1')
 item = queue.pop('my_queue')  # Returns 'item1'
 
-# Check size and clear
-size = queue.size('my_queue')
-queue.clear('my_queue')
+# Graph operations
+graph.add_vertex('my_graph', 'v1', {'name': 'Vertex 1'})
+graph.add_vertex('my_graph', 'v2', {'name': 'Vertex 2'})
+graph.add_edge('my_graph', 'v1', 'v2', weight=1.5)
 ```
 
 See [Usage Guide](docs/usage.md) for detailed examples of all data structures.
@@ -153,6 +156,19 @@ Each data structure is optimized for its specific use case:
 - Uses Redis Sorted Sets (`ZADD`/`ZRANGE`/`ZREM`)
 - O(log N) operations for prefix matching
 - Perfect for hierarchical data storage
+
+### Graph
+- Uses Redis Hashes for vertex data and adjacency lists
+- O(1) operations for most graph operations
+- Perfect for:
+  - Social networks (user relationships)
+  - Dependency graphs (task dependencies)
+  - Knowledge graphs (entity relationships)
+- Features:
+  - Directed edges with weights
+  - Vertex data storage
+  - Efficient neighbor lookups
+  - Thread-safe operations
 
 ## 🛠️ Advanced Usage
 

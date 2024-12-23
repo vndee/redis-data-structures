@@ -13,11 +13,15 @@
    - [Deque](#deque)
    - [Bloom Filter](#bloom-filter)
    - [LRU Cache](#lru-cache)
-4. [Advanced Topics](#advanced-topics)
+   - [Trie](#trie)
+   - [Graph](#graph)
+4. [Common Features](#common-features)
+5. [Connection Options](#connection-options)
+6. [Advanced Topics](#advanced-topics)
    - [Type Preservation](type_preservation.md)
    - [Error Handling](#error-handling)
    - [Performance Optimization](#performance-optimization)
-5. [Best Practices](#best-practices)
+7. [Best Practices](#best-practices)
 
 ## Installation
 
@@ -30,7 +34,8 @@ pip install redis-data-structures
 ```python
 from redis_data_structures import (
     Queue, Stack, PriorityQueue, Set,
-    HashMap, Deque, BloomFilter, LRUCache
+    HashMap, Deque, BloomFilter, LRUCache,
+    Trie, Graph
 )
 
 # Common connection parameters
@@ -49,7 +54,7 @@ redis_config = {
 
 ### Queue
 
-FIFO (First-In-First-Out) queue implementation.
+FIFO (First-In-First-Out) queue implementation. Perfect for task queues, message processing, and job scheduling.
 
 ```python
 # Initialize
@@ -69,7 +74,7 @@ queue.clear("my_queue")
 
 ### Stack
 
-LIFO (Last-In-First-Out) stack implementation.
+LIFO (Last-In-First-Out) stack implementation. Ideal for undo/redo operations, parsing, and depth-first algorithms.
 
 ```python
 # Initialize
@@ -89,7 +94,7 @@ stack.clear("my_stack")
 
 ### Priority Queue
 
-Priority-based queue with O(log N) operations.
+Priority-based queue with O(log N) operations. Great for task scheduling, emergency systems, and resource allocation.
 
 ```python
 # Initialize
@@ -112,7 +117,7 @@ pq.clear("my_pq")
 
 ### Set
 
-Collection of unique items with O(1) operations.
+Collection of unique items with O(1) operations. Perfect for tracking unique items, managing sessions, and filtering duplicates.
 
 ```python
 # Initialize
@@ -138,7 +143,7 @@ set_ds.clear("my_set")
 
 ### Hash Map
 
-Key-value store with field-based access.
+Key-value store with field-based access. Ideal for user profiles, configuration management, and structured data.
 
 ```python
 # Initialize
@@ -163,7 +168,7 @@ hash_map.clear("my_hash")
 
 ### Deque
 
-Double-ended queue with O(1) operations at both ends.
+Double-ended queue with O(1) operations at both ends. Perfect for sliding windows, browser history, and work-stealing algorithms.
 
 ```python
 # Initialize
@@ -187,7 +192,7 @@ deque.clear("my_deque")
 
 ### Bloom Filter
 
-Probabilistic membership testing with no false negatives.
+Space-efficient probabilistic data structure. Ideal for reducing unnecessary lookups, deduplication, and caching optimization.
 
 ```python
 # Initialize with expected elements and false positive rate
@@ -211,7 +216,7 @@ bloom.clear("my_filter")
 
 ### LRU Cache
 
-Least Recently Used cache with automatic eviction.
+Least Recently Used cache with automatic eviction. Perfect for caching with size limits.
 
 ```python
 # Initialize with capacity
@@ -238,44 +243,95 @@ lru_order = cache.get_lru_order("my_cache")
 cache.clear("my_cache")
 ```
 
-### Graph Adjacency List
+### Trie
 
-A Redis-backed directed graph implementation using adjacency lists. Perfect for representing relationships between entities, social networks, dependency graphs, and other connected data structures. This implementation is optimized for sparse graphs where most vertices are connected to only a few other vertices.
+Prefix tree implementation for efficient string operations. Perfect for autocomplete, spell checking, and prefix matching.
 
 ```python
-from redis_data_structures import Graph
+# Initialize
+trie = Trie(**redis_config)
 
-# Initialize graph
-graph = Graph(
-    host='localhost',
-    port=6379,
-    db=0,
-    username=None,  # Optional
-)
+# Add words
+trie.insert("my_trie", "apple")
+trie.insert("my_trie", "app")
+trie.insert("my_trie", "application")
 
-# Add vertices
-graph.add_vertex("vertex1", {"name": "Alice", "age": 30})
-graph.add_vertex("vertex2", {"name": "Bob", "age": 25})
+# Search for words
+exists = trie.search("my_trie", "apple")  # Returns True
 
-# Add edges
-graph.add_edge("vertex1", "vertex2", weight=1.0)
-
-# Get neighbors
-neighbors = graph.get_neighbors("vertex1")
-print(neighbors)  # Output: {"vertex2": 1.0}
-
-# Get all vertices
-vertices = graph.get_vertices()
-print(vertices)  # Output: ["vertex1", "vertex2"]
-
-# Remove vertex
-graph.remove_vertex("vertex1")
-
-# Remove edge
-graph.remove_edge("vertex1", "vertex2")
+# Find words with prefix
+words = trie.find_words_with_prefix("my_trie", "app")
+# Returns ["app", "apple", "application"]
 
 # Clear
-graph.clear()
+trie.clear("my_trie")
+```
+
+### Graph
+
+A Redis-backed directed graph implementation using adjacency lists. Perfect for representing relationships between entities, social networks, dependency graphs, and other connected data structures.
+
+```python
+# Initialize
+graph = Graph(**redis_config)
+
+# Add vertices with data
+graph.add_vertex("my_graph", "v1", {"name": "Vertex 1", "value": 42})
+graph.add_vertex("my_graph", "v2", {"name": "Vertex 2", "value": 84})
+
+# Add weighted edges
+graph.add_edge("my_graph", "v1", "v2", weight=1.5)
+
+# Get vertex data
+data = graph.get_vertex_data("my_graph", "v1")
+
+# Get neighbors with weights
+neighbors = graph.get_neighbors("my_graph", "v1")
+
+# Remove vertex (and all its edges)
+graph.remove_vertex("my_graph", "v1")
+
+# Clear
+graph.clear("my_graph")
+```
+
+## Common Features
+
+All data structures share these features:
+- Thread-safe operations
+- Persistent storage with Redis
+- JSON serialization for complex data types
+- Atomic operations
+- Size tracking
+- Clear operation
+
+## Connection Options
+
+All data structures accept these connection parameters:
+```python
+structure = DataStructure(
+    host='localhost',      # Redis host
+    port=6379,            # Redis port
+    db=0,                 # Redis database
+    username=None,        # Optional username
+    password=None,        # Optional password
+    socket_timeout=None,  # Optional timeout
+    socket_connect_timeout=None,  # Optional connection timeout
+    socket_keepalive=None,       # Optional keepalive
+    socket_keepalive_options=None,  # Optional keepalive options
+    connection_pool=None,        # Optional connection pool
+    unix_socket_path=None,       # Optional Unix socket path
+    encoding='utf-8',            # Optional encoding
+    encoding_errors='strict',    # Optional encoding error handling
+    decode_responses=True,       # Optional response decoding
+    retry_on_timeout=False,      # Optional timeout retry
+    ssl=False,                   # Optional SSL
+    ssl_keyfile=None,           # Optional SSL key file
+    ssl_certfile=None,          # Optional SSL cert file
+    ssl_cert_reqs='required',   # Optional SSL cert requirements
+    ssl_ca_certs=None,          # Optional SSL CA certs
+    max_connections=None        # Optional max connections
+)
 ```
 
 ## Advanced Topics
@@ -284,81 +340,52 @@ graph.clear()
 
 ```python
 try:
-    value = cache.get("my_cache", "key")
-    if value is None:
-        # Handle cache miss
-        value = fetch_from_database()
-        cache.put("my_cache", "key", value)
+    structure.operation('key', value)
 except redis.RedisError as e:
-    # Handle Redis connection/operation errors
     logger.error(f"Redis error: {e}")
+    # Handle error...
 except Exception as e:
-    # Handle other errors
     logger.error(f"Unexpected error: {e}")
+    # Handle error...
 ```
 
 ### Performance Optimization
 
-1. **Connection Pooling**
-```python
-from redis import ConnectionPool
-
-pool = ConnectionPool(**redis_config)
-redis_config["connection_pool"] = pool
-
-# All data structures will use the same connection pool
-cache1 = LRUCache(**redis_config)
-cache2 = LRUCache(**redis_config)
-```
+1. **Use Connection Pooling**
+   ```python
+   from redis import ConnectionPool
+   
+   pool = ConnectionPool(**redis_config)
+   structure = DataStructure(connection_pool=pool)
+   ```
 
 2. **Batch Operations**
-```python
-# Use pipeline for multiple operations
-with cache.redis_client.pipeline() as pipe:
-    pipe.multi()
-    pipe.hset("key1", "field1", "value1")
-    pipe.hset("key2", "field2", "value2")
-    pipe.execute()
-```
+   - Use multi-key operations when possible
+   - Consider pipeline for multiple operations
+
+3. **Memory Management**
+   - Monitor Redis memory usage
+   - Implement cleanup strategies
+   - Use TTL for temporary data
 
 ## Best Practices
 
-1. **Key Naming Conventions**
-```python
-# Use consistent prefixes
-USER_PREFIX = "user:"
-CACHE_PREFIX = "cache:"
+1. **Key Management**
+   - Use descriptive key prefixes
+   - Consider implementing key expiration
+   - Clear unused structures
 
-# Use descriptive names
-cache.put(f"{CACHE_PREFIX}user_profile", user_id, profile_data)
-cache.put(f"{CACHE_PREFIX}user_settings", user_id, settings_data)
-```
-
-2. **TTL (Time To Live)**
-```python
-# Set expiration on keys
-cache.redis_client.expire("my_key", 3600)  # Expires in 1 hour
-```
+2. **Error Handling**
+   - Always wrap Redis operations in try-except
+   - Log errors appropriately
+   - Implement retry mechanisms for timeouts
 
 3. **Memory Management**
-```python
-# Monitor memory usage
-info = cache.redis_client.info("memory")
-used_memory = info["used_memory_human"]
-print(f"Used memory: {used_memory}")
-```
+   - Monitor structure sizes
+   - Implement size limits where appropriate
+   - Regular cleanup of old data
 
-4. **Type Safety**
-```python
-from typing import TypedDict, Optional
-
-class UserProfile(TypedDict):
-    name: str
-    age: int
-    email: str
-
-def get_user_profile(user_id: str) -> Optional[UserProfile]:
-    return cache.get(f"{USER_PREFIX}{user_id}")
-```
-
-For more detailed information about type preservation, see [Type Preservation](type_preservation.md). 
+4. **Performance**
+   - Use batch operations when possible
+   - Consider cleanup strategies
+   - Monitor Redis memory usage
