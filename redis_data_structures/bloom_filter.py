@@ -1,7 +1,10 @@
 import math
 from typing import Any, Optional
 
-import mmh3  # MurmurHash3 for efficient hashing
+try:
+    import mmh3  # MurmurHash3 for efficient hashing
+except ImportError:
+    raise ImportError("mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.")
 
 from .base import RedisDataStructure
 
@@ -38,8 +41,8 @@ class BloomFilter(RedisDataStructure):
         super().__init__(host=host, port=port, username=username, password=password, db=db)
 
         # Calculate optimal filter size and number of hash functions
-        self.size = self._get_optimal_size(expected_elements, false_positive_rate)
-        self.num_hashes = self._get_optimal_num_hashes(expected_elements, self.size)
+        self.bit_size = self._get_optimal_size(expected_elements, false_positive_rate)
+        self.num_hashes = self._get_optimal_num_hashes(expected_elements, self.bit_size)
 
     def _get_optimal_size(self, n: int, p: float) -> int:
         """Calculate optimal bit array size.
@@ -80,7 +83,7 @@ class BloomFilter(RedisDataStructure):
         # Generate hash values using MurmurHash3
         hash_values = []
         for seed in range(self.num_hashes):
-            hash_val = mmh3.hash(value, seed) % self.size
+            hash_val = mmh3.hash(value, seed) % self.bit_size
             hash_values.append(abs(hash_val))
         return hash_values
 
@@ -140,13 +143,10 @@ class BloomFilter(RedisDataStructure):
         """
         return super().clear(key)
 
-    def size(self, key: str) -> int:
+    def size(self) -> int:
         """Get the size of the Bloom filter in bits.
-
-        Args:
-            key: The Redis key for this Bloom filter
 
         Returns:
             int: Size of the Bloom filter in bits
         """
-        return self.size
+        return self.bit_size

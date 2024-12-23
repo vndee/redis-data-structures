@@ -101,15 +101,15 @@ class TestBloomFilter(unittest.TestCase):
         bloom = BloomFilter(expected_elements=n, false_positive_rate=p)
 
         # Optimal size should be greater than number of elements
-        self.assertGreater(bloom.size, n)
+        self.assertGreater(bloom.size(), n)
 
         # Size should be reasonable (not too large)
         expected_size = int(
             -n
-            * bloom._get_optimal_num_hashes(n, bloom.size)
-            / math.log(1 - p ** (1 / bloom._get_optimal_num_hashes(n, bloom.size))),
+            * bloom._get_optimal_num_hashes(n, bloom.size())
+            / math.log(1 - p ** (1 / bloom._get_optimal_num_hashes(n, bloom.size()))),
         )
-        self.assertLess(abs(bloom.size - expected_size) / expected_size, 0.5)
+        self.assertLess(abs(bloom.size() - expected_size) / expected_size, 0.5)
 
 
 if __name__ == "__main__":
