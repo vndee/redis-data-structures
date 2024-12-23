@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "redis-data-structures"
+version = "0.1.0"
+description = "Redis-backed data structures for building scalable and resilient applications"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Duy V. Huynh", email = "vndee.huynh@gmail.com"},
+]
+keywords = ["redis", "data-structures", "queue", "stack", "priority-queue", "set", "hash-map", "deque"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database",
+]
+dependencies = [
+    "redis>=4.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/vndee/redis-data-structures"
+Repository = "https://github.com/vndee/redis-data-structures"
+Documentation = "https://github.com/vndee/redis-data-structures#readme"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=2.21.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py37"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+exclude = [
+    "examples/.*",
+    "tests/.*",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py37"
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4", "UP", "N", "W", "D", "S", "BLE", "FBT", "A", "COM", "C90", "T10", "ICN", "Q", "RET", "SIM", "TID", "ARG", "DTZ", "ERA", "PD", "PGH", "PIE", "PL", "PT", "RSE", "RUF", "SLF", "TCH", "TRY"]
+ignore = ["D100", "D104", "PLR2004", "BLE001", "TRY300", "D103"]  # Ignore missing docstrings and magic numbers
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "D100", "D101", "D102", "D103"]  # Allow assert statements and missing docstrings in tests
