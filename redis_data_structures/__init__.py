@@ -8,6 +8,7 @@ from .priority_queue import PriorityQueue
 from .queue import Queue
 from .set import Set
 from .stack import Stack
+from .trie import Trie
 
 __all__ = [
     "BloomFilter",
@@ -18,4 +19,5 @@ __all__ = [
     "RedisDataStructure",
     "Set",
     "Stack",
+    "Trie",
 ]
