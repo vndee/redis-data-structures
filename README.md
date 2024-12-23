@@ -20,6 +20,7 @@ A Python package providing Redis-backed implementations of common data structure
   - Trie (Prefix tree)
   - LRU Cache (Least Recently Used cache)
   - Graph (Directed graph with weighted edges)
+  - Ring Buffer (Fixed-size circular buffer)
 - **Thread-safe Operations**
 - **Persistent Storage**
 - **Type Preservation**:
@@ -111,6 +112,13 @@ Each data structure is optimized for its specific use case:
 - Uses Redis Lists (`RPUSH`/`LPOP`)
 - O(1) push and pop operations
 - Perfect for task queues and job processing
+
+### Ring Buffer
+- Uses Redis Lists (`LPOP`/`RPUSH`)
+- O(1) push and pop operations
+- Fixed-size circular buffer
+- Perfect for log rotation, streaming data, and sliding windows
+- Automatic overwrite of oldest items when full
 
 ### Stack (LIFO)
 - Uses Redis Lists (`LPUSH`/`LPOP`)

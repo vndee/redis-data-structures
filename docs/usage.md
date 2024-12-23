@@ -15,6 +15,7 @@
    - [LRU Cache](#lru-cache)
    - [Trie](#trie)
    - [Graph](#graph)
+   - [Ring Buffer](#ring-buffer)
 4. [Common Features](#common-features)
 5. [Connection Options](#connection-options)
 6. [Advanced Topics](#advanced-topics)
@@ -35,7 +36,7 @@ pip install redis-data-structures
 from redis_data_structures import (
     Queue, Stack, PriorityQueue, Set,
     HashMap, Deque, BloomFilter, LRUCache,
-    Trie, Graph
+    Trie, Graph, RingBuffer
 )
 
 # Common connection parameters
@@ -293,6 +294,88 @@ graph.remove_vertex("my_graph", "v1")
 
 # Clear
 graph.clear("my_graph")
+```
+
+### Ring Buffer
+
+Fixed-size circular buffer implementation. Perfect for log rotation, streaming data processing, and sliding window analytics.
+
+```python
+# Initialize ring buffer with capacity
+buffer = RingBuffer(
+    capacity=1000,  # Maximum number of items
+    host='localhost',
+    port=6379,
+    db=0,
+    username=None,  # Optional
+    password=None   # Optional
+)
+
+# Add items (overwrites oldest when full)
+buffer.push('my_buffer', 'item1')
+buffer.push('my_buffer', {'complex': 'item'})
+
+# Get all items (oldest to newest)
+items = buffer.get_all('my_buffer')
+
+# Get latest 5 items (newest to oldest)
+latest = buffer.get_latest('my_buffer', 5)
+
+# Get current size
+size = buffer.size('my_buffer')
+
+# Clear buffer
+buffer.clear('my_buffer')
+```
+
+Example use cases:
+
+1. Log Rotation
+```python
+class LogRotator:
+    def __init__(self, max_logs: int = 1000):
+        self.buffer = RingBuffer(capacity=max_logs, host='localhost', port=6379)
+        self.log_key = 'app:logs'
+    
+    def log(self, level: str, message: str):
+        """Add a log entry."""
+        entry = {
+            'timestamp': datetime.now().isoformat(),
+            'level': level,
+            'message': message
+        }
+        self.buffer.push(self.log_key, entry)
+    
+    def get_recent_logs(self, n: int = 100) -> list:
+        """Get most recent log entries."""
+        return self.buffer.get_latest(self.log_key, n)
+
+# Usage
+logger = LogRotator(max_logs=1000)
+logger.log('INFO', 'Application started')
+recent_logs = logger.get_recent_logs(10)  # Get last 10 logs
+```
+
+2. Streaming Data
+```python
+class DataStream:
+    def __init__(self, window_size: int):
+        self.buffer = RingBuffer(capacity=window_size, host='localhost', port=6379)
+        self.stream_key = 'data:stream'
+    
+    def add_datapoint(self, value: float):
+        """Add a data point to the stream."""
+        data = {'value': value, 'timestamp': time.time()}
+        self.buffer.push(self.stream_key, data)
+    
+    def get_window(self) -> list:
+        """Get all data points in the current window."""
+        return self.buffer.get_all(self.stream_key)
+
+# Usage
+stream = DataStream(window_size=100)  # Keep last 100 points
+stream.add_datapoint(42.0)
+window_data = stream.get_window()
 ```
 
 ## Common Features

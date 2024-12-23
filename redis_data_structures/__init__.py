@@ -11,6 +11,7 @@ from .queue import Queue
 from .set import Set
 from .stack import Stack
 from .trie import Trie
+from .ring_buffer import RingBuffer
 
 __all__ = [
     "BloomFilter",
@@ -26,4 +27,5 @@ __all__ = [
     "Set",
     "Stack",
     "Trie",
+    "RingBuffer",
 ]

@@ -280,4 +280,3 @@ The graph implementation uses Redis data structures efficiently:
    - Consider batch operations
    - Monitor Redis performance
 ``` 
-</rewritten_file>
