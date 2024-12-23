@@ -157,19 +157,19 @@ class TestLRUCache(unittest.TestCase):
     def test_error_handling(self):
         """Test error handling."""
         # Test Redis error during put
-        with patch.object(self.cache.redis_client, "pipeline", side_effect=RedisError):
+        with patch.object(self.cache.connection_manager, "pipeline", side_effect=RedisError):
             self.assertFalse(self.cache.put(self.test_key, "key", "value"))
 
         # Test Redis error during get
-        with patch.object(self.cache.redis_client, "hget", side_effect=RedisError):
+        with patch.object(self.cache.connection_manager, "execute", side_effect=RedisError):
             self.assertIsNone(self.cache.get(self.test_key, "key"))
 
         # Test Redis error during remove
-        with patch.object(self.cache.redis_client, "pipeline", side_effect=RedisError):
+        with patch.object(self.cache.connection_manager, "pipeline", side_effect=RedisError):
             self.assertFalse(self.cache.remove(self.test_key, "key"))
 
         # Test Redis error during clear
-        with patch.object(self.cache.redis_client, "pipeline", side_effect=RedisError):
+        with patch.object(self.cache.connection_manager, "pipeline", side_effect=RedisError):
             self.assertFalse(self.cache.clear(self.test_key))
 
     def test_update_existing(self):

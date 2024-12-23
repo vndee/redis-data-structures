@@ -13,6 +13,7 @@ A Redis-backed trie (prefix tree) implementation perfect for building features l
 - Size tracking
 - Clear operation
 - Empty string support
+- Advanced connection management with retries and circuit breaker
 
 ## Operations
 
@@ -28,16 +29,19 @@ A Redis-backed trie (prefix tree) implementation perfect for building features l
 ## Basic Usage
 
 ```python
-from redis_data_structures import Trie
+from redis_data_structures import Trie, ConnectionManager
 
-# Initialize trie
-trie = Trie(
+# Initialize connection manager
+connection_manager = ConnectionManager(
     host='localhost',
     port=6379,
     db=0,
     username=None,  # Optional
     password=None   # Optional
 )
+
+# Initialize trie with connection manager
+trie = Trie(connection_manager=connection_manager)
 
 # Basic operations
 trie.insert('my_trie', 'hello')
@@ -66,6 +70,38 @@ size = trie.size('my_trie')  # Returns 1 (counts empty string)
 trie.delete('my_trie', '')  # Delete empty string
 ```
 
+## Advanced Usage
+
+### Connection Management
+
+```python
+from redis_data_structures import Trie, ConnectionManager
+from datetime import timedelta
+
+# Create connection manager with advanced features
+connection_manager = ConnectionManager(
+    host='redis.example.com',
+    port=6380,
+    max_connections=20,
+    retry_max_attempts=5,
+    circuit_breaker_threshold=10,
+    circuit_breaker_timeout=timedelta(minutes=5),
+    ssl=True,
+    ssl_cert_reqs='required',
+    ssl_ca_certs='/path/to/ca.pem'
+)
+
+# Initialize trie with advanced connection manager
+trie = Trie(connection_manager=connection_manager)
+
+# Check connection health
+health = connection_manager.health_check()
+print(f"Status: {health['status']}")
+print(f"Latency: {health['latency_ms']}ms")
+print(f"Pool: {health['connection_pool']}")
+print(f"Circuit Breaker: {health['circuit_breaker']}")
+```
+
 ## Example Use Cases
 
 ### 1. Autocomplete System
@@ -73,8 +109,12 @@ trie.delete('my_trie', '')  # Delete empty string
 Perfect for implementing real-time search suggestions.
 
 ```python
+from redis_data_structures import Trie, ConnectionManager
+from typing import List
+
 def get_suggestions(prefix: str) -> List[str]:
-    trie = Trie(host='localhost', port=6379)
+    connection_manager = ConnectionManager(host='localhost', port=6379)
+    trie = Trie(connection_manager=connection_manager)
     return trie.starts_with('autocomplete', prefix)
 
 # Add common search terms
@@ -91,8 +131,11 @@ suggestions = get_suggestions('pro')  # Returns ['programming', 'project']
 Useful for implementing basic spell checking functionality.
 
 ```python
+from redis_data_structures import Trie, ConnectionManager
+
 def is_word_valid(word: str) -> bool:
-    trie = Trie(host='localhost', port=6379)
+    connection_manager = ConnectionManager(host='localhost', port=6379)
+    trie = Trie(connection_manager=connection_manager)
     return trie.search('dictionary', word.lower())
 
 # Add dictionary words
@@ -109,8 +152,11 @@ is_valid = is_word_valid('appel')  # Returns False
 Efficient for storing and searching domain names.
 
 ```python
+from redis_data_structures import Trie, ConnectionManager
+
 def register_domain(domain: str) -> bool:
-    trie = Trie(host='localhost', port=6379)
+    connection_manager = ConnectionManager(host='localhost', port=6379)
+    trie = Trie(connection_manager=connection_manager)
     if trie.search('domains', domain):
         return False  # Domain already exists
     return trie.insert('domains', domain)
@@ -131,23 +177,24 @@ The trie implementation uses Redis hashes to store nodes, where:
 - Keys are structured as `{trie_key}:{prefix}`
 - Empty strings are stored in the root node
 - Thread-safe operations using Redis atomic commands
+- Connection management with retries and circuit breaker
 
 ## Best Practices
 
-1. **Memory Management**
-   - Monitor trie size for large datasets
-   - Implement cleanup strategies for unused words
-   - Consider TTL for temporary data
-
-2. **Performance**
+1. **Connection Management**
    ```python
-   # Use batch operations when possible
-   words = ['word1', 'word2', 'word3']
-   for word in words:
-       trie.insert('my_trie', word)
+   # Create a shared connection manager for multiple tries
+   connection_manager = ConnectionManager(
+       host='localhost',
+       max_connections=20,
+       retry_max_attempts=5
+   )
+   
+   trie1 = Trie(connection_manager=connection_manager)
+   trie2 = Trie(connection_manager=connection_manager)
    ```
 
-3. **Error Handling**
+2. **Error Handling**
    ```python
    try:
        trie.insert('my_trie', word)
@@ -156,36 +203,52 @@ The trie implementation uses Redis hashes to store nodes, where:
        # Handle error...
    ```
 
+3. **Health Monitoring**
+   ```python
+   # Regular health checks
+   health = connection_manager.health_check()
+   if health['status'] != 'healthy':
+       logger.warning(f"Connection issues: {health}")
+   ```
+
 ## Common Issues
 
-1. **Memory Usage**
-   - Large datasets can consume significant memory
-   - Consider implementing size limits
-   - Regular cleanup of unused words
+1. **Connection Issues**
+   - Use connection manager's retry mechanism
+   - Monitor circuit breaker status
+   - Check SSL/TLS configuration
+   - Verify network connectivity
 
 2. **Performance**
-   - Long prefixes can slow down searches
-   - Large result sets may impact response time
-   - Consider implementing result limits
+   - Monitor connection pool usage
+   - Configure appropriate pool size
+   - Use health checks for monitoring
 
-3. **Concurrency**
-   - Operations are atomic
-   - Safe for multi-reader/writer scenarios
-   - Consider using connection pooling
+3. **Error Handling**
+   - Implement proper retry strategies
+   - Monitor circuit breaker status
+   - Handle connection timeouts
 
 ## Troubleshooting
 
-1. **Slow Searches**
-   - Check prefix length
-   - Monitor result set size
-   - Verify Redis connection
+1. **Connection Problems**
+   ```python
+   # Check connection health
+   health = connection_manager.health_check()
+   print(f"Status: {health['status']}")
+   print(f"Latency: {health['latency_ms']}ms")
+   ```
 
-2. **Memory Issues**
-   - Monitor trie size
-   - Implement word limits
-   - Regular cleanup
+2. **Performance Issues**
+   ```python
+   # Monitor connection pool
+   health = connection_manager.health_check()
+   print(f"Pool Status: {health['connection_pool']}")
+   ```
 
-3. **Connection Issues**
-   - Check Redis connection
-   - Verify credentials
-   - Monitor network latency
+3. **Circuit Breaker**
+   ```python
+   # Check circuit breaker status
+   health = connection_manager.health_check()
+   print(f"Circuit Breaker: {health['circuit_breaker']}")
+   ```

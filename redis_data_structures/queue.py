@@ -2,7 +2,6 @@ from typing import Any, Optional
 import logging
 
 from .base import RedisDataStructure
-from .metrics import track_operation
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +13,6 @@ class Queue(RedisDataStructure):
     are added to the back and removed from the front, following FIFO order.
     """
 
-    @track_operation("push")
     def push(self, key: str, data: Any) -> bool:
         """Push an item to the back of the queue.
 
@@ -38,7 +36,6 @@ class Queue(RedisDataStructure):
             logger.error(f"Error pushing to queue: {e}")
             return False
 
-    @track_operation("pop")
     def pop(self, key: str) -> Optional[Any]:
         """Pop an item from the front of the queue.
 
@@ -63,7 +60,6 @@ class Queue(RedisDataStructure):
             logger.error(f"Error popping from queue: {e}")
             return None
 
-    @track_operation("peek")
     def peek(self, key: str) -> Optional[Any]:
         """Peek at the front item without removing it.
 
@@ -89,15 +85,14 @@ class Queue(RedisDataStructure):
             logger.error(f"Error peeking queue: {e}")
             return None
 
-    @track_operation("size")
     def size(self, key: str) -> int:
-        """Get the size of the queue.
+        """Get the number of items in the queue.
 
         Args:
             key (str): The Redis key for this queue
 
         Returns:
-            int: Number of elements in the queue
+            int: Number of items in the queue
         """
         try:
             return self.connection_manager.execute(
@@ -107,3 +102,23 @@ class Queue(RedisDataStructure):
         except Exception as e:
             logger.error(f"Error getting queue size: {e}")
             return 0
+
+    def clear(self, key: str) -> bool:
+        """Clear all items from the queue.
+
+        Args:
+            key (str): The Redis key for this queue
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            return bool(
+                self.connection_manager.execute(
+                    "delete",
+                    self._get_key(key)
+                )
+            )
+        except Exception as e:
+            logger.error(f"Error clearing queue: {e}")
+            return False

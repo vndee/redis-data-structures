@@ -7,95 +7,103 @@ from redis_data_structures import Stack
 
 
 class TestStack(unittest.TestCase):
-    EXPECTED_SIZE_TWO = 2  # Constant for size comparisons
-
     def setUp(self):
-        self.stack = Stack(host="localhost", port=6379, db=0)
+        """Set up test cases."""
+        self.stack_ds = Stack()
         self.test_key = "test_stack"
-        self.stack.clear(self.test_key)
+        self.stack_ds.clear(self.test_key)
 
     def tearDown(self):
-        self.stack.clear(self.test_key)
+        """Clean up after tests."""
+        self.stack_ds.clear(self.test_key)
 
     def test_push_and_pop(self):
-        # Test basic push and pop operations
-        self.stack.push(self.test_key, "item1")
-        self.stack.push(self.test_key, "item2")
+        """Test basic push and pop operations."""
+        # Test pushing items
+        self.assertTrue(self.stack_ds.push(self.test_key, "item1"), "Failed to push item1")
+        self.assertTrue(self.stack_ds.push(self.test_key, "item2"), "Failed to push item2")
 
-        assert self.stack.size(self.test_key) == self.EXPECTED_SIZE_TWO
-        assert self.stack.pop(self.test_key) == "item2"
-        assert self.stack.pop(self.test_key) == "item1"
+        # Test size after pushing
+        self.assertEqual(self.stack_ds.size(self.test_key), 2, "Stack should have 2 items")
 
-    def test_pop_empty_stack(self):
-        # Test popping from empty stack
-        assert self.stack.pop(self.test_key) is None
+        # Test popping items
+        self.assertEqual(self.stack_ds.pop(self.test_key), "item2", "Wrong item popped")
+        self.assertEqual(self.stack_ds.pop(self.test_key), "item1", "Wrong item popped")
+        self.assertIsNone(self.stack_ds.pop(self.test_key), "Empty stack should return None")
 
-    def test_size(self):
-        # Test size operations
-        assert self.stack.size(self.test_key) == 0
+    def test_peek(self):
+        """Test peek operation."""
+        # Test peek on empty stack
+        self.assertIsNone(self.stack_ds.peek(self.test_key), "Peek on empty stack should return None")
 
-        self.stack.push(self.test_key, "item1")
-        assert self.stack.size(self.test_key) == 1
-
-        self.stack.push(self.test_key, "item2")
-        assert self.stack.size(self.test_key) == self.EXPECTED_SIZE_TWO
-
-        self.stack.pop(self.test_key)
-        assert self.stack.size(self.test_key) == 1
-
-    def test_clear(self):
-        # Test clear operation
-        self.stack.push(self.test_key, "item1")
-        self.stack.push(self.test_key, "item2")
-
-        self.stack.clear(self.test_key)
-        assert self.stack.size(self.test_key) == 0
-
-    def test_lifo_order(self):
-        # Test LIFO ordering
-        items = ["first", "second", "third"]
-        for item in items:
-            self.stack.push(self.test_key, item)
-
-        for expected_item in reversed(items):
-            assert self.stack.pop(self.test_key) == expected_item
-
-    def test_peek_operations(self):
-        # Test peek operations on empty stack
-        assert self.stack.peek(self.test_key) is None
-
-        # Test peek with items
-        self.stack.push(self.test_key, "item1")
-        self.stack.push(self.test_key, "item2")
+        # Add items and test peek
+        self.stack_ds.push(self.test_key, "item1")
+        self.stack_ds.push(self.test_key, "item2")
 
         # Peek should return top item without removing it
-        assert self.stack.peek(self.test_key) == "item2"
-        assert (
-            self.stack.size(self.test_key) == self.EXPECTED_SIZE_TWO
-        )  # Size should remain unchanged
+        self.assertEqual(self.stack_ds.peek(self.test_key), "item2", "Peek should return top item")
+        self.assertEqual(self.stack_ds.size(self.test_key), 2, "Size should not change after peek")
 
-        # Peek again should return the same item
-        assert self.stack.peek(self.test_key) == "item2"
-        assert self.stack.size(self.test_key) == self.EXPECTED_SIZE_TWO
+        # Peek again should return same item
+        self.assertEqual(self.stack_ds.peek(self.test_key), "item2", "Second peek should return same item")
 
-        # Pop should remove the item we were peeking at
-        assert self.stack.pop(self.test_key) == "item2"
-        assert self.stack.peek(self.test_key) == "item1"
+    def test_size(self):
+        """Test size operations."""
+        # Test empty stack
+        self.assertEqual(self.stack_ds.size(self.test_key), 0, "Empty stack should have size 0")
+
+        # Test after pushing one item
+        self.stack_ds.push(self.test_key, "item1")
+        self.assertEqual(
+            self.stack_ds.size(self.test_key),
+            1,
+            "Stack should have size 1 after pushing one item",
+        )
+
+        # Test after pushing second item
+        self.stack_ds.push(self.test_key, "item2")
+        self.assertEqual(
+            self.stack_ds.size(self.test_key),
+            2,
+            "Stack should have size 2 after pushing second item",
+        )
+
+        # Test after popping
+        self.stack_ds.pop(self.test_key)
+        self.assertEqual(
+            self.stack_ds.size(self.test_key),
+            1,
+            "Stack should have size 1 after popping",
+        )
+
+    def test_clear(self):
+        """Test clear operation."""
+        # Add items
+        self.stack_ds.push(self.test_key, "item1")
+        self.stack_ds.push(self.test_key, "item2")
+
+        # Clear and verify
+        self.assertTrue(self.stack_ds.clear(self.test_key), "Clear should return True")
+        self.assertEqual(self.stack_ds.size(self.test_key), 0, "Stack should be empty after clear")
+        self.assertIsNone(self.stack_ds.peek(self.test_key), "Peek should return None after clear")
 
     def test_complex_data_types(self):
-        # Test with complex data types
+        """Test with complex data types."""
+        # Test with JSON data
         test_dict = {"key": "value", "nested": {"data": True}}
         test_list = [1, 2, [3, 4]]
 
-        assert self.stack.push(self.test_key, test_dict)
-        assert self.stack.push(self.test_key, test_list)
+        # Push complex items
+        self.assertTrue(self.stack_ds.push(self.test_key, test_dict), "Failed to push dictionary")
+        self.assertTrue(self.stack_ds.push(self.test_key, test_list), "Failed to push list")
 
-        assert self.stack.peek(self.test_key) == test_list
-        assert self.stack.pop(self.test_key) == test_list
-        assert self.stack.pop(self.test_key) == test_dict
+        # Test peek and pop with complex items
+        self.assertEqual(self.stack_ds.peek(self.test_key), test_list, "Peek should return list")
+        self.assertEqual(self.stack_ds.pop(self.test_key), test_list, "Pop should return list")
+        self.assertEqual(self.stack_ds.pop(self.test_key), test_dict, "Pop should return dictionary")
 
     def test_serialization_edge_cases(self):
-        # Test with various data types
+        """Test with various data types."""
         test_cases = [
             None,
             True,
@@ -112,26 +120,61 @@ class TestStack(unittest.TestCase):
         ]
 
         for data in test_cases:
-            assert self.stack.push(self.test_key, data)
-            assert self.stack.peek(self.test_key) == data
-            assert self.stack.pop(self.test_key) == data
+            with self.subTest(data=data):
+                self.stack_ds.clear(self.test_key)  # Clear before each test
 
-    # Error handling tests
+                # Test push
+                self.assertTrue(
+                    self.stack_ds.push(self.test_key, data),
+                    f"Failed to push {data!r}",
+                )
+
+                # Test peek
+                self.assertEqual(
+                    self.stack_ds.peek(self.test_key),
+                    data,
+                    f"Peek should return {data!r}",
+                )
+
+                # Test pop
+                self.assertEqual(
+                    self.stack_ds.pop(self.test_key),
+                    data,
+                    f"Pop should return {data!r}",
+                )
+
     def test_push_error_handling(self):
-        with patch.object(self.stack.redis_client, "lpush", side_effect=RedisError):
-            assert not self.stack.push(self.test_key, "data")
+        """Test error handling in push method."""
+        with patch.object(self.stack_ds.connection_manager, "execute", side_effect=RedisError):
+            self.assertFalse(
+                self.stack_ds.push(self.test_key, "data"),
+                "Should return False on Redis error",
+            )
 
     def test_pop_error_handling(self):
-        with patch.object(self.stack.redis_client, "lpop", side_effect=RedisError):
-            assert self.stack.pop(self.test_key) is None
+        """Test error handling in pop method."""
+        with patch.object(self.stack_ds.connection_manager, "execute", side_effect=RedisError):
+            self.assertIsNone(
+                self.stack_ds.pop(self.test_key),
+                "Should return None on Redis error",
+            )
 
     def test_peek_error_handling(self):
-        with patch.object(self.stack.redis_client, "lindex", side_effect=RedisError):
-            assert self.stack.peek(self.test_key) is None
+        """Test error handling in peek method."""
+        with patch.object(self.stack_ds.connection_manager, "execute", side_effect=RedisError):
+            self.assertIsNone(
+                self.stack_ds.peek(self.test_key),
+                "Should return None on Redis error",
+            )
 
     def test_size_error_handling(self):
-        with patch.object(self.stack.redis_client, "llen", side_effect=RedisError):
-            assert self.stack.size(self.test_key) == 0
+        """Test error handling in size method."""
+        with patch.object(self.stack_ds.connection_manager, "execute", side_effect=RedisError):
+            self.assertEqual(
+                self.stack_ds.size(self.test_key),
+                0,
+                "Should return 0 on Redis error",
+            )
 
 
 if __name__ == "__main__":

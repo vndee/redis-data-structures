@@ -62,7 +62,6 @@ class DataStructureConfig:
     max_entries: Optional[int] = None
     backup_enabled: bool = False
     backup_interval: int = 3600  # seconds
-    metrics_enabled: bool = True
     debug_enabled: bool = False
 
 
@@ -88,7 +87,6 @@ class Config:
         ds_config = DataStructureConfig(
             prefix=os.getenv("REDIS_DS_PREFIX", "redis_ds"),
             compression_enabled=os.getenv("REDIS_DS_COMPRESSION", "").lower() == "true",
-            metrics_enabled=os.getenv("REDIS_DS_METRICS", "true").lower() == "true",
             debug_enabled=os.getenv("REDIS_DS_DEBUG", "").lower() == "true",
         )
 
@@ -122,7 +120,6 @@ class Config:
             "data_structures": {
                 "prefix": self.data_structures.prefix,
                 "compression_enabled": self.data_structures.compression_enabled,
-                "metrics_enabled": self.data_structures.metrics_enabled,
                 "debug_enabled": self.data_structures.debug_enabled,
             },
         }

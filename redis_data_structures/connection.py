@@ -55,7 +55,8 @@ class ConnectionManager:
             "host": host,
             "port": port,
             "db": db,
-            "decode_responses": True,  # Always decode responses
+            "decode_responses": True,  # Always decode responses to strings
+            "encoding": "utf-8",       # Use UTF-8 encoding
         }
 
         # Add optional parameters only if they are not None

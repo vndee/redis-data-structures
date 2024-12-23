@@ -2,7 +2,6 @@ import logging
 from typing import Any, Dict, Optional, Set
 
 from .base import RedisDataStructure
-from .metrics import track_operation
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,6 @@ class Graph(RedisDataStructure):
     - Persistent storage
     """
 
-    @track_operation
     def add_vertex(self, key: str, vertex: str, data: Any = None) -> bool:
         """Add a vertex to the graph.
 
@@ -51,7 +49,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error adding vertex: {e}")
             return False
 
-    @track_operation
     def add_edge(self, key: str, from_vertex: str, to_vertex: str, weight: float = 1.0) -> bool:
         """Add a directed edge between vertices.
 
@@ -77,7 +74,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error adding edge: {e}")
             return False
 
-    @track_operation
     def remove_vertex(self, key: str, vertex: str) -> bool:
         """Remove a vertex and all its edges from the graph.
 
@@ -105,7 +101,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error removing vertex: {e}")
             return False
 
-    @track_operation
     def remove_edge(self, key: str, from_vertex: str, to_vertex: str) -> bool:
         """Remove an edge from the graph.
 
@@ -124,7 +119,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error removing edge: {e}")
             return False
 
-    @track_operation
     def get_vertex_data(self, key: str, vertex: str) -> Optional[Any]:
         """Get data associated with a vertex.
 
@@ -143,7 +137,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error getting vertex data: {e}")
             return None
 
-    @track_operation
     def get_neighbors(self, key: str, vertex: str) -> Dict[str, float]:
         """Get all neighbors of a vertex with their edge weights.
 
@@ -164,7 +157,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error getting neighbors: {e}")
             return {}
 
-    @track_operation
     def get_vertices(self, key: str) -> Set[str]:
         """Get all vertices in the graph.
 
@@ -194,7 +186,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error getting vertices: {e}")
             return set()
 
-    @track_operation
     def vertex_exists(self, key: str, vertex: str) -> bool:
         """Check if a vertex exists in the graph.
 
@@ -214,7 +205,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error checking vertex existence: {e}")
             return False
 
-    @track_operation
     def get_edge_weight(self, key: str, from_vertex: str, to_vertex: str) -> Optional[float]:
         """Get the weight of an edge between two vertices.
 
@@ -234,7 +224,6 @@ class Graph(RedisDataStructure):
             logger.error(f"Error getting edge weight: {e}")
             return None
 
-    @track_operation
     def clear(self, key: str) -> bool:
         """Remove all vertices and edges from the graph.
 

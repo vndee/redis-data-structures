@@ -10,7 +10,6 @@ except ImportError:
     )
 
 from .base import RedisDataStructure
-from .metrics import track_operation
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,6 @@ class BloomFilter(RedisDataStructure):
             hash_values.append(abs(hash_val))
         return hash_values
 
-    @track_operation("add")
     def add(self, key: str, item: Any) -> bool:
         """Add an item to the Bloom filter.
 
@@ -110,7 +108,6 @@ class BloomFilter(RedisDataStructure):
             logger.error(f"Error adding item to Bloom filter: {e}")
             return False
 
-    @track_operation("contains")
     def contains(self, key: str, item: Any) -> bool:
         """Check if an item might exist in the Bloom filter.
 
@@ -134,7 +131,6 @@ class BloomFilter(RedisDataStructure):
             logger.error(f"Error checking item in Bloom filter: {e}")
             return False
 
-    @track_operation("clear")
     def clear(self, key: str) -> bool:
         """Clear the Bloom filter.
 
@@ -146,7 +142,6 @@ class BloomFilter(RedisDataStructure):
         """
         return super().clear(key)
 
-    @track_operation("size")
     def size(self) -> int:
         """Get the size of the Bloom filter in bits.
 

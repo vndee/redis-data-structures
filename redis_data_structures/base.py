@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional, Type, TypeVar, Union, TypedDict, cast
 from .config import Config
 from .connection import ConnectionManager
 from .exceptions import SerializationError
-from .metrics import track_operation
 
 try:
     from pydantic import BaseModel
@@ -196,7 +195,7 @@ class RedisDataStructure:
         if type_name == "dict":
             return {k: self._deserialize_value(v) for k, v in data.items()}
         if type_name == "set":
-            return set(self._deserialize_value(item) for item in data)
+            return {self._deserialize_value(item) for item in data}
         if type_name == "tuple":
             return tuple(self._deserialize_value(item) for item in data)
 
@@ -216,11 +215,22 @@ class RedisDataStructure:
 
         return data
     
-    def _serialize(self, value: Any) -> str:
-        """Serialize value to string."""
+    def _serialize(self, value: Any, include_timestamp: bool = True) -> str:
+        """Serialize value to string.
+        
+        Args:
+            value: The value to serialize
+            include_timestamp: Whether to include a timestamp in the serialized data.
+                             Defaults to True. Set to False for data structures that
+                             need exact value matching (e.g. sets).
+        
+        Returns:
+            str: The serialized value
+        """
         try:
             serialized = self._serialize_value(value)
-            serialized["timestamp"] = datetime.now(timezone.utc).isoformat()
+            if include_timestamp:
+                serialized["timestamp"] = datetime.now(timezone.utc).isoformat()
 
             result = json.dumps(serialized)
 
@@ -255,7 +265,6 @@ class RedisDataStructure:
         except Exception as e:
             raise SerializationError(f"Failed to deserialize data: {e}")
     
-    @track_operation("set_ttl")
     def set_ttl(self, key: str, ttl: Union[int, timedelta]) -> bool:
         """Set Time To Live (TTL) for a key."""
         try:
@@ -272,7 +281,6 @@ class RedisDataStructure:
             logger.error(f"Error setting TTL: {e}")
             return False
     
-    @track_operation("get_ttl")
     def get_ttl(self, key: str) -> Optional[int]:
         """Get remaining Time To Live (TTL) for a key."""
         try:
@@ -284,7 +292,6 @@ class RedisDataStructure:
             logger.error(f"Error getting TTL: {e}")
             return None
     
-    @track_operation("persist")
     def persist(self, key: str) -> bool:
         """Remove TTL from a key."""
         try:
@@ -298,7 +305,6 @@ class RedisDataStructure:
             logger.error(f"Error removing TTL: {e}")
             return False
     
-    @track_operation("clear")
     def clear(self, key: str) -> bool:
         """Clear all elements from the data structure."""
         try:

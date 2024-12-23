@@ -17,7 +17,7 @@ def test_serialization():
     print("Deserialized tuple:", deserialized_tuple)
 
     # Test that the deserialized data matches the original
-    assert deserialized_tuple["value"] == tuple_data, "Deserialized data doesn't match original"
+    assert deserialized_tuple == tuple_data, "Deserialized data doesn't match original"
     print("Test passed: Deserialized data matches original")
 
 

@@ -2,7 +2,6 @@ from typing import Any, Optional
 import logging
 
 from .base import RedisDataStructure
-from .metrics import track_operation
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,6 @@ class Deque(RedisDataStructure):
     and other scenarios requiring bidirectional access to the data structure.
     """
 
-    @track_operation("push_front")
     def push_front(self, key: str, data: Any) -> bool:
         """Push an item to the front of the deque.
 
@@ -40,7 +38,6 @@ class Deque(RedisDataStructure):
             logger.error(f"Error pushing to front of deque: {e}")
             return False
 
-    @track_operation("push_back")
     def push_back(self, key: str, data: Any) -> bool:
         """Push an item to the back of the deque.
 
@@ -64,7 +61,6 @@ class Deque(RedisDataStructure):
             logger.error(f"Error pushing to back of deque: {e}")
             return False
 
-    @track_operation("pop_front")
     def pop_front(self, key: str) -> Optional[Any]:
         """Pop an item from the front of the deque.
 
@@ -89,7 +85,6 @@ class Deque(RedisDataStructure):
             logger.error(f"Error popping from front of deque: {e}")
             return None
 
-    @track_operation("pop_back")
     def pop_back(self, key: str) -> Optional[Any]:
         """Pop an item from the back of the deque.
 
@@ -114,7 +109,6 @@ class Deque(RedisDataStructure):
             logger.error(f"Error popping from back of deque: {e}")
             return None
 
-    @track_operation("peek_front")
     def peek_front(self, key: str) -> Optional[Any]:
         """Peek at the front item without removing it.
 
@@ -140,7 +134,6 @@ class Deque(RedisDataStructure):
             logger.error(f"Error peeking front of deque: {e}")
             return None
 
-    @track_operation("peek_back")
     def peek_back(self, key: str) -> Optional[Any]:
         """Peek at the back item without removing it.
 
@@ -166,7 +159,6 @@ class Deque(RedisDataStructure):
             logger.error(f"Error peeking back of deque: {e}")
             return None
 
-    @track_operation("size")
     def size(self, key: str) -> int:
         """Get the size of the deque.
 
