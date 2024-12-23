@@ -1,7 +1,7 @@
 import json
 import redis
-from datetime import datetime, timezone
-from typing import Any, Callable, ClassVar, Dict, Optional, Type, TypedDict, cast
+from datetime import datetime, timezone, timedelta
+from typing import Any, Callable, ClassVar, Dict, Optional, Type, TypedDict, Union, cast
 
 try:
     from pydantic import BaseModel
@@ -149,6 +149,13 @@ class RedisDataStructure:
                 },
                 "deserialize": lambda x: datetime.fromisoformat(x["value"]),
             },
+            timedelta: {
+                "serialize": lambda x: {
+                    "_type": "timedelta",
+                    "value": x.total_seconds(),
+                },
+                "deserialize": lambda x: timedelta(seconds=float(x["value"])),
+            },
         }
 
     def _serialize_value(self, val: Any) -> Any:
@@ -285,6 +292,73 @@ class RedisDataStructure:
                     "_type": "str",
                 },
             )
+
+    def set_ttl(self, key: str, ttl: Union[int, timedelta]) -> bool:
+        """Set Time To Live (TTL) for a key.
+        
+        Args:
+            key: The key to set TTL for
+            ttl: Time to live in seconds (int) or timedelta
+        
+        Returns:
+            bool: True if TTL was set, False otherwise
+        """
+        try:
+            if isinstance(ttl, timedelta):
+                ttl = int(ttl.total_seconds())
+            return bool(self.redis_client.expire(key, ttl))
+        except redis.RedisError as e:
+            print(f"Error setting TTL: {e}")
+            return False
+
+    def get_ttl(self, key: str) -> Optional[int]:
+        """Get remaining Time To Live (TTL) for a key.
+        
+        Args:
+            key: The key to get TTL for
+        
+        Returns:
+            Optional[int]: Remaining time in seconds, None if key has no TTL,
+                          -2 if key does not exist, -1 if key exists but has no TTL
+        """
+        try:
+            return self.redis_client.ttl(key)
+        except redis.RedisError as e:
+            print(f"Error getting TTL: {e}")
+            return None
+
+    def persist(self, key: str) -> bool:
+        """Remove TTL from a key, making it persistent.
+        
+        Args:
+            key: The key to remove TTL from
+        
+        Returns:
+            bool: True if TTL was removed, False otherwise
+        """
+        try:
+            return bool(self.redis_client.persist(key))
+        except redis.RedisError as e:
+            print(f"Error removing TTL: {e}")
+            return False
+
+    def set_expire_at(self, key: str, timestamp: Union[datetime, int]) -> bool:
+        """Set key to expire at a specific timestamp.
+        
+        Args:
+            key: The key to set expiration for
+            timestamp: Unix timestamp (int) or datetime object
+        
+        Returns:
+            bool: True if expiration was set, False otherwise
+        """
+        try:
+            if isinstance(timestamp, datetime):
+                timestamp = int(timestamp.timestamp())
+            return bool(self.redis_client.expireat(key, timestamp))
+        except redis.RedisError as e:
+            print(f"Error setting expiration: {e}")
+            return False
 
     def size(self, key: str) -> int:
         """Get the size of the data structure."""

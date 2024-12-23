@@ -1,16 +1,15 @@
 # Redis Data Structures
 
-A Python package providing Redis-backed data structures for building scalable and resilient applications. This package includes implementations of common data structures that use Redis as the backend storage, making them suitable for distributed systems and applications requiring persistence.
+[![PyPI version](https://badge.fury.io/py/redis-data-structures.svg)](https://badge.fury.io/py/redis-data-structures)
+[![Python Versions](https://img.shields.io/pypi/pyversions/redis-data-structures.svg)](https://pypi.org/project/redis-data-structures/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Documentation Status](https://readthedocs.org/projects/redis-data-structures/badge/?version=latest)](https://redis-data-structures.readthedocs.io/en/latest/?badge=latest)
 
-## Documentation
+A Python package providing Redis-backed implementations of common data structures for building scalable and resilient applications. This package offers thread-safe, persistent, and distributed data structures built on top of Redis, making them perfect for microservices, distributed systems, and applications requiring persistence.
 
-- [Usage Guide](docs/usage.md) - Comprehensive guide for all data structures
-- [Type Preservation](docs/type_preservation.md) - Details about Python type preservation
-- [Examples](examples/) - Example code for each data structure
+## 🌟 Key Features
 
-## Features
-
-- Multiple data structure implementations:
+- **Rich Data Structure Support**:
   - Queue (FIFO)
   - Stack (LIFO)
   - Priority Queue
@@ -20,162 +19,95 @@ A Python package providing Redis-backed data structures for building scalable an
   - Bloom Filter (Probabilistic membership testing)
   - Trie (Prefix tree)
   - LRU Cache (Least Recently Used cache)
-- Thread-safe operations
-- Timestamp tracking for all operations
-- JSON serialization with type preservation for:
-  - Tuples
-  - Sets
-  - Bytes
-  - Datetime objects
-- Consistent API across all data structures
-- Graceful error handling
-- Both synchronous implementations (async coming soon)
+- **Thread-safe Operations**
+- **Persistent Storage**
+- **Type Preservation**:
+  - Preserves Python types (tuples, sets, bytes, datetime)
+  - Support for custom types and Pydantic models
+- **Performance Optimized**:
+  - O(1) operations for most data structures
+  - Connection pooling
+  - Batch operations support
+- **Production Ready**:
+  - Comprehensive error handling
+  - Monitoring support
+  - Graceful fallbacks
+- **Developer Friendly**:
+  - Consistent API across all structures
+  - Extensive documentation
+  - Type hints
+  - Both synchronous and asynchronous implementations (async coming soon)
 
-## Prerequisites
+## 📚 Documentation
 
-- Python 3.7+
-- Redis server (local installation or Docker)
-- Python packages:
-  ```
-  redis>=4.5.0
-  ```
+- [Usage Guide](docs/usage.md) - Comprehensive guide for all data structures
+- [Type Preservation](docs/type_preservation.md) - Details about Python type preservation
+- [Examples](examples/) - Example code for each data structure
 
-## Installation
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
 pip install redis-data-structures
 ```
 
-## Quick Start
+### Prerequisites
+
+- Python 3.7+
+- Redis server (local installation or Docker)
+- Dependencies:
+  ```
+  redis>=4.5.0
+  pydantic>=2.0.0  # Optional, for enhanced type support
+  ```
+
+### Basic Usage
 
 ```python
-from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Deque, BloomFilter, LRUCache
+from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap
 
-# Initialize data structures
+# Initialize with Redis connection
 queue = Queue(host='localhost', port=6379, db=0)
-stack = Stack(host='localhost', port=6379, db=0)
-pq = PriorityQueue(host='localhost', port=6379, db=0)
-set_ds = Set(host='localhost', port=6379, db=0)
-hash_map = HashMap(host='localhost', port=6379, db=0)
-deque = Deque(host='localhost', port=6379, db=0)
-bloom = BloomFilter(expected_elements=10000, false_positive_rate=0.01)
-cache = LRUCache(capacity=1000)
 
-# Using Queue (FIFO)
-queue.push('my_queue', 'first')
-queue.push('my_queue', 'second')
-first = queue.pop('my_queue')  # Returns 'first'
+# Basic operations
+queue.push('my_queue', 'item1')
+item = queue.pop('my_queue')  # Returns 'item1'
 
-# Using Stack (LIFO)
-stack.push('my_stack', 'first')
-stack.push('my_stack', 'second')
-last = stack.pop('my_stack')   # Returns 'second'
-
-# Using Priority Queue
-pq.push('my_pq', 'high', priority=1)
-pq.push('my_pq', 'low', priority=3)
-pq.push('my_pq', 'medium', priority=2)
-highest = pq.pop('my_pq')      # Returns ('high', 1)
-
-# Using Set
-set_ds.add('my_set', 'unique1')
-set_ds.add('my_set', 'unique2')
-set_ds.add('my_set', 'unique1')  # Won't add duplicate
-members = set_ds.members('my_set')  # Returns {'unique1', 'unique2'}
-exists = set_ds.contains('my_set', 'unique1')  # Returns True
-
-# Using Hash Map
-hash_map.set('my_hash', 'field1', 'value1')
-hash_map.set('my_hash', 'field2', 'value2')
-value = hash_map.get('my_hash', 'field1')  # Returns 'value1'
-all_items = hash_map.get_all('my_hash')  # Returns {'field1': 'value1', 'field2': 'value2'}
-
-# Using Deque (Double-ended queue)
-deque.push_front('my_deque', 'front1')
-deque.push_back('my_deque', 'back1')
-front = deque.pop_front('my_deque')  # Returns 'front1'
-back = deque.pop_back('my_deque')    # Returns 'back1'
-
-# Using Bloom Filter (Probabilistic membership testing)
-bloom.add('my_filter', 'item1')
-bloom.add('my_filter', 'item2')
-exists = bloom.contains('my_filter', 'item1')  # Returns True
-exists = bloom.contains('my_filter', 'item3')  # Returns False (definitely not in set)
-
-# Using LRU Cache
-cache.put('my_cache', 'key1', {'name': 'John', 'age': 30})
-cache.put('my_cache', 'key2', ('tuple', 'data'))  # Tuples are preserved
-cache.put('my_cache', 'key3', {1, 2, 3})         # Sets are preserved
-value = cache.get('my_cache', 'key1')  # Returns {'name': 'John', 'age': 30}
+# Check size and clear
+size = queue.size('my_queue')
+queue.clear('my_queue')
 ```
 
-## Type Preservation
+See [Usage Guide](docs/usage.md) for detailed examples of all data structures.
 
-All data structures automatically preserve Python types during serialization:
-
-```python
-# Tuples are preserved
-data = (1, 'two', [3])
-cache.put('my_cache', 'tuple_key', data)
-result = cache.get('my_cache', 'tuple_key')
-print(type(result))  # <class 'tuple'>
-
-# Sets are preserved
-data = {1, 2, 3}
-set_ds.add('my_set', data)
-result = set_ds.members('my_set').pop()
-print(type(result))  # <class 'set'>
-
-# Datetime objects are preserved
-from datetime import datetime
-data = datetime.now()
-hash_map.set('my_hash', 'date', data)
-result = hash_map.get('my_hash', 'date')
-print(type(result))  # <class 'datetime.datetime'>
-```
-
-## Common Operations
-
-All data structures support these common operations:
-
-```python
-# Check size
-size = ds.size('my_key')
-
-# Clear all items
-ds.clear('my_key')
-```
-
-## Redis Setup
+## 🔧 Redis Setup
 
 ### Using Docker (Recommended)
 ```bash
-# Pull Redis image
-docker pull redis:latest
-
-# Run Redis container
+# Pull and run Redis
 docker run --name redis-ds -p 6379:6379 -d redis:latest
-
-# Stop Redis when done
-docker stop redis-ds
-docker rm redis-ds
 ```
 
 ### Local Installation
 ```bash
-# On macOS with Homebrew
+# macOS
+brew install redis
 brew services start redis
 
-# On Ubuntu/Debian
-sudo service redis-server start
+# Ubuntu/Debian
+sudo apt-get install redis-server
+sudo systemctl start redis-server
 ```
 
-## Implementation Details
+## 🔍 Implementation Details
+
+Each data structure is optimized for its specific use case:
 
 ### Queue (FIFO)
 - Uses Redis Lists (`RPUSH`/`LPOP`)
 - O(1) push and pop operations
-- Maintains insertion order
+- Perfect for task queues and job processing
 
 ### Stack (LIFO)
 - Uses Redis Lists (`LPUSH`/`LPOP`)
@@ -217,28 +149,111 @@ sudo service redis-server start
 - Perfect for caching with size limits
 - Preserves Python types (tuples, sets, etc.)
 
-## Best Practices
+### Trie (Prefix tree)
+- Uses Redis Sorted Sets (`ZADD`/`ZRANGE`/`ZREM`)
+- O(log N) operations for prefix matching
+- Perfect for hierarchical data storage
+
+## 🛠️ Advanced Usage
+
+### Connection Pooling
+```python
+from redis import ConnectionPool
+from redis_data_structures import Queue, Stack
+
+# Create a connection pool
+pool = ConnectionPool(host='localhost', port=6379, db=0)
+
+# Share pool across instances
+queue = Queue(connection_pool=pool)
+stack = Stack(connection_pool=pool)
+```
 
 ### Type Preservation
-1. **Consistent Types**: Always use consistent types for the same keys/fields
-2. **Complex Objects**: For complex objects, consider serializing them yourself
-3. **Custom Types**: For custom types, implement `__str__` and parsing methods
+```python
+from datetime import datetime
+from pydantic import BaseModel
 
-### Performance
-1. **Batch Operations**: Use bulk operations when possible
-2. **Connection Pooling**: Reuse data structure instances
-3. **Key Naming**: Use consistent key naming conventions
-4. **Monitoring**: Monitor Redis memory usage
+# Custom Pydantic model
+class User(BaseModel):
+    name: str
+    joined: datetime
+
+# Store with type preservation
+user = User(name="John", joined=datetime.now())
+hash_map.set('users', 'john', user)
+
+# Retrieve with types intact
+john = hash_map.get('users', 'john')  # Returns User object
+```
 
 ### Error Handling
-1. **Check Returns**: Always check return values
-2. **Handle Exceptions**: Wrap operations in try-except blocks
-3. **Logging**: Enable Redis logging for debugging
+```python
+from redis.exceptions import RedisError
 
-## Contributing
+try:
+    value = queue.pop('my_queue')
+except RedisError as e:
+    logger.error(f"Redis operation failed: {e}")
+except Exception as e:
+    logger.error(f"Unexpected error: {e}")
+```
 
-Feel free to submit issues, fork the repository, and create pull requests for any improvements.
+### TTL (Time To Live)
+```python
+from datetime import datetime, timedelta
 
-## License
+# Set TTL for a key
+queue.set_ttl('my_queue', timedelta(seconds=10))
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+# Check TTL
+ttl = queue.get_ttl('my_queue')
+print(f"TTL remaining: {ttl} seconds")
+```
+
+## 📈 Performance Tips
+
+1. **Use Connection Pooling**
+   - Share connection pools across instances
+   - Configure pool size based on workload
+
+2. **Batch Operations**
+   - Use bulk operations when possible
+   - Pipeline commands for atomic operations
+
+3. **Memory Management**
+   - Monitor Redis memory usage
+   - Implement TTL for temporary data
+   - Use appropriate data structures
+
+4. **Key Naming**
+   - Use consistent prefixes
+   - Include version in keys
+   - Consider namespacing
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please read our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Redis team for the amazing database
+- All our contributors
+- Python community
+
+## 📬 Support
+
+- 🐛 [Report bugs](https://github.com/vndee/redis-data-structures/issues)
+- 💡 [Request features](https://github.com/vndee/redis-data-structures/issues)
