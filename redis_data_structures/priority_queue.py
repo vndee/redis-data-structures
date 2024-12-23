@@ -45,11 +45,15 @@ class PriorityQueue(RedisDataStructure):
             if not items:
                 return None
 
-            item_bytes, priority = items[0]
-            # Remove the item from the queue
-            self.redis_client.zrem(key, item_bytes)
+            item, priority = items[0]
+            # Handle bytes if Redis returns bytes
+            if isinstance(item, bytes):
+                item = item.decode("utf-8")
 
-            return self._deserialize(item_bytes)["data"], int(priority)
+            # Remove the item from the queue
+            self.redis_client.zrem(key, item)
+
+            return self._deserialize(item), int(priority)
         except Exception as e:
             print(f"Error popping from priority queue: {e}")
             return None
@@ -68,8 +72,12 @@ class PriorityQueue(RedisDataStructure):
             if not items:
                 return None
 
-            item_bytes, priority = items[0]
-            return self._deserialize(item_bytes)["data"], int(priority)
+            item, priority = items[0]
+            # Handle bytes if Redis returns bytes
+            if isinstance(item, bytes):
+                item = item.decode("utf-8")
+
+            return self._deserialize(item), int(priority)
         except Exception as e:
             print(f"Error peeking priority queue: {e}")
             return None

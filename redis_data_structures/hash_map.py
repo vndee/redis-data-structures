@@ -47,7 +47,7 @@ class HashMap(RedisDataStructure):
             if data is not None:
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
-                return self._deserialize(data)["data"]
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error getting hash field: {e}")
@@ -105,7 +105,7 @@ class HashMap(RedisDataStructure):
             for field, value in items.items():
                 field_str = field.decode("utf-8") if isinstance(field, bytes) else field
                 value_str = value.decode("utf-8") if isinstance(value, bytes) else value
-                result[field_str] = self._deserialize(value_str)["data"]
+                result[field_str] = self._deserialize(value_str)
             return result
         except Exception as e:
             print(f"Error getting all hash fields: {e}")
@@ -123,7 +123,9 @@ class HashMap(RedisDataStructure):
         try:
             fields = self.redis_client.hkeys(key)
             if isinstance(fields, list):
-                return [field.decode("utf-8") for field in fields if isinstance(field, bytes)]
+                return [
+                    field.decode("utf-8") if isinstance(field, bytes) else field for field in fields
+                ]
             return []
         except Exception as e:
             print(f"Error getting hash fields: {e}")
@@ -142,9 +144,8 @@ class HashMap(RedisDataStructure):
             values = self.redis_client.hvals(key)
             if isinstance(values, list):
                 return [
-                    self._deserialize(value.decode("utf-8"))["data"]
+                    self._deserialize(value.decode("utf-8") if isinstance(value, bytes) else value)
                     for value in values
-                    if isinstance(value, bytes)
                 ]
             return []
         except Exception as e:

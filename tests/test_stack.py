@@ -1,6 +1,8 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
 from redis.exceptions import RedisError
+
 from redis_data_structures import Stack
 
 
@@ -68,7 +70,9 @@ class TestStack(unittest.TestCase):
 
         # Peek should return top item without removing it
         assert self.stack.peek(self.test_key) == "item2"
-        assert self.stack.size(self.test_key) == self.EXPECTED_SIZE_TWO  # Size should remain unchanged
+        assert (
+            self.stack.size(self.test_key) == self.EXPECTED_SIZE_TWO
+        )  # Size should remain unchanged
 
         # Peek again should return the same item
         assert self.stack.peek(self.test_key) == "item2"
@@ -82,10 +86,10 @@ class TestStack(unittest.TestCase):
         # Test with complex data types
         test_dict = {"key": "value", "nested": {"data": True}}
         test_list = [1, 2, [3, 4]]
-        
+
         assert self.stack.push(self.test_key, test_dict)
         assert self.stack.push(self.test_key, test_list)
-        
+
         assert self.stack.peek(self.test_key) == test_list
         assert self.stack.pop(self.test_key) == test_list
         assert self.stack.pop(self.test_key) == test_dict
@@ -104,7 +108,7 @@ class TestStack(unittest.TestCase):
             [1, 2, 3],
             {},
             {"a": 1, "b": 2},
-            {"nested": {"data": [1, 2, 3]}}
+            {"nested": {"data": [1, 2, 3]}},
         ]
 
         for data in test_cases:
@@ -114,19 +118,19 @@ class TestStack(unittest.TestCase):
 
     # Error handling tests
     def test_push_error_handling(self):
-        with patch.object(self.stack.redis_client, 'lpush', side_effect=RedisError):
+        with patch.object(self.stack.redis_client, "lpush", side_effect=RedisError):
             assert not self.stack.push(self.test_key, "data")
 
     def test_pop_error_handling(self):
-        with patch.object(self.stack.redis_client, 'lpop', side_effect=RedisError):
+        with patch.object(self.stack.redis_client, "lpop", side_effect=RedisError):
             assert self.stack.pop(self.test_key) is None
 
     def test_peek_error_handling(self):
-        with patch.object(self.stack.redis_client, 'lindex', side_effect=RedisError):
+        with patch.object(self.stack.redis_client, "lindex", side_effect=RedisError):
             assert self.stack.peek(self.test_key) is None
 
     def test_size_error_handling(self):
-        with patch.object(self.stack.redis_client, 'llen', side_effect=RedisError):
+        with patch.object(self.stack.redis_client, "llen", side_effect=RedisError):
             assert self.stack.size(self.test_key) == 0
 
 

@@ -58,7 +58,9 @@ class Deque(RedisDataStructure):
         try:
             data = self.redis_client.lpop(key)
             if data:
-                return self._deserialize(data)["data"]
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8")
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error popping from front of deque: {e}")
@@ -76,7 +78,9 @@ class Deque(RedisDataStructure):
         try:
             data = self.redis_client.rpop(key)
             if data:
-                return self._deserialize(data)["data"]
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8")
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error popping from back of deque: {e}")
@@ -94,7 +98,9 @@ class Deque(RedisDataStructure):
         try:
             data = self.redis_client.lindex(key, 0)
             if data:
-                return self._deserialize(data)["data"]
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8")
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error peeking front of deque: {e}")
@@ -112,7 +118,9 @@ class Deque(RedisDataStructure):
         try:
             data = self.redis_client.lindex(key, -1)
             if data:
-                return self._deserialize(data)["data"]
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8")
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error peeking back of deque: {e}")

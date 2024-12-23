@@ -39,7 +39,10 @@ class Queue(RedisDataStructure):
         try:
             data = self.redis_client.lpop(key)
             if data:
-                return self._deserialize(data)["data"]
+                # Handle bytes response from Redis
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8")
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error popping from queue: {e}")
@@ -57,7 +60,10 @@ class Queue(RedisDataStructure):
         try:
             data = self.redis_client.lindex(key, 0)
             if data:
-                return self._deserialize(data)["data"]
+                # Handle bytes response from Redis
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8")
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error peeking queue: {e}")

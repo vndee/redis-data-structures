@@ -2,6 +2,12 @@
 
 A Python package providing Redis-backed data structures for building scalable and resilient applications. This package includes implementations of common data structures that use Redis as the backend storage, making them suitable for distributed systems and applications requiring persistence.
 
+## Documentation
+
+- [Usage Guide](docs/usage.md) - Comprehensive guide for all data structures
+- [Type Preservation](docs/type_preservation.md) - Details about Python type preservation
+- [Examples](examples/) - Example code for each data structure
+
 ## Features
 
 - Multiple data structure implementations:
@@ -13,9 +19,14 @@ A Python package providing Redis-backed data structures for building scalable an
   - Deque (Double-ended queue)
   - Bloom Filter (Probabilistic membership testing)
   - Trie (Prefix tree)
+  - LRU Cache (Least Recently Used cache)
 - Thread-safe operations
 - Timestamp tracking for all operations
-- JSON serialization for complex data types
+- JSON serialization with type preservation for:
+  - Tuples
+  - Sets
+  - Bytes
+  - Datetime objects
 - Consistent API across all data structures
 - Graceful error handling
 - Both synchronous implementations (async coming soon)
@@ -38,7 +49,7 @@ pip install redis-data-structures
 ## Quick Start
 
 ```python
-from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Deque, BloomFilter
+from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Deque, BloomFilter, LRUCache
 
 # Initialize data structures
 queue = Queue(host='localhost', port=6379, db=0)
@@ -48,6 +59,7 @@ set_ds = Set(host='localhost', port=6379, db=0)
 hash_map = HashMap(host='localhost', port=6379, db=0)
 deque = Deque(host='localhost', port=6379, db=0)
 bloom = BloomFilter(expected_elements=10000, false_positive_rate=0.01)
+cache = LRUCache(capacity=1000)
 
 # Using Queue (FIFO)
 queue.push('my_queue', 'first')
@@ -89,7 +101,37 @@ bloom.add('my_filter', 'item1')
 bloom.add('my_filter', 'item2')
 exists = bloom.contains('my_filter', 'item1')  # Returns True
 exists = bloom.contains('my_filter', 'item3')  # Returns False (definitely not in set)
-exists = bloom.contains('my_filter', 'unknown')  # May return True (false positive possible)
+
+# Using LRU Cache
+cache.put('my_cache', 'key1', {'name': 'John', 'age': 30})
+cache.put('my_cache', 'key2', ('tuple', 'data'))  # Tuples are preserved
+cache.put('my_cache', 'key3', {1, 2, 3})         # Sets are preserved
+value = cache.get('my_cache', 'key1')  # Returns {'name': 'John', 'age': 30}
+```
+
+## Type Preservation
+
+All data structures automatically preserve Python types during serialization:
+
+```python
+# Tuples are preserved
+data = (1, 'two', [3])
+cache.put('my_cache', 'tuple_key', data)
+result = cache.get('my_cache', 'tuple_key')
+print(type(result))  # <class 'tuple'>
+
+# Sets are preserved
+data = {1, 2, 3}
+set_ds.add('my_set', data)
+result = set_ds.members('my_set').pop()
+print(type(result))  # <class 'set'>
+
+# Datetime objects are preserved
+from datetime import datetime
+data = datetime.now()
+hash_map.set('my_hash', 'date', data)
+result = hash_map.get('my_hash', 'date')
+print(type(result))  # <class 'datetime.datetime'>
 ```
 
 ## Common Operations
@@ -168,82 +210,30 @@ sudo service redis-server start
 - O(1) add and remove operations
 - Probabilistic membership testing
 
-### Trie
-- Uses Redis Hashes for nodes
-- O(m) operations for words of length m
-- Perfect for autocomplete and prefix matching
-- Supports empty strings
+### LRU Cache
+- Uses Redis Hashes for storage and Sorted Sets for access tracking
+- O(1) get and put operations
+- Automatic eviction of least recently used items
+- Perfect for caching with size limits
+- Preserves Python types (tuples, sets, etc.)
 
-## TODO: Future Data Structures
+## Best Practices
 
-The following data structures are planned for future implementation:
+### Type Preservation
+1. **Consistent Types**: Always use consistent types for the same keys/fields
+2. **Complex Objects**: For complex objects, consider serializing them yourself
+3. **Custom Types**: For custom types, implement `__str__` and parsing methods
 
-1. **LRU Cache**
-   - Least Recently Used caching with automatic eviction
-   - Perfect for caching with size limits
-   - Operations: get, put, peek, evict
-   - Use cases: Database query caching, API response caching
+### Performance
+1. **Batch Operations**: Use bulk operations when possible
+2. **Connection Pooling**: Reuse data structure instances
+3. **Key Naming**: Use consistent key naming conventions
+4. **Monitoring**: Monitor Redis memory usage
 
-2. **HyperLogLog**
-   - Probabilistic cardinality estimation
-   - Memory-efficient unique counting
-   - Operations: add, count, merge
-   - Use cases: Unique visitors tracking, stream analytics
-
-3. **Rate Limiter**
-   - Sliding window rate limiting
-   - Perfect for API protection
-   - Operations: check_limit, record_request, reset
-   - Use cases: API rate limiting, DDoS protection
-
-4. **Circular Buffer**
-   - Fixed-size circular queue
-   - Auto-overwrites oldest elements
-   - Operations: push, pop, peek, get_all
-   - Use cases: Log rotation, streaming data
-
-5. **CountMinSketch**
-   - Probabilistic frequency estimation
-   - Memory-efficient counting
-   - Operations: increment, estimate, merge
-   - Use cases: Heavy hitters detection, frequency counting
-
-6. **Sorted Dictionary**
-   - Combined hash map and sorted set
-   - Perfect for ordered key-value data
-   - Operations: set, get, get_range, remove_range
-   - Use cases: Leaderboards, time-series data
-
-7. **Graph**
-   - Basic graph structure
-   - Supports directed and weighted edges
-   - Operations: add_edge, remove_edge, get_neighbors
-   - Use cases: Social networks, dependency tracking
-
-8. **TimeWindow Counter**
-   - Sliding window event counting
-   - Automatic data expiration
-   - Operations: increment, get_count, get_windows
-   - Use cases: Analytics, event tracking
-
-9. **SkipList**
-   - Probabilistic ordered data structure
-   - Efficient range queries
-   - Operations: insert, delete, find, range
-   - Use cases: Range queries, ordered sets
-
-10. **MultiLock**
-    - Distributed multi-resource locking
-    - Deadlock prevention
-    - Operations: acquire, release, extend
-    - Use cases: Distributed synchronization
-
-Each planned data structure will follow the project's patterns:
-- Thread-safe operations
-- Comprehensive error handling
-- Full test coverage
-- Clear documentation with examples
-- Performance optimizations
+### Error Handling
+1. **Check Returns**: Always check return values
+2. **Handle Exceptions**: Wrap operations in try-except blocks
+3. **Logging**: Enable Redis logging for debugging
 
 ## Contributing
 

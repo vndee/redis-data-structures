@@ -42,10 +42,9 @@ class Stack(RedisDataStructure):
         try:
             data = self.redis_client.lpop(key)
             if data is not None:
-                # Redis returns bytes, so we need to decode it
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
-                return self._deserialize(data)["data"]
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error popping from stack: {e}")
@@ -65,7 +64,7 @@ class Stack(RedisDataStructure):
             if data is not None:
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
-                return self._deserialize(data)["data"]
+                return self._deserialize(data)
             return None
         except Exception as e:
             print(f"Error peeking stack: {e}")

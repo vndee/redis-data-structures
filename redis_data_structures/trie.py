@@ -40,10 +40,14 @@ class Trie(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
+            # Validate input
+            if not isinstance(word, str):
+                return False
+            word = str(word)  # Convert to string but don't strip
+
             current_prefix = ""
             for char in word:
                 node_key = self._get_node_key(key, current_prefix)
-                # Add character to current node's children
                 self.redis_client.hset(node_key, char, "1")
                 current_prefix = current_prefix + char if current_prefix else char
 
@@ -66,6 +70,18 @@ class Trie(RedisDataStructure):
             bool: True if the word exists, False otherwise
         """
         try:
+            if not word:
+                return self.redis_client.hexists(key, "*")
+
+            if not isinstance(word, str):
+                return False
+            word = str(word)  # Convert to string but don't strip
+            if not word:  # Empty string is a special case
+                if self.redis_client.hexists(key, "*"):
+                    return True  # Already exists
+                self.redis_client.hset(key, "*", "1")
+                return True
+
             current_prefix = ""
             for char in word:
                 node_key = self._get_node_key(key, current_prefix)
@@ -90,6 +106,15 @@ class Trie(RedisDataStructure):
             List[str]: List of words with the given prefix
         """
         try:
+            # Validate input
+            if not isinstance(prefix, str):
+                return []
+            prefix = str(prefix).strip()
+
+            # Handle empty prefix - return all words
+            if not prefix:
+                return self._get_all_words(key)
+
             # First verify the prefix exists
             current = ""
             for char in prefix:
@@ -101,10 +126,25 @@ class Trie(RedisDataStructure):
             # DFS to find all words with the prefix
             words: List[str] = []
             self._collect_words(key, prefix, prefix, words)
-            return words
+            return sorted(words)  # Return sorted list for consistency
         except Exception as e:
             print(f"Error in starts_with: {e}")
             return []
+
+    def _get_all_words(self, key: str) -> List[str]:
+        """Get all words in the trie.
+
+        Args:
+            key (str): The Redis key for this trie
+
+        Returns:
+            List[str]: All words in the trie
+        """
+        words: List[str] = []
+        if self.redis_client.hexists(key, "*"):
+            words.append("")
+        self._collect_words(key, "", "", words)
+        return sorted(words)
 
     def _collect_words(self, key: str, prefix: str, current_word: str, words: List[str]) -> None:
         """Helper method to collect all words with a given prefix using DFS.
@@ -121,13 +161,17 @@ class Trie(RedisDataStructure):
         if self.redis_client.hexists(node_key, "*"):
             words.append(current_word)
 
-        # Get all children
-        children = self.redis_client.hkeys(node_key)
-        for child in children:
-            child_str = child.decode("utf-8")
-            if child_str != "*":
-                next_prefix = prefix + child_str if prefix else child_str
-                self._collect_words(key, next_prefix, current_word + child_str, words)
+        # Get and process all children
+        try:
+            children = self.redis_client.hkeys(node_key)
+            for child in children:
+                # Handle both string and bytes responses
+                child_str = child.decode("utf-8") if isinstance(child, bytes) else child
+                if child_str != "*":
+                    next_prefix = prefix + child_str if prefix else child_str
+                    self._collect_words(key, next_prefix, current_word + child_str, words)
+        except Exception as e:
+            print(f"Error collecting words: {e}")
 
     def delete(self, key: str, word: str) -> bool:
         """Delete a word from the trie.
@@ -140,6 +184,11 @@ class Trie(RedisDataStructure):
             bool: True if the word was deleted, False otherwise
         """
         try:
+            # Validate input
+            if not isinstance(word, str):
+                return False
+            word = str(word)  # Convert to string but don't strip
+
             if not self.search(key, word):
                 return False
 
@@ -178,7 +227,7 @@ class Trie(RedisDataStructure):
             # Check root node for empty string
             count = 1 if self.redis_client.hexists(key, "*") else 0
 
-            # Check all other nodes
+            # Use scan_iter to efficiently iterate through keys
             pattern = f"{key}{self.delimiter}*"
             for k in self.redis_client.scan_iter(pattern):
                 if self.redis_client.hexists(k, "*"):
@@ -200,6 +249,7 @@ class Trie(RedisDataStructure):
         try:
             pattern = f"{key}{self.delimiter}*"
             pipeline = self.redis_client.pipeline()
+            # Use scan_iter for memory efficiency
             for k in self.redis_client.scan_iter(pattern):
                 pipeline.delete(k)
             pipeline.delete(key)
