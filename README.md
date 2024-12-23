@@ -62,6 +62,7 @@ pip install redis-data-structures
   ```
   redis>=4.5.0
   pydantic>=2.0.0  # Optional, for enhanced type support
+  mmh3>=5.0.1  # Optional, for BloomFilter
   ```
 
 ### Basic Usage
