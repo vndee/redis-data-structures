@@ -98,13 +98,15 @@ class HashMap(RedisDataStructure):
         """
         try:
             items = self.redis_client.hgetall(key)
-            if isinstance(items, dict):
-                return {
-                    field.decode("utf-8"): self._deserialize(value.decode("utf-8"))["data"]
-                    for field, value in items.items()
-                    if isinstance(field, bytes) and isinstance(value, bytes)
-                }
-            return {}
+            if not items:
+                return {}
+
+            result = {}
+            for field, value in items.items():
+                field_str = field.decode("utf-8") if isinstance(field, bytes) else field
+                value_str = value.decode("utf-8") if isinstance(value, bytes) else value
+                result[field_str] = self._deserialize(value_str)["data"]
+            return result
         except Exception as e:
             print(f"Error getting all hash fields: {e}")
             return {}

@@ -1,6 +1,7 @@
-import unittest
-from redis_data_structures import BloomFilter
 import math
+import unittest
+
+from redis_data_structures import BloomFilter
 
 
 class TestBloomFilter(unittest.TestCase):
@@ -20,18 +21,18 @@ class TestBloomFilter(unittest.TestCase):
         # Test adding single item
         self.assertTrue(self.bloom.add(self.test_key, "test1"))
         self.assertTrue(self.bloom.contains(self.test_key, "test1"))
-        
+
         # Test item that wasn't added
         self.assertFalse(self.bloom.contains(self.test_key, "test2"))
 
     def test_multiple_items(self):
         """Test adding and checking multiple items."""
         items = ["test1", "test2", "test3", "test4", "test5"]
-        
+
         # Add all items
         for item in items:
             self.assertTrue(self.bloom.add(self.test_key, item))
-        
+
         # Check all items exist
         for item in items:
             self.assertTrue(self.bloom.contains(self.test_key, item))
@@ -47,11 +48,11 @@ class TestBloomFilter(unittest.TestCase):
             ["list", "items"],
             {"key": "value"},
         ]
-        
+
         # Add all items
         for item in items:
             self.assertTrue(self.bloom.add(self.test_key, item))
-        
+
         # Check all items exist
         for item in items:
             self.assertTrue(self.bloom.contains(self.test_key, item))
@@ -62,10 +63,10 @@ class TestBloomFilter(unittest.TestCase):
         items = ["test1", "test2", "test3"]
         for item in items:
             self.bloom.add(self.test_key, item)
-        
+
         # Clear the filter
         self.assertTrue(self.bloom.clear(self.test_key))
-        
+
         # Check items no longer exist
         for item in items:
             self.assertFalse(self.bloom.contains(self.test_key, item))
@@ -76,19 +77,19 @@ class TestBloomFilter(unittest.TestCase):
         n = 1000  # number of elements
         p = 0.01  # false positive rate
         bloom = BloomFilter(expected_elements=n, false_positive_rate=p)
-        
+
         # Add n elements
         for i in range(n):
             bloom.add(self.test_key, f"element_{i}")
-        
+
         # Test false positives with elements we didn't add
         false_positives = 0
         test_size = 1000
-        
+
         for i in range(test_size):
             if bloom.contains(self.test_key, f"not_added_{i}"):
                 false_positives += 1
-        
+
         actual_rate = false_positives / test_size
         # The actual rate should be close to the expected rate
         self.assertLess(actual_rate, p * 2)  # Allow some margin
@@ -98,14 +99,18 @@ class TestBloomFilter(unittest.TestCase):
         n = 1000
         p = 0.01
         bloom = BloomFilter(expected_elements=n, false_positive_rate=p)
-        
+
         # Optimal size should be greater than number of elements
         self.assertGreater(bloom.size, n)
-        
+
         # Size should be reasonable (not too large)
-        expected_size = int(-n * bloom._get_optimal_num_hashes(n, bloom.size) / math.log(1 - p ** (1 / bloom._get_optimal_num_hashes(n, bloom.size))))
+        expected_size = int(
+            -n
+            * bloom._get_optimal_num_hashes(n, bloom.size)
+            / math.log(1 - p ** (1 / bloom._get_optimal_num_hashes(n, bloom.size))),
+        )
         self.assertLess(abs(bloom.size - expected_size) / expected_size, 0.5)
 
 
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()

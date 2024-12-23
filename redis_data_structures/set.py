@@ -47,10 +47,11 @@ class Set(RedisDataStructure):
             bool: True if the item was added, False if it already existed
         """
         try:
-            # Check if item already exists
+            # First check if the item already exists
             if self.contains(key, data):
                 return False
 
+            # If not, add it
             serialized = self._serialize(data)
             result = self.redis_client.sadd(key, serialized)
             return bool(result)
@@ -70,10 +71,15 @@ class Set(RedisDataStructure):
         """
         try:
             # Find the actual serialized item
-            serialized = self._find_item(key, data)
-            if serialized:
-                result = self.redis_client.srem(key, serialized)
-                return bool(result)
+            items = self.redis_client.smembers(key)
+            if not items:
+                return False
+
+            for item in items:
+                item_str = item.decode("utf-8") if isinstance(item, bytes) else item
+                if self._deserialize(item_str)["data"] == data:
+                    result = self.redis_client.srem(key, item)
+                    return bool(result)
             return False
         except Exception as e:
             print(f"Error removing from set: {e}")
@@ -91,12 +97,13 @@ class Set(RedisDataStructure):
         """
         try:
             items = self.redis_client.smembers(key)
-            if isinstance(items, (set, list)):
-                return any(
-                    self._deserialize(item.decode("utf-8"))["data"] == data
-                    for item in items
-                    if isinstance(item, bytes)
-                )
+            if not items:
+                return False
+
+            for item in items:
+                item_str = item.decode("utf-8") if isinstance(item, bytes) else item
+                if self._deserialize(item_str)["data"] == data:
+                    return True
             return False
         except Exception as e:
             print(f"Error checking set membership: {e}")
@@ -113,13 +120,14 @@ class Set(RedisDataStructure):
         """
         try:
             items = self.redis_client.smembers(key)
-            if isinstance(items, (set, list)):
-                return {
-                    self._deserialize(item.decode("utf-8"))["data"]
-                    for item in items
-                    if isinstance(item, bytes)
-                }
-            return set()
+            if not items:
+                return set()
+
+            result = set()
+            for item in items:
+                item_str = item.decode("utf-8") if isinstance(item, bytes) else item
+                result.add(self._deserialize(item_str)["data"])
+            return result
         except Exception as e:
             print(f"Error getting set members: {e}")
             return set()
@@ -135,7 +143,7 @@ class Set(RedisDataStructure):
         """
         try:
             result = self.redis_client.scard(key)
-            return int(result)
+            return int(result if result is not None else 0)
         except Exception as e:
             print(f"Error getting set size: {e}")
             return 0
