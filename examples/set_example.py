@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from redis_data_structures import Set
 
 
@@ -76,6 +78,23 @@ def demonstrate_complex_data():
     for profile in sorted(all_profiles, key=lambda x: x["id"]):  # Sort by ID
         print(f"- {profile['name']} (ID: {profile['id']}, Roles: {', '.join(profile['roles'])})")
 
+    # Store any JSON-serializable Python object
+    user = {
+        'id': 'user1',
+        'name': 'Alice',
+        'joined': datetime.now().isoformat(),
+        'metadata': {
+            'role': 'admin',
+            'preferences': {'theme': 'dark'}
+        }
+    }
+
+    # The object will be automatically serialized/deserialized
+    set_ds.add('users', user)
+    stored_user = set_ds.members('users')[0]
+    print("\nStored user:")
+    print(stored_user)
+
 
 def demonstrate_set_operations():
     """Demonstrate set functionality with tag management."""
@@ -113,10 +132,26 @@ def demonstrate_set_operations():
     for tag in sorted(set_ds.members(post2_tags_key)):
         print(f"- {tag}")
 
-    # Find common tags (intersection)
-    common_tags = set_ds.members(post1_tags_key) & set_ds.members(post2_tags_key)
+    # Convert Redis sets to Python sets for set operations
+    post1_set = set(set_ds.members(post1_tags_key))
+    post2_set = set(set_ds.members(post2_tags_key))
+
+    # Find common tags
+    common_tags = post1_set & post2_set
     print("\nCommon tags between posts:")
     for tag in sorted(common_tags):
+        print(f"- {tag}")
+
+    # Find all unique tags
+    all_tags = post1_set | post2_set
+    print("\nAll unique tags:")
+    for tag in sorted(all_tags):
+        print(f"- {tag}")
+
+    # Find tags unique to Post 1
+    unique_tags = post1_set - post2_set
+    print("\nTags unique to Post 1:")
+    for tag in sorted(unique_tags):
         print(f"- {tag}")
 
 

@@ -124,7 +124,7 @@ set_ds.add('users', {'id': 'user2', 'name': 'Bob'})
 
 # Check membership
 exists = set_ds.contains('users', {'id': 'user1'})
-members = set_ds.get_all('users')
+members = set_ds.members('users')
 ```
 
 ## Advanced Usage
@@ -172,7 +172,7 @@ user = {
 
 # The object will be automatically serialized/deserialized
 set_ds.add('users', user)
-stored_user = set_ds.get_all('users')[0]
+stored_user = set_ds.members('users')[0]
 ```
 
 ## Best Practices
