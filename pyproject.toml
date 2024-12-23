@@ -28,7 +28,6 @@ classifiers = [
 ]
 dependencies = [
     "mmh3>=4.1.0",
-    "pydantic>=2.5.3",
     "redis>=4.5.0",
 ]
 
@@ -40,6 +39,7 @@ Documentation = "https://github.com/vndee/redis-data-structures#readme"
 [dependency-groups]
 dev = [
     "pre-commit>=2.21.0",
+    "pydantic>=2.5.3",
 ]
 
 [tool.black]
