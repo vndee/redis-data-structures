@@ -7,8 +7,9 @@ This document explains how Python types are preserved when storing data in Redis
 Redis natively supports only a limited set of data types, and JSON serialization typically loses information about Python's rich type system. Our implementation preserves Python types through a combination of:
 
 1. A base class system (`CustomRedisDataType`) for custom types
-2. Built-in type handlers in the base class
+2. Built-in type handlers for common Python types
 3. Automatic serialization/deserialization with type information
+4. Pydantic model support for schema validation and complex types
 
 ## Built-in Type Support
 
@@ -18,7 +19,6 @@ The following Python types are automatically preserved:
    - `int`, `float`, `str`, `bool`, `NoneType`
    - Automatically preserved without special handling
    ```python
-   # Example
    hash_map.set("my_hash", "key", 42)  # int
    hash_map.set("my_hash", "key2", True)  # bool
    ```
@@ -27,10 +27,9 @@ The following Python types are automatically preserved:
    - Preserved as ordered, immutable sequences
    - Nested tuples are also preserved
    ```python
-   # Example
    data = (1, "two", [3, 4])
-   cache.put("my_cache", "tuple_key", data)
-   result = cache.get("my_cache", "tuple_key")
+   hash_map.set("my_hash", "tuple", data)
+   result = hash_map.get("my_hash", "tuple")
    assert isinstance(result, tuple)
    ```
 
@@ -38,17 +37,15 @@ The following Python types are automatically preserved:
    - Preserved as unordered collections of unique elements
    - Elements are sorted during serialization for consistency
    ```python
-   # Example
    data = {1, 2, 3}
-   set_ds.add("my_set", data)
-   result = set_ds.members("my_set").pop()
+   hash_map.set("my_hash", "set", data)
+   result = hash_map.get("my_hash", "set")
    assert isinstance(result, set)
    ```
 
 4. **Bytes**
    - Preserved using hexadecimal encoding
    ```python
-   # Example
    data = b"binary data"
    hash_map.set("my_hash", "bytes", data)
    result = hash_map.get("my_hash", "bytes")
@@ -59,7 +56,6 @@ The following Python types are automatically preserved:
    - Preserved with timezone information
    - Stored in ISO format
    ```python
-   # Example
    from datetime import datetime, timezone
    data = datetime.now(timezone.utc)
    hash_map.set("my_hash", "date", data)
@@ -71,7 +67,6 @@ The following Python types are automatically preserved:
    - Lists and dictionaries are preserved with their nested types
    - Nested structures maintain their type information
    ```python
-   # Example
    data = {
        "tuple": (1, 2, 3),
        "set": {4, 5, 6},
@@ -82,16 +77,14 @@ The following Python types are automatically preserved:
 
 ## Custom Type Support
 
-### Using CustomRedisDataType
+### Standard Class Approach
 
-To create a custom type that can be automatically serialized/deserialized:
+For simple custom types, you can inherit from `CustomRedisDataType` and implement the required methods:
 
 ```python
 from redis_data_structures.base import CustomRedisDataType
 
 class User(CustomRedisDataType):
-    """Example of a custom Redis data type."""
-    
     def __init__(self, name: str, joined: datetime):
         self.name = name
         self.joined = joined
@@ -107,29 +100,72 @@ class User(CustomRedisDataType):
         return cls(data["name"], data["joined"])
 ```
 
-Requirements for custom types:
-1. Must inherit from `CustomRedisDataType`
-2. Must implement `to_dict()` method
-3. Must implement `from_dict()` classmethod
+### Pydantic Integration
+
+For complex types with validation requirements, you can use Pydantic models:
+
+```python
+from pydantic import BaseModel, Field
+from redis_data_structures.base import CustomRedisDataType
+
+# Nested Pydantic model
+class Address(BaseModel):
+    street: str
+    city: str
+    country: str
+    postal_code: Optional[str] = None
+
+# Main model with validation
+class UserModel(CustomRedisDataType, BaseModel):
+    name: str
+    email: str
+    age: int = Field(gt=0, lt=150)  # with validation
+    joined: datetime
+    address: Optional[Address] = None  # nested model
+    tags: Set[str] = set()  # complex types
+```
+
+Pydantic models automatically get:
+- Type validation
+- Schema validation
+- Nested model support
+- Optional fields
+- Default values
+- Field validation
+- Automatic serialization/deserialization
 
 ### Using Custom Types
 
-```python
-# Create and store a custom type
-user = User("John Doe", datetime.now(timezone.utc))
-cache.set("users", "john", user)
+Both standard and Pydantic models work seamlessly with Redis structures:
 
-# Retrieve the custom type
-retrieved_user = cache.get("users", "john")
-assert isinstance(retrieved_user, User)
-assert retrieved_user.name == "John Doe"
+```python
+# Standard class
+user = User("John Doe", datetime.now(timezone.utc))
+hash_map.set("users", "standard", user)
+standard_user = hash_map.get("users", "standard")
+
+# Pydantic model
+pydantic_user = UserModel(
+    name="Jane Smith",
+    email="jane@example.com",
+    age=30,
+    joined=datetime.now(timezone.utc),
+    address=Address(
+        street="123 Main St",
+        city="New York",
+        country="USA"
+    ),
+    tags={"developer", "python"}
+)
+hash_map.set("users", "pydantic", pydantic_user)
+retrieved_user = hash_map.get("users", "pydantic")
 ```
 
 ## Implementation Details
 
 ### Type Registration
 
-The `CustomRedisDataType` base class automatically registers types:
+The `CustomRedisDataType` base class handles type registration:
 
 ```python
 class CustomRedisDataType:
@@ -137,14 +173,17 @@ class CustomRedisDataType:
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        # Register the type if it has the required methods
-        if hasattr(cls, "to_dict") and hasattr(cls, "from_dict"):
+        
+        # Handle Pydantic models
+        if PYDANTIC_AVAILABLE and issubclass(cls, BaseModel):
             cls._registered_types[cls.__name__] = cls
-
-    @classmethod
-    def get_type(cls, type_name: str) -> Optional[Type]:
-        """Get registered type by name."""
-        return cls._registered_types.get(type_name)
+            if not hasattr(cls, "to_dict"):
+                cls.to_dict = lambda self: self.model_dump()
+            if not hasattr(cls, "from_dict"):
+                cls.from_dict = classmethod(lambda cls, data: cls.model_validate(data))
+        # Handle standard classes
+        elif hasattr(cls, "to_dict") and hasattr(cls, "from_dict"):
+            cls._registered_types[cls.__name__] = cls
 ```
 
 ### Serialization Format
@@ -159,45 +198,32 @@ Data is serialized with type information:
 }
 ```
 
-### Type Handlers
-
-Built-in types are handled by registered handlers:
-
-```python
-self.type_handlers = {
-    tuple: {
-        "serialize": lambda x: {
-            "_type": "tuple",
-            "value": [self._serialize_value(item) for item in x],
-        },
-        "deserialize": lambda x: tuple(
-            self._deserialize_value(item) for item in x["value"]
-        ),
-    },
-    # ... other handlers
-}
-```
-
 ## Best Practices
 
-1. **Type Consistency**
+1. **Choose the Right Approach**
+   - Use standard classes for simple types
+   - Use Pydantic for complex types needing validation
+   - Consider using Pydantic for API interfaces
+
+2. **Type Consistency**
    - Use consistent types for the same keys
-   - Document expected types in your codebase
+   - Document expected types
+   - Use type hints
 
-2. **Custom Types**
-   - Keep serialization methods simple and deterministic
-   - Handle version changes gracefully
-   - Consider implementing `__str__` for debugging
+3. **Validation**
+   - Use Pydantic's validation features
+   - Add custom validators when needed
+   - Handle validation errors gracefully
 
-3. **Performance**
-   - Batch operations when possible
-   - Keep custom type serialization efficient
+4. **Performance**
+   - Use batch operations when possible
    - Consider caching for frequently accessed data
+   - Profile serialization performance
 
-4. **Error Handling**
+5. **Error Handling**
    ```python
    try:
-       result = cache.get("key")
+       result = hash_map.get("key")
    except Exception as e:
        logger.error(f"Failed to deserialize: {e}")
        # Handle error appropriately
@@ -217,6 +243,10 @@ self.type_handlers = {
    - Cannot serialize functions or lambdas
    - Store function names or references instead
 
+4. **Pydantic Version Compatibility**
+   - Requires Pydantic v2.0 or later for `model_dump` and `model_validate`
+   - Falls back to standard class behavior if Pydantic is not available
+
 ## Future Enhancements
 
 1. **Planned Type Support**
@@ -229,6 +259,11 @@ self.type_handlers = {
    - Caching of type information
    - Batch serialization
    - Compression for large objects
+
+3. **Pydantic Features**
+   - Custom serialization formats
+   - Validation caching
+   - Schema evolution support
 
 ## Contributing
 

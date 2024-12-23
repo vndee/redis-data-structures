@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from pydantic import BaseModel, Field
 
 from redis_data_structures import HashMap, LRUCache
 from redis_data_structures.base import CustomRedisDataType
 
 
 class User(CustomRedisDataType):
-    """Example of a custom Redis data type for storing user information."""
+    """Example of a custom Redis data type using standard class."""
 
     def __init__(self, name: str, joined: datetime):
         self.name = name
@@ -24,6 +26,29 @@ class User(CustomRedisDataType):
 
     def __str__(self) -> str:
         return f"User(name='{self.name}', joined={self.joined.isoformat()})"
+
+
+class Address(BaseModel):
+    """Nested Pydantic model for demonstration."""
+
+    street: str
+    city: str
+    country: str
+    postal_code: Optional[str] = None
+
+
+class UserModel(CustomRedisDataType, BaseModel):
+    """Example of a custom Redis data type using Pydantic."""
+
+    name: str
+    email: str
+    age: int = Field(gt=0, lt=150)
+    joined: datetime
+    address: Optional[Address] = None
+    tags: Set[str] = set()
+
+    def __str__(self) -> str:
+        return f"UserModel(name='{self.name}', email='{self.email}', age={self.age})"
 
 
 def demonstrate_type_preservation():
@@ -77,31 +102,59 @@ def demonstrate_type_preservation():
     print("\nRetrieved:")
     print_nested_types(result)
 
-    # Example 5: Custom Object (User) with Type Preservation
-    print("\nCustom Object (User) Type Preservation:")
+    # Example 5: Standard Custom Class
+    print("\nStandard Custom Class Preservation:")
     user = User("John Doe", datetime.now(timezone.utc))
+    hash_map.set("user_hash", "standard_user", user)
+    result = hash_map.get("user_hash", "standard_user")
+    print(f"Original: {user}")
+    print(f"Retrieved: {result}")
+
+    # Example 6: Pydantic Model
+    print("\nPydantic Model Preservation:")
+    pydantic_user = UserModel(
+        name="Jane Smith",
+        email="jane@example.com",
+        age=30,
+        joined=datetime.now(timezone.utc),
+        address=Address(
+            street="123 Main St",
+            city="New York",
+            country="USA",
+            postal_code="10001",
+        ),
+        tags={"developer", "python"},
+    )
 
     # Store in different data structures
-    cache.put("user_cache", "john", user)
-    hash_map.set("user_hash", "john_doe", user)
+    cache.put("user_cache", "pydantic_user", pydantic_user)
+    hash_map.set("user_hash", "pydantic_user", pydantic_user)
 
     # Retrieve and verify
-    cache_result = cache.get("user_cache", "john")
-    hash_result = hash_map.get("user_hash", "john_doe")
+    cache_result = cache.get("user_cache", "pydantic_user")
+    hash_result = hash_map.get("user_hash", "pydantic_user")
 
-    print(f"Original: {user}")
+    print(f"Original: {pydantic_user}")
     print(f"From Cache: {cache_result}")
     print(f"From Hash: {hash_result}")
+    print("\nDetailed Pydantic Model:")
+    print(f"  Name: {pydantic_user.name}")
+    print(f"  Email: {pydantic_user.email}")
+    print(f"  Age: {pydantic_user.age}")
+    print(f"  Joined: {pydantic_user.joined}")
+    print(f"  Address: {pydantic_user.address}")
+    print(f"  Tags: {pydantic_user.tags}")
 
-    # Example 6: Mixed Types in Hash
+    # Example 7: Mixed Types in Hash
     print("\nMixed Types in Hash:")
     hash_map.set("mixed_hash", "string", "string value")
     hash_map.set("mixed_hash", "number", 42)
     hash_map.set("mixed_hash", "tuple", (1, 2, 3))
-    hash_map.set("mixed_hash", "user", user)
+    hash_map.set("mixed_hash", "standard_user", user)
+    hash_map.set("mixed_hash", "pydantic_user", pydantic_user)
 
     print("Hash entries:")
-    for key in ["string", "number", "tuple", "user"]:
+    for key in ["string", "number", "tuple", "standard_user", "pydantic_user"]:
         value = hash_map.get("mixed_hash", key)
         print(f"  {key}: {value} ({type(value).__name__})")
 

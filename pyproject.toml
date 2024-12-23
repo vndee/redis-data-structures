@@ -28,6 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "mmh3>=4.1.0",
+    "pydantic>=2.5.3",
     "redis>=4.5.0",
 ]
 

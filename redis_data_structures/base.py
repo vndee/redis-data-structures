@@ -1,8 +1,15 @@
 import json
+import redis
 from datetime import datetime, timezone
 from typing import Any, Callable, ClassVar, Dict, Optional, Type, TypedDict, cast
 
-import redis
+try:
+    from pydantic import BaseModel
+
+    PYDANTIC_AVAILABLE = True
+except ImportError:
+    BaseModel = object
+    PYDANTIC_AVAILABLE = False
 
 
 class SerializedData(TypedDict):
@@ -20,7 +27,7 @@ class CustomRedisDataType:
     allowing for automatic serialization/deserialization of these types
     when storing them in Redis.
 
-    Example:
+    Example with standard class:
         ```python
         class User(CustomRedisDataType):
             def __init__(self, name: str, age: int):
@@ -34,14 +41,32 @@ class CustomRedisDataType:
             def from_dict(cls, data: dict) -> 'User':
                 return cls(data["name"], data["age"])
         ```
+
+    Example with Pydantic:
+        ```python
+        class UserModel(CustomRedisDataType, BaseModel):
+            name: str
+            age: int
+            joined: datetime
+        ```
     """
 
     _registered_types: ClassVar[Dict[str, Type]] = {}
 
     def __init_subclass__(cls, **kwargs):
-        """Initialize subclass."""
+        """Initialize subclass and register type."""
         super().__init_subclass__(**kwargs)
-        if hasattr(cls, "to_dict") and hasattr(cls, "from_dict"):
+
+        # Check if it's a Pydantic model
+        if PYDANTIC_AVAILABLE and issubclass(cls, BaseModel):
+            cls._registered_types[cls.__name__] = cls
+            # Add Pydantic model methods if not overridden
+            if not hasattr(cls, "to_dict"):
+                cls.to_dict = lambda self: self.model_dump()
+            if not hasattr(cls, "from_dict"):
+                cls.from_dict = classmethod(lambda cls, data: cls.model_validate(data))
+        # Check for standard class with required methods
+        elif hasattr(cls, "to_dict") and hasattr(cls, "from_dict"):
             cls._registered_types[cls.__name__] = cls
 
     @classmethod
@@ -52,7 +77,8 @@ class CustomRedisDataType:
     def to_dict(self) -> dict:
         """Convert instance to dictionary.
 
-        Must be implemented by subclasses.
+        Must be implemented by subclasses unless using Pydantic.
+        For Pydantic models, this is automatically implemented.
         """
         raise NotImplementedError("Subclasses must implement to_dict()")
 
@@ -60,7 +86,8 @@ class CustomRedisDataType:
     def from_dict(cls, data: dict) -> "CustomRedisDataType":
         """Create instance from dictionary.
 
-        Must be implemented by subclasses.
+        Must be implemented by subclasses unless using Pydantic.
+        For Pydantic models, this is automatically implemented.
         """
         raise NotImplementedError("Subclasses must implement from_dict()")
 
