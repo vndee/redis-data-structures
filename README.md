@@ -11,6 +11,7 @@ A Python package providing Redis-backed data structures for building scalable an
   - Set (Unique items)
   - Hash Map (Key-value pairs)
   - Deque (Double-ended queue)
+  - Bloom Filter (Probabilistic membership testing)
 - Thread-safe operations
 - Timestamp tracking for all operations
 - JSON serialization for complex data types
@@ -36,7 +37,7 @@ pip install redis-data-structures
 ## Quick Start
 
 ```python
-from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Deque
+from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Deque, BloomFilter
 
 # Initialize data structures
 queue = Queue(host='localhost', port=6379, db=0)
@@ -45,6 +46,7 @@ pq = PriorityQueue(host='localhost', port=6379, db=0)
 set_ds = Set(host='localhost', port=6379, db=0)
 hash_map = HashMap(host='localhost', port=6379, db=0)
 deque = Deque(host='localhost', port=6379, db=0)
+bloom = BloomFilter(expected_elements=10000, false_positive_rate=0.01)
 
 # Using Queue (FIFO)
 queue.push('my_queue', 'first')
@@ -80,6 +82,13 @@ deque.push_front('my_deque', 'front1')
 deque.push_back('my_deque', 'back1')
 front = deque.pop_front('my_deque')  # Returns 'front1'
 back = deque.pop_back('my_deque')    # Returns 'back1'
+
+# Using Bloom Filter (Probabilistic membership testing)
+bloom.add('my_filter', 'item1')
+bloom.add('my_filter', 'item2')
+exists = bloom.contains('my_filter', 'item1')  # Returns True
+exists = bloom.contains('my_filter', 'item3')  # Returns False (definitely not in set)
+exists = bloom.contains('my_filter', 'unknown')  # May return True (false positive possible)
 ```
 
 ## Common Operations
@@ -152,6 +161,11 @@ sudo service redis-server start
 - O(1) operations at both ends
 - Efficient for both FIFO and LIFO use cases
 - Supports peek operations at both ends
+
+### Bloom Filter
+- Uses Redis Sets (`SADD`/`SREM`/`SMEMBERS`)
+- O(1) add and remove operations
+- Probabilistic membership testing
 
 ## Contributing
 
