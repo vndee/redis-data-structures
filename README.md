@@ -12,6 +12,7 @@ A Python package providing Redis-backed data structures for building scalable an
   - Hash Map (Key-value pairs)
   - Deque (Double-ended queue)
   - Bloom Filter (Probabilistic membership testing)
+  - Trie (Prefix tree)
 - Thread-safe operations
 - Timestamp tracking for all operations
 - JSON serialization for complex data types
@@ -166,6 +167,83 @@ sudo service redis-server start
 - Uses Redis Sets (`SADD`/`SREM`/`SMEMBERS`)
 - O(1) add and remove operations
 - Probabilistic membership testing
+
+### Trie
+- Uses Redis Hashes for nodes
+- O(m) operations for words of length m
+- Perfect for autocomplete and prefix matching
+- Supports empty strings
+
+## TODO: Future Data Structures
+
+The following data structures are planned for future implementation:
+
+1. **LRU Cache**
+   - Least Recently Used caching with automatic eviction
+   - Perfect for caching with size limits
+   - Operations: get, put, peek, evict
+   - Use cases: Database query caching, API response caching
+
+2. **HyperLogLog**
+   - Probabilistic cardinality estimation
+   - Memory-efficient unique counting
+   - Operations: add, count, merge
+   - Use cases: Unique visitors tracking, stream analytics
+
+3. **Rate Limiter**
+   - Sliding window rate limiting
+   - Perfect for API protection
+   - Operations: check_limit, record_request, reset
+   - Use cases: API rate limiting, DDoS protection
+
+4. **Circular Buffer**
+   - Fixed-size circular queue
+   - Auto-overwrites oldest elements
+   - Operations: push, pop, peek, get_all
+   - Use cases: Log rotation, streaming data
+
+5. **CountMinSketch**
+   - Probabilistic frequency estimation
+   - Memory-efficient counting
+   - Operations: increment, estimate, merge
+   - Use cases: Heavy hitters detection, frequency counting
+
+6. **Sorted Dictionary**
+   - Combined hash map and sorted set
+   - Perfect for ordered key-value data
+   - Operations: set, get, get_range, remove_range
+   - Use cases: Leaderboards, time-series data
+
+7. **Graph**
+   - Basic graph structure
+   - Supports directed and weighted edges
+   - Operations: add_edge, remove_edge, get_neighbors
+   - Use cases: Social networks, dependency tracking
+
+8. **TimeWindow Counter**
+   - Sliding window event counting
+   - Automatic data expiration
+   - Operations: increment, get_count, get_windows
+   - Use cases: Analytics, event tracking
+
+9. **SkipList**
+   - Probabilistic ordered data structure
+   - Efficient range queries
+   - Operations: insert, delete, find, range
+   - Use cases: Range queries, ordered sets
+
+10. **MultiLock**
+    - Distributed multi-resource locking
+    - Deadlock prevention
+    - Operations: acquire, release, extend
+    - Use cases: Distributed synchronization
+
+Each planned data structure will follow the project's patterns:
+- Thread-safe operations
+- Comprehensive error handling
+- Full test coverage
+- Clear documentation with examples
+- Performance optimizations
 
 ## Contributing
 
