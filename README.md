@@ -217,10 +217,6 @@ print(f"TTL remaining: {ttl} seconds")
    - Share connection pools across instances
    - Configure pool size based on workload
 
-2. **Batch Operations**
-   - Use bulk operations when possible
-   - Pipeline commands for atomic operations
-
 3. **Memory Management**
    - Monitor Redis memory usage
    - Implement TTL for temporary data

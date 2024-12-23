@@ -3,6 +3,7 @@
 from .base import CustomRedisDataType, RedisDataStructure, SerializedData
 from .bloom_filter import BloomFilter
 from .deque import Deque
+from .graph import Graph
 from .hash_map import HashMap
 from .lru_cache import LRUCache
 from .priority_queue import PriorityQueue
@@ -15,6 +16,7 @@ __all__ = [
     "BloomFilter",
     "CustomRedisDataType",
     "Deque",
+    "Graph",
     "HashMap",
     "LRUCache",
     "PriorityQueue",

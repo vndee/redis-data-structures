@@ -238,6 +238,46 @@ lru_order = cache.get_lru_order("my_cache")
 cache.clear("my_cache")
 ```
 
+### Graph Adjacency List
+
+A Redis-backed directed graph implementation using adjacency lists. Perfect for representing relationships between entities, social networks, dependency graphs, and other connected data structures. This implementation is optimized for sparse graphs where most vertices are connected to only a few other vertices.
+
+```python
+from redis_data_structures import Graph
+
+# Initialize graph
+graph = Graph(
+    host='localhost',
+    port=6379,
+    db=0,
+    username=None,  # Optional
+)
+
+# Add vertices
+graph.add_vertex("vertex1", {"name": "Alice", "age": 30})
+graph.add_vertex("vertex2", {"name": "Bob", "age": 25})
+
+# Add edges
+graph.add_edge("vertex1", "vertex2", weight=1.0)
+
+# Get neighbors
+neighbors = graph.get_neighbors("vertex1")
+print(neighbors)  # Output: {"vertex2": 1.0}
+
+# Get all vertices
+vertices = graph.get_vertices()
+print(vertices)  # Output: ["vertex1", "vertex2"]
+
+# Remove vertex
+graph.remove_vertex("vertex1")
+
+# Remove edge
+graph.remove_edge("vertex1", "vertex2")
+
+# Clear
+graph.clear()
+```
+
 ## Advanced Topics
 
 ### Error Handling
