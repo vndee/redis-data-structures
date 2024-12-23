@@ -21,24 +21,53 @@ A Python package providing Redis-backed implementations of common data structure
   - LRU Cache (Least Recently Used cache)
   - Graph (Directed graph with weighted edges)
   - Ring Buffer (Fixed-size circular buffer)
-- **Thread-safe Operations**
-- **Persistent Storage**
-- **Type Preservation**:
-  - Preserves Python types (tuples, sets, bytes, datetime)
-  - Support for custom types and Pydantic models
-- **Performance Optimized**:
+
+- **Advanced Connection Management**:
+  - Connection pooling with configurable pool size
+  - Automatic reconnection with exponential backoff
+  - Circuit breaker pattern for fault tolerance
+  - Health checks and monitoring
+  - SSL/TLS support
+
+- **Robust Error Handling**:
+  - Custom exception hierarchy
+  - Proper logging and error tracking
+  - Graceful fallbacks
+  - Comprehensive error messages
+
+- **Configuration Management**:
+  - Environment variable support
+  - YAML configuration files
+  - Dynamic configuration updates
+  - Type-safe configuration with validation
+
+- **Performance Features**:
   - O(1) operations for most data structures
   - Connection pooling
   - Batch operations support
+  - Data compression
+  - Automatic type preservation
+
+- **Monitoring and Observability**:
+  - Operation timing metrics
+  - Success/failure rate tracking
+  - Performance statistics
+  - Health monitoring
+  - Debug logging
+
+- **Type System**:
+  - Automatic type preservation
+  - Custom type support
+  - Pydantic integration
+  - Built-in support for datetime, bytes, etc.
+  - Nested type support
+
 - **Production Ready**:
+  - Thread-safe operations
+  - Persistent storage
   - Comprehensive error handling
   - Monitoring support
   - Graceful fallbacks
-- **Developer Friendly**:
-  - Consistent API across all structures
-  - Extensive documentation
-  - Type hints
-  - Both synchronous and asynchronous implementations (async coming soon)
 
 ## 📚 Documentation
 
@@ -63,28 +92,79 @@ pip install redis-data-structures
   redis>=4.5.0
   pydantic>=2.0.0  # Optional, for enhanced type support
   mmh3>=5.0.1  # Optional, for BloomFilter
+  pyyaml>=6.0  # Optional, for YAML configuration
   ```
 
 ### Basic Usage
 
 ```python
-from redis_data_structures import Queue, Stack, PriorityQueue, Set, HashMap, Graph
+from redis_data_structures import Queue, Stack, PriorityQueue, Config
 
-# Initialize with Redis connection
-queue = Queue(host='localhost', port=6379, db=0)
-graph = Graph(host='localhost', port=6379, db=0)
+# Initialize with default configuration
+queue = Queue()
+
+# Initialize with custom configuration
+config = Config.from_env()  # Load from environment variables
+# or
+config = Config.from_yaml('config.yaml')  # Load from YAML file
+
+stack = Stack(config=config)
 
 # Basic operations
 queue.push('my_queue', 'item1')
 item = queue.pop('my_queue')  # Returns 'item1'
 
-# Graph operations
-graph.add_vertex('my_graph', 'v1', {'name': 'Vertex 1'})
-graph.add_vertex('my_graph', 'v2', {'name': 'Vertex 2'})
-graph.add_edge('my_graph', 'v1', 'v2', weight=1.5)
+# With type preservation
+from datetime import datetime
+stack.push('my_stack', {'timestamp': datetime.now(), 'value': 42})
+data = stack.pop('my_stack')  # Returns dict with datetime preserved
 ```
 
-See [Usage Guide](docs/usage.md) for detailed examples of all data structures.
+### Advanced Usage
+
+```python
+from redis_data_structures import Graph, Config, CustomRedisDataType
+from datetime import datetime
+
+# Custom type example
+class User(CustomRedisDataType):
+    def __init__(self, name: str, joined: datetime):
+        self.name = name
+        self.joined = joined
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "joined": self.joined.isoformat()
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'User':
+        return cls(
+            name=data["name"],
+            joined=datetime.fromisoformat(data["joined"])
+        )
+
+# Create configuration
+config = Config.from_env()
+config.data_structures.compression_enabled = True
+config.data_structures.debug_enabled = True
+
+# Initialize graph with configuration
+graph = Graph(config=config)
+
+# Add vertices with custom type
+user1 = User("Alice", datetime.now())
+user2 = User("Bob", datetime.now())
+
+graph.add_vertex('my_graph', 'v1', user1)
+graph.add_vertex('my_graph', 'v2', user2)
+graph.add_edge('my_graph', 'v1', 'v2', weight=1.5)
+
+# Get vertex data (automatically deserializes to User object)
+alice = graph.get_vertex_data('my_graph', 'v1')
+print(f"User: {alice.name}, Joined: {alice.joined}")
+```
 
 ## 🔧 Redis Setup
 
@@ -105,152 +185,104 @@ sudo apt-get install redis-server
 sudo systemctl start redis-server
 ```
 
-## 🔍 Implementation Details
+## 🔍 Configuration
 
-Each data structure is optimized for its specific use case:
+### Environment Variables
 
-### Queue (FIFO)
-- Uses Redis Lists (`RPUSH`/`LPOP`)
-- O(1) push and pop operations
-- Perfect for task queues and job processing
+```bash
+# Redis connection
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export REDIS_DB=0
+export REDIS_PASSWORD=secret
+export REDIS_SSL=true
+export REDIS_MAX_CONNECTIONS=10
 
-### Ring Buffer
-- Uses Redis Lists (`LPOP`/`RPUSH`)
-- O(1) push and pop operations
-- Fixed-size circular buffer
-- Perfect for log rotation, streaming data, and sliding windows
-- Automatic overwrite of oldest items when full
-
-### Stack (LIFO)
-- Uses Redis Lists (`LPUSH`/`LPOP`)
-- O(1) push and pop operations
-- Reverse insertion order
-
-### Priority Queue
-- Uses Redis Sorted Sets (`ZADD`/`ZRANGE`/`ZREM`)
-- O(log N) push and pop operations
-- Priority-based ordering (lower number = higher priority)
-
-### Set
-- Uses Redis Sets (`SADD`/`SREM`/`SMEMBERS`)
-- O(1) add and remove operations
-- Guarantees uniqueness of elements
-- Supports set operations (union, intersection, difference)
-
-### Hash Map
-- Uses Redis Hashes (`HSET`/`HGET`/`HDEL`)
-- O(1) operations for single field access
-- Perfect for storing structured data
-- Field-based access and updates
-
-### Deque
-- Uses Redis Lists (`LPUSH`/`RPUSH`/`LPOP`/`RPOP`)
-- O(1) operations at both ends
-- Efficient for both FIFO and LIFO use cases
-- Supports peek operations at both ends
-
-### Bloom Filter
-- Uses Redis Sets (`SADD`/`SREM`/`SMEMBERS`)
-- O(1) add and remove operations
-- Probabilistic membership testing
-
-### LRU Cache
-- Uses Redis Hashes for storage and Sorted Sets for access tracking
-- O(1) get and put operations
-- Automatic eviction of least recently used items
-- Perfect for caching with size limits
-- Preserves Python types (tuples, sets, etc.)
-
-### Trie (Prefix tree)
-- Uses Redis Sorted Sets (`ZADD`/`ZRANGE`/`ZREM`)
-- O(log N) operations for prefix matching
-- Perfect for hierarchical data storage
-
-### Graph
-- Uses Redis Hashes for vertex data and adjacency lists
-- O(1) operations for most graph operations
-- Perfect for:
-  - Social networks (user relationships)
-  - Dependency graphs (task dependencies)
-  - Knowledge graphs (entity relationships)
-- Features:
-  - Directed edges with weights
-  - Vertex data storage
-  - Efficient neighbor lookups
-  - Thread-safe operations
-
-## 🛠️ Advanced Usage
-
-### Connection Pooling
-```python
-from redis import ConnectionPool
-from redis_data_structures import Queue, Stack
-
-# Create a connection pool
-pool = ConnectionPool(host='localhost', port=6379, db=0)
-
-# Share pool across instances
-queue = Queue(connection_pool=pool)
-stack = Stack(connection_pool=pool)
+# Data structure settings
+export REDIS_DS_PREFIX=myapp
+export REDIS_DS_COMPRESSION=true
+export REDIS_DS_METRICS=true
+export REDIS_DS_DEBUG=true
 ```
 
-### Type Preservation
-```python
-from datetime import datetime
-from pydantic import BaseModel
+### YAML Configuration
 
-# Custom Pydantic model
-class User(BaseModel):
-    name: str
-    joined: datetime
+```yaml
+redis:
+  host: localhost
+  port: 6379
+  db: 0
+  password: secret
+  ssl: true
+  max_connections: 10
+  retry_max_attempts: 3
+  circuit_breaker_threshold: 5
 
-# Store with type preservation
-user = User(name="John", joined=datetime.now())
-hash_map.set('users', 'john', user)
-
-# Retrieve with types intact
-john = hash_map.get('users', 'john')  # Returns User object
+data_structures:
+  prefix: myapp
+  compression_enabled: true
+  compression_threshold: 1024
+  metrics_enabled: true
+  debug_enabled: true
 ```
 
-### Error Handling
-```python
-from redis.exceptions import RedisError
+## 📈 Monitoring
 
-try:
-    value = queue.pop('my_queue')
-except RedisError as e:
-    logger.error(f"Redis operation failed: {e}")
-except Exception as e:
-    logger.error(f"Unexpected error: {e}")
+```python
+from redis_data_structures import Queue, MetricsCollector
+from datetime import timedelta
+
+queue = Queue()
+
+# Get metrics for last 5 minutes
+metrics = MetricsCollector()
+stats = metrics.get_metrics("Queue").get_stats(window=timedelta(minutes=5))
+
+print(f"Total operations: {stats['total_operations']}")
+print(f"Success rate: {stats['success_rate']}%")
+print(f"Average duration: {stats['avg_duration_ms']}ms")
+print(f"Error count: {stats['error_count']}")
 ```
 
-### TTL (Time To Live)
+## 🛠️ Advanced Features
+
+### Connection Management
 ```python
-from datetime import datetime, timedelta
+from redis_data_structures import Queue, ConnectionManager
+from datetime import timedelta
 
-# Set TTL for a key
-queue.set_ttl('my_queue', timedelta(seconds=10))
+# Custom connection manager
+connection_manager = ConnectionManager(
+    host="localhost",
+    max_connections=20,
+    retry_max_attempts=5,
+    circuit_breaker_threshold=10,
+    circuit_breaker_timeout=timedelta(minutes=5)
+)
 
-# Check TTL
-ttl = queue.get_ttl('my_queue')
-print(f"TTL remaining: {ttl} seconds")
+queue = Queue(connection_manager=connection_manager)
 ```
 
-## 📈 Performance Tips
+### Type Registry
+```python
+from redis_data_structures import TypeRegistry, CustomRedisDataType
 
-1. **Use Connection Pooling**
-   - Share connection pools across instances
-   - Configure pool size based on workload
+# Register custom type
+class Point(CustomRedisDataType):
+    def __init__(self, x: float, y: float):
+        self.x = x
+        self.y = y
 
-3. **Memory Management**
-   - Monitor Redis memory usage
-   - Implement TTL for temporary data
-   - Use appropriate data structures
+    def to_dict(self) -> dict:
+        return {"x": self.x, "y": self.y}
 
-4. **Key Naming**
-   - Use consistent prefixes
-   - Include version in keys
-   - Consider namespacing
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Point':
+        return cls(data["x"], data["y"])
+
+registry = TypeRegistry()
+registry.register(Point)
+```
 
 ## 🤝 Contributing
 

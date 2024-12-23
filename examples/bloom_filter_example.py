@@ -1,5 +1,6 @@
 from redis_data_structures.bloom_filter import BloomFilter
 
+
 def main():
     # Initialize a Bloom filter with custom parameters
     bloom = BloomFilter(
@@ -7,18 +8,14 @@ def main():
         false_positive_rate=0.01,  # 1% false positive rate
         host="localhost",
         port=6379,
-        db=0
+        db=0,
     )
 
     # Key for our Bloom filter in Redis
     filter_key = "email_blacklist"
 
     # Add some email addresses to the blacklist
-    spam_emails = [
-        "spam1@example.com",
-        "spam2@example.com",
-        "badactor@example.com"
-    ]
+    spam_emails = ["spam1@example.com", "spam2@example.com", "badactor@example.com"]
 
     print("Adding spam emails to blacklist...")
     for email in spam_emails:
@@ -30,7 +27,7 @@ def main():
         "spam1@example.com",  # Should be found
         "legitimate@example.com",  # Should not be found
         "spam2@example.com",  # Should be found
-        "newuser@example.com"  # Should not be found
+        "newuser@example.com",  # Should not be found
     ]
 
     print("\nChecking emails against blacklist...")
@@ -48,5 +45,6 @@ def main():
     if bloom.clear(filter_key):
         print("Bloom filter cleared successfully")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

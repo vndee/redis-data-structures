@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+
 from redis_data_structures import RingBuffer
 
 
@@ -34,11 +34,7 @@ def demonstrate_log_rotation():
         print(f"[{log['level']}] {log['message']} at {log['timestamp']}")
 
     # Add one more log (should cause rotation)
-    new_log = {
-        "level": "WARN",
-        "message": "High memory usage",
-        "timestamp": "2024-01-01T10:00:05"
-    }
+    new_log = {"level": "WARN", "message": "High memory usage", "timestamp": "2024-01-01T10:00:05"}
     print("\nAdding one more log (should rotate out oldest)...")
     buffer.push(log_key, new_log)
 
@@ -66,21 +62,25 @@ def demonstrate_metrics_collection():
             "timestamp": time.time(),
             "cpu_usage": 40 + i * 5,  # Simulated increasing CPU usage
             "memory_usage": 60 + i * 2,  # Simulated increasing memory usage
-            "io_usage": 30 + i * 3  # Simulated increasing I/O usage
+            "io_usage": 30 + i * 3,  # Simulated increasing I/O usage
         }
         buffer.push(metrics_key, metrics)
-        print(f"Recorded metrics: CPU: {metrics['cpu_usage']}%, "
-              f"Memory: {metrics['memory_usage']}%, "
-              f"I/O: {metrics['io_usage']}%")
+        print(
+            f"Recorded metrics: CPU: {metrics['cpu_usage']}%, "
+            f"Memory: {metrics['memory_usage']}%, "
+            f"I/O: {metrics['io_usage']}%",
+        )
         time.sleep(0.5)  # Simulate time passing
 
     # Show latest metrics
     print("\nLatest 5 metrics readings:")
     latest = buffer.get_latest(metrics_key, 5)
     for metrics in latest:
-        print(f"CPU: {metrics['cpu_usage']}%, "
-              f"Memory: {metrics['memory_usage']}%, "
-              f"I/O: {metrics['io_usage']}%")
+        print(
+            f"CPU: {metrics['cpu_usage']}%, "
+            f"Memory: {metrics['memory_usage']}%, "
+            f"I/O: {metrics['io_usage']}%",
+        )
 
 
 def demonstrate_sliding_window():
@@ -127,4 +127,4 @@ def demonstrate_sliding_window():
 if __name__ == "__main__":
     demonstrate_log_rotation()
     demonstrate_metrics_collection()
-    demonstrate_sliding_window() 
+    demonstrate_sliding_window()

@@ -20,7 +20,7 @@ class TestRingBuffer(unittest.TestCase):
         assert self.buffer.push(self.test_key, "item1")
         assert self.buffer.push(self.test_key, "item2")
         assert self.buffer.size(self.test_key) == 2
-        
+
         items = self.buffer.get_all(self.test_key)
         assert items == ["item1", "item2"]
 
@@ -57,7 +57,7 @@ class TestRingBuffer(unittest.TestCase):
         # Setup test data
         self.buffer.push(self.test_key, "item1")
         self.buffer.push(self.test_key, "item2")
-        
+
         # Test clearing buffer
         assert self.buffer.clear(self.test_key)
         assert self.buffer.size(self.test_key) == 0
@@ -120,4 +120,4 @@ class TestRingBuffer(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()

@@ -25,6 +25,7 @@ classifiers = [
     "Topic :: Database",
 ]
 dependencies = [
+    "backoff>=2.2.1",
     "redis>=4.5.0",
 ]
 

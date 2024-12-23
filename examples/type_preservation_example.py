@@ -17,12 +17,15 @@ class User(CustomRedisDataType):
     def to_dict(self) -> dict:
         return {
             "name": self.name,
-            "joined": self.joined,  # datetime will be automatically preserved
+            "joined": self.joined.isoformat(),  # Convert datetime to string
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "User":
-        return cls(data["name"], data["joined"])
+        return cls(
+            name=data["name"],
+            joined=datetime.fromisoformat(data["joined"])  # Convert string back to datetime
+        )
 
     def __str__(self) -> str:
         return f"User(name='{self.name}', joined={self.joined.isoformat()})"
@@ -30,16 +33,14 @@ class User(CustomRedisDataType):
 
 class Address(BaseModel):
     """Nested Pydantic model for demonstration."""
-
     street: str
     city: str
     country: str
     postal_code: Optional[str] = None
 
 
-class UserModel(CustomRedisDataType, BaseModel):
-    """Example of a custom Redis data type using Pydantic."""
-
+class UserModel(BaseModel):
+    """Example of a Pydantic model - works automatically with Redis structures."""
     name: str
     email: str
     age: int = Field(gt=0, lt=150)
@@ -53,9 +54,9 @@ class UserModel(CustomRedisDataType, BaseModel):
 
 def demonstrate_type_preservation():
     """Demonstrate type preservation across different Redis data structures."""
-    # Initialize data structures with Redis connection parameters
-    cache = LRUCache(capacity=1000, host="localhost", port=6379, db=0)
-    hash_map = HashMap(host="localhost", port=6379, db=0)
+    # Initialize data structures
+    cache = LRUCache(capacity=1000)  # Using default connection settings
+    hash_map = HashMap()  # Using default connection settings
 
     # Clear any existing data
     cache.clear("type_demo_cache")
@@ -63,56 +64,52 @@ def demonstrate_type_preservation():
 
     print("=== Type Preservation Example ===")
 
-    # Example 1: Tuples
-    print("\nTuple Preservation:")
-    tuple_data: Tuple[int, str, List[int]] = (1, "two", [3, 4])
-    hash_map.set("type_demo_hash", "tuple", tuple_data)
-    result = hash_map.get("type_demo_hash", "tuple")
-    print(f"Original: {tuple_data} ({type(tuple_data)})")
-    print(f"Retrieved: {result} ({type(result)})")
-
-    # Example 2: Sets
-    print("\nSet Preservation:")
-    set_data: Set[int] = {1, 2, 3, 4}
-    hash_map.set("type_demo_hash", "set", set_data)
-    result = hash_map.get("type_demo_hash", "set")
-    print(f"Original: {set_data} ({type(set_data)})")
-    print(f"Retrieved: {result} ({type(result)})")
-
-    # Example 3: Datetime
-    print("\nDatetime Preservation:")
-    date_data = datetime.now(timezone.utc)
-    hash_map.set("type_demo_hash", "date", date_data)
-    result = hash_map.get("type_demo_hash", "date")
-    print(f"Original: {date_data} ({type(date_data)})")
-    print(f"Retrieved: {result} ({type(result)})")
-
-    # Example 4: Complex Nested Structures
-    print("\nNested Structure Preservation:")
-    complex_data: Dict[str, Any] = {
-        "tuple": (1, 2, 3),
-        "set": {4, 5, 6},
-        "list": [7, 8, (9, 10)],
-        "dict": {"key": (11, 12)},
+    # Example 1: Basic Python Types
+    print("\nBasic Type Preservation:")
+    data = {
+        "string": "hello",
+        "integer": 42,
+        "float": 3.14,
+        "boolean": True,
+        "none": None,
     }
-    hash_map.set("type_demo_hash", "nested", complex_data)
-    result = hash_map.get("type_demo_hash", "nested")
-    print("Original:")
-    print_nested_types(complex_data)
-    print("\nRetrieved:")
-    print_nested_types(result)
+    for key, value in data.items():
+        hash_map.set("type_demo_hash", key, value)
+        result = hash_map.get("type_demo_hash", key)
+        print(f"{key}: {result} ({type(result).__name__})")
 
-    # Example 5: Standard Custom Class
-    print("\nStandard Custom Class Preservation:")
+    # Example 2: Collections
+    print("\nCollection Type Preservation:")
+    collections = {
+        "tuple": (1, "two", 3.0),
+        "list": [1, 2, 3, "four"],
+        "set": {1, 2, 3, 4},
+        "dict": {"a": 1, "b": 2},
+    }
+    for key, value in collections.items():
+        hash_map.set("type_demo_hash", key, value)
+        result = hash_map.get("type_demo_hash", key)
+        print(f"{key}: {result} ({type(result).__name__})")
+
+    # Example 3: DateTime Types
+    print("\nDateTime Type Preservation:")
+    now = datetime.now(timezone.utc)
+    hash_map.set("type_demo_hash", "datetime", now)
+    result = hash_map.get("type_demo_hash", "datetime")
+    print(f"Original: {now} ({type(now).__name__})")
+    print(f"Retrieved: {result} ({type(result).__name__})")
+
+    # Example 4: Custom Type
+    print("\nCustom Type Preservation:")
     user = User("John Doe", datetime.now(timezone.utc))
-    hash_map.set("user_hash", "standard_user", user)
-    result = hash_map.get("user_hash", "standard_user")
+    hash_map.set("type_demo_hash", "custom_user", user)
+    result = hash_map.get("type_demo_hash", "custom_user")
     print(f"Original: {user}")
     print(f"Retrieved: {result}")
 
-    # Example 6: Pydantic Model
+    # Example 5: Pydantic Models
     print("\nPydantic Model Preservation:")
-    pydantic_user = UserModel(
+    user_model = UserModel(
         name="Jane Smith",
         email="jane@example.com",
         age=30,
@@ -127,55 +124,73 @@ def demonstrate_type_preservation():
     )
 
     # Store in different data structures
-    cache.put("user_cache", "pydantic_user", pydantic_user)
-    hash_map.set("user_hash", "pydantic_user", pydantic_user)
+    cache.put("type_demo_cache", "pydantic_user", user_model)
+    hash_map.set("type_demo_hash", "pydantic_user", user_model)
 
     # Retrieve and verify
-    cache_result = cache.get("user_cache", "pydantic_user")
-    hash_result = hash_map.get("user_hash", "pydantic_user")
+    cache_result = cache.get("type_demo_cache", "pydantic_user")
+    hash_result = hash_map.get("type_demo_hash", "pydantic_user")
 
-    print(f"Original: {pydantic_user}")
-    print(f"From Cache: {cache_result}")
-    print(f"From Hash: {hash_result}")
-    print("\nDetailed Pydantic Model:")
-    print(f"  Name: {pydantic_user.name}")
-    print(f"  Email: {pydantic_user.email}")
-    print(f"  Age: {pydantic_user.age}")
-    print(f"  Joined: {pydantic_user.joined}")
-    print(f"  Address: {pydantic_user.address}")
-    print(f"  Tags: {pydantic_user.tags}")
+    print("\nOriginal Pydantic Model:")
+    print_model_details(user_model)
+    print("\nRetrieved from Cache:")
+    print_model_details(cache_result)
+    print("\nRetrieved from Hash:")
+    print_model_details(hash_result)
 
-    # Example 7: Mixed Types in Hash
-    print("\nMixed Types in Hash:")
-    hash_map.set("mixed_hash", "string", "string value")
-    hash_map.set("mixed_hash", "number", 42)
-    hash_map.set("mixed_hash", "tuple", (1, 2, 3))
-    hash_map.set("mixed_hash", "standard_user", user)
-    hash_map.set("mixed_hash", "pydantic_user", pydantic_user)
+    # Example 6: Nested Structures
+    print("\nNested Structure Preservation:")
+    nested_data = {
+        "user": user,
+        "model": user_model,
+        "list": [1, user, user_model],
+        "tuple": (user, user_model),
+        "dict": {
+            "user": user,
+            "model": user_model,
+            "date": now,
+        }
+    }
+    hash_map.set("type_demo_hash", "nested", nested_data)
+    result = hash_map.get("type_demo_hash", "nested")
+    print("Original structure types:")
+    print_nested_structure(nested_data)
+    print("\nRetrieved structure types:")
+    print_nested_structure(result)
 
-    print("Hash entries:")
-    for key in ["string", "number", "tuple", "standard_user", "pydantic_user"]:
-        value = hash_map.get("mixed_hash", key)
-        print(f"  {key}: {value} ({type(value).__name__})")
+
+def print_model_details(model: UserModel) -> None:
+    """Print details of a UserModel instance."""
+    print(f"  Name: {model.name}")
+    print(f"  Email: {model.email}")
+    print(f"  Age: {model.age}")
+    print(f"  Joined: {model.joined}")
+    if model.address:
+        print(f"  Address: {model.address.street}, {model.address.city}")
+    print(f"  Tags: {model.tags}")
 
 
-def print_nested_types(obj: Any, indent: int = 0) -> None:
-    """Print nested structure with type information."""
-    prefix = "  " * indent
+def print_nested_structure(obj: Any, indent: int = 2) -> None:
+    """Print the structure of nested objects with their types."""
+    prefix = " " * indent
     if isinstance(obj, dict):
         print(f"{prefix}dict:")
         for key, value in obj.items():
-            print(f"{prefix}  {key}:")
-            print_nested_types(value, indent + 2)
+            print(f"{prefix}{key}:")
+            print_nested_structure(value, indent + 2)
     elif isinstance(obj, (list, tuple)):
-        type_name = "list" if isinstance(obj, list) else "tuple"
-        print(f"{prefix}{type_name}:")
+        container_type = "list" if isinstance(obj, list) else "tuple"
+        print(f"{prefix}{container_type}:")
         for item in obj:
-            print_nested_types(item, indent + 1)
+            print_nested_structure(item, indent + 2)
     elif isinstance(obj, set):
         print(f"{prefix}set: {obj}")
     else:
-        print(f"{prefix}{obj} ({type(obj).__name__})")
+        type_name = type(obj).__name__
+        if isinstance(obj, (User, UserModel)):
+            print(f"{prefix}{type_name}: {obj}")
+        else:
+            print(f"{prefix}{type_name}: {obj}")
 
 
 if __name__ == "__main__":

@@ -1,32 +1,32 @@
 import json
-import redis
-from datetime import datetime, timezone, timedelta
-from typing import Any, Callable, ClassVar, Dict, Optional, Type, TypedDict, Union, cast
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional, Type, TypeVar, Union, TypedDict, cast
+
+from .config import Config
+from .connection import ConnectionManager
+from .exceptions import SerializationError
+from .metrics import track_operation
 
 try:
     from pydantic import BaseModel
-
     PYDANTIC_AVAILABLE = True
 except ImportError:
     BaseModel = object
     PYDANTIC_AVAILABLE = False
 
+logger = logging.getLogger(__name__)
+T = TypeVar('T')
 
 class SerializedData(TypedDict):
     """Type definition for serialized data structure."""
-
     data: Any
     timestamp: str
     _type: str
 
-
 class CustomRedisDataType:
     """Base class for creating custom Redis data types.
-
-    This class automatically registers custom types that users create,
-    allowing for automatic serialization/deserialization of these types
-    when storing them in Redis.
-
+    
     Example with standard class:
         ```python
         class User(CustomRedisDataType):
@@ -50,114 +50,71 @@ class CustomRedisDataType:
             joined: datetime
         ```
     """
-
-    _registered_types: ClassVar[Dict[str, Type]] = {}
-
-    def __init_subclass__(cls, **kwargs):
-        """Initialize subclass and register type."""
-        super().__init_subclass__(**kwargs)
-
-        # Check if it's a Pydantic model
-        if PYDANTIC_AVAILABLE and issubclass(cls, BaseModel):
-            cls._registered_types[cls.__name__] = cls
-            # Add Pydantic model methods if not overridden
-            if not hasattr(cls, "to_dict"):
-                cls.to_dict = lambda self: self.model_dump()
-            if not hasattr(cls, "from_dict"):
-                cls.from_dict = classmethod(lambda cls, data: cls.model_validate(data))
-        # Check for standard class with required methods
-        elif hasattr(cls, "to_dict") and hasattr(cls, "from_dict"):
-            cls._registered_types[cls.__name__] = cls
-
-    @classmethod
-    def get_type(cls, type_name: str) -> Optional[Type]:
-        """Get registered type by name."""
-        return cls._registered_types.get(type_name)
-
+    
     def to_dict(self) -> dict:
-        """Convert instance to dictionary.
-
-        Must be implemented by subclasses unless using Pydantic.
-        For Pydantic models, this is automatically implemented.
-        """
+        """Convert instance to dictionary."""
         raise NotImplementedError("Subclasses must implement to_dict()")
 
     @classmethod
-    def from_dict(cls, data: dict) -> "CustomRedisDataType":
-        """Create instance from dictionary.
-
-        Must be implemented by subclasses unless using Pydantic.
-        For Pydantic models, this is automatically implemented.
-        """
+    def from_dict(cls, data: dict) -> 'CustomRedisDataType':
+        """Create instance from dictionary."""
         raise NotImplementedError("Subclasses must implement from_dict()")
 
-
 class RedisDataStructure:
-    """Base class for Redis-backed data structures.
+    """Base class for Redis-backed data structures."""
 
-    This class provides the Redis connection and serialization methods for
-    storing and retrieving data from Redis. It handles both built-in types
-    and custom types created with CustomRedisDataType.
-    """
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        config: Optional[Config] = None,
+        connection_manager: Optional[ConnectionManager] = None,
+        **kwargs
+    ):
         """Initialize Redis data structure."""
-        default_params = {
-            "host": "localhost",
-            "port": 6379,
-            "db": 0,
-            "decode_responses": True,
-        }
+        # Initialize configuration
+        self.config = config or Config.from_env()
+        if kwargs:
+            # Update config with any provided kwargs
+            for key, value in kwargs.items():
+                if hasattr(self.config.redis, key):
+                    setattr(self.config.redis, key, value)
+        
+        # Initialize connection manager
+        self.connection_manager = connection_manager or ConnectionManager(
+            **self.config.redis.__dict__
+        )
+        
+        # Set up logging
+        if self.config.data_structures.debug_enabled:
+            logger.setLevel(logging.DEBUG)
 
-        connection_params = {**default_params, **kwargs}
-
-        try:
-            self.redis_client = redis.Redis(**connection_params)
-            self.redis_client.ping()
-        except redis.RedisError as e:
-            raise ConnectionError(f"Failed to connect to Redis: {e}")
-
-        # Initialize default type handlers
-        self.type_handlers: Dict[Type, Dict[str, Callable]] = {
+        # Initialize type handlers
+        self.type_handlers = {
             tuple: {
-                "serialize": lambda x: {
-                    "_type": "tuple",
-                    "value": [self._serialize_value(item) for item in x],
-                },
-                "deserialize": lambda x: tuple(
-                    self._deserialize_value(item) for item in x["value"]
-                ),
+                "serialize": lambda x: [self._serialize_value(item) for item in x],
+                "deserialize": lambda x: tuple(self._deserialize_value(item) for item in x),
             },
             set: {
-                "serialize": lambda x: {
-                    "_type": "set",
-                    "value": [self._serialize_value(item) for item in sorted(x)],
-                },
-                "deserialize": lambda x: set(self._deserialize_value(item) for item in x["value"]),
+                "serialize": lambda x: [self._serialize_value(item) for item in sorted(x)],
+                "deserialize": lambda x: set(self._deserialize_value(item) for item in x),
             },
             bytes: {
-                "serialize": lambda x: {
-                    "_type": "bytes",
-                    "value": x.hex(),
-                },
-                "deserialize": lambda x: bytes.fromhex(x["value"]),
+                "serialize": lambda x: x.hex(),
+                "deserialize": lambda x: bytes.fromhex(x),
             },
             datetime: {
-                "serialize": lambda x: {
-                    "_type": "datetime",
-                    "value": x.isoformat(),
-                },
-                "deserialize": lambda x: datetime.fromisoformat(x["value"]),
+                "serialize": lambda x: x.isoformat(),
+                "deserialize": lambda x: datetime.fromisoformat(x),
             },
             timedelta: {
-                "serialize": lambda x: {
-                    "_type": "timedelta",
-                    "value": x.total_seconds(),
-                },
-                "deserialize": lambda x: timedelta(seconds=float(x["value"])),
+                "serialize": lambda x: x.total_seconds(),
+                "deserialize": lambda x: timedelta(seconds=float(x)),
             },
         }
-
+    
+    def _get_key(self, key: str) -> str:
+        """Get prefixed key name."""
+        return f"{self.config.data_structures.prefix}:{key}"
+    
     def _serialize_value(self, val: Any) -> Any:
         """Helper method to serialize a single value."""
         # Handle None and primitive types
@@ -170,7 +127,10 @@ class RedisDataStructure:
         # Handle registered type handlers
         for type_class, handlers in self.type_handlers.items():
             if isinstance(val, type_class):
-                return handlers["serialize"](val)
+                return {
+                    "_type": type_class.__name__,
+                    "value": handlers["serialize"](val),
+                }
 
         # Handle lists
         if isinstance(val, list):
@@ -186,194 +146,172 @@ class RedisDataStructure:
                 "value": {str(k): self._serialize_value(v) for k, v in val.items()},
             }
 
-        # Handle custom user types (created with CustomRedisDataType)
-        if type(type(val)) == CustomRedisDataType:
+        # Handle custom types
+        if isinstance(val, CustomRedisDataType):
             return {
                 "_type": val.__class__.__name__,
+                "module": val.__class__.__module__,
                 "value": val.to_dict(),
             }
 
-        # Default to string representation for unknown types
+        # Handle Pydantic models
+        if PYDANTIC_AVAILABLE and isinstance(val, BaseModel):
+            return {
+                "_type": val.__class__.__name__,
+                "module": val.__class__.__module__,
+                "value": val.model_dump(mode='json'),
+            }
+
+        # Default to string representation
         return {
             "_type": "str",
             "value": str(val),
         }
-
+    
     def _deserialize_value(self, val: Any) -> Any:
         """Helper method to deserialize a single value."""
-        # Handle non-dict or missing _type values
         if not isinstance(val, dict) or "_type" not in val:
             return val
 
         type_name = val["_type"]
         data = val.get("value")
+        module_name = val.get("module")
 
-        # Handle None type
+        # Handle None
         if type_name == "NoneType":
             return None
 
-        # Handle primitive types first
+        # Handle primitive types
         if type_name in ("int", "float", "str", "bool"):
             return data
-
-        # Handle custom user types
-        custom_type = CustomRedisDataType.get_type(type_name)
-        if custom_type is not None:
-            return custom_type.from_dict(data)
 
         # Handle registered types
         for type_class, handlers in self.type_handlers.items():
             if type_class.__name__ == type_name:
-                return handlers["deserialize"](val)
+                return handlers["deserialize"](data)
 
-        # Handle built-in collection types
-        if type_name == "tuple":
-            return tuple(self._deserialize_value(item) for item in data)
+        # Handle collections
         if type_name == "list":
             return [self._deserialize_value(item) for item in data]
-        if type_name == "set":
-            return set(self._deserialize_value(item) for item in data)
         if type_name == "dict":
             return {k: self._deserialize_value(v) for k, v in data.items()}
+        if type_name == "set":
+            return set(self._deserialize_value(item) for item in data)
+        if type_name == "tuple":
+            return tuple(self._deserialize_value(item) for item in data)
 
-        # Default to string for unknown types
-        return str(data)
+        # Try to find custom type or Pydantic model
+        if module_name:
+            try:
+                import importlib
+                module = importlib.import_module(module_name)
+                type_class = getattr(module, type_name)
 
-    def _serialize(self, data: Any, include_timestamp: bool = True) -> str:
-        """Serialize data to JSON string with timestamp and type information."""
-        serialized = self._serialize_value(data)
-        if include_timestamp:
+                if issubclass(type_class, CustomRedisDataType):
+                    return type_class.from_dict(data)
+                elif PYDANTIC_AVAILABLE and issubclass(type_class, BaseModel):
+                    return type_class.model_validate(data)
+            except (ImportError, AttributeError) as e:
+                logger.warning(f"Failed to import type {type_name} from {module_name}: {e}")
+
+        return data
+    
+    def _serialize(self, value: Any) -> str:
+        """Serialize value to string."""
+        try:
+            serialized = self._serialize_value(value)
             serialized["timestamp"] = datetime.now(timezone.utc).isoformat()
 
-        return json.dumps(serialized, ensure_ascii=False)
+            result = json.dumps(serialized)
 
-    def _deserialize(self, data: str, include_timestamp: bool = True) -> SerializedData:
-        """Deserialize JSON string to dictionary with type restoration."""
+            # Apply compression if enabled and threshold met
+            if (
+                self.config.data_structures.compression_enabled and
+                len(result) >= self.config.data_structures.compression_threshold
+            ):
+                import zlib
+                result = zlib.compress(result.encode())
+
+            return result
+        except Exception as e:
+            raise SerializationError(f"Failed to serialize value: {e}")
+    
+    def _deserialize(self, data: str) -> Any:
+        """Deserialize string to value."""
         try:
+            # Check if data is compressed
+            if (
+                self.config.data_structures.compression_enabled and
+                isinstance(data, bytes)
+            ):
+                import zlib
+                data = zlib.decompress(data).decode()
+
             if not data:
-                return cast(SerializedData, {"value": None, "_type": "NoneType"})
+                return None
 
             deserialized = json.loads(data)
-
-            # Handle simple string values that couldn't be parsed as JSON
-            if not isinstance(deserialized, dict):
-                return cast(
-                    SerializedData,
-                    {
-                        "value": deserialized,
-                        "_type": type(deserialized).__name__,
-                    },
-                )
-
-            result = cast(
-                SerializedData,
-                {
-                    "value": self._deserialize_value(deserialized),
-                    "_type": deserialized.get(
-                        "_type",
-                        (
-                            type(deserialized.get("value")).__name__
-                            if "value" in deserialized
-                            else "str"
-                        ),
-                    ),
-                },
-            )
-
-            if include_timestamp and "timestamp" in deserialized:
-                result["timestamp"] = deserialized["timestamp"]
-
-            return result["value"]
-        except json.JSONDecodeError:
-            return cast(
-                SerializedData,
-                {
-                    "value": data,
-                    "_type": "str",
-                },
-            )
-
+            return self._deserialize_value(deserialized)
+        except Exception as e:
+            raise SerializationError(f"Failed to deserialize data: {e}")
+    
+    @track_operation("set_ttl")
     def set_ttl(self, key: str, ttl: Union[int, timedelta]) -> bool:
-        """Set Time To Live (TTL) for a key.
-        
-        Args:
-            key: The key to set TTL for
-            ttl: Time to live in seconds (int) or timedelta
-        
-        Returns:
-            bool: True if TTL was set, False otherwise
-        """
+        """Set Time To Live (TTL) for a key."""
         try:
             if isinstance(ttl, timedelta):
                 ttl = int(ttl.total_seconds())
-            return bool(self.redis_client.expire(key, ttl))
-        except redis.RedisError as e:
-            print(f"Error setting TTL: {e}")
+            return bool(
+                self.connection_manager.execute(
+                    "expire",
+                    self._get_key(key),
+                    ttl
+                )
+            )
+        except Exception as e:
+            logger.error(f"Error setting TTL: {e}")
             return False
-
+    
+    @track_operation("get_ttl")
     def get_ttl(self, key: str) -> Optional[int]:
-        """Get remaining Time To Live (TTL) for a key.
-        
-        Args:
-            key: The key to get TTL for
-        
-        Returns:
-            Optional[int]: Remaining time in seconds, None if key has no TTL,
-                          -2 if key does not exist, -1 if key exists but has no TTL
-        """
+        """Get remaining Time To Live (TTL) for a key."""
         try:
-            return self.redis_client.ttl(key)
-        except redis.RedisError as e:
-            print(f"Error getting TTL: {e}")
+            return self.connection_manager.execute(
+                "ttl",
+                self._get_key(key)
+            )
+        except Exception as e:
+            logger.error(f"Error getting TTL: {e}")
             return None
-
+    
+    @track_operation("persist")
     def persist(self, key: str) -> bool:
-        """Remove TTL from a key, making it persistent.
-        
-        Args:
-            key: The key to remove TTL from
-        
-        Returns:
-            bool: True if TTL was removed, False otherwise
-        """
+        """Remove TTL from a key."""
         try:
-            return bool(self.redis_client.persist(key))
-        except redis.RedisError as e:
-            print(f"Error removing TTL: {e}")
+            return bool(
+                self.connection_manager.execute(
+                    "persist",
+                    self._get_key(key)
+                )
+            )
+        except Exception as e:
+            logger.error(f"Error removing TTL: {e}")
             return False
-
-    def set_expire_at(self, key: str, timestamp: Union[datetime, int]) -> bool:
-        """Set key to expire at a specific timestamp.
-        
-        Args:
-            key: The key to set expiration for
-            timestamp: Unix timestamp (int) or datetime object
-        
-        Returns:
-            bool: True if expiration was set, False otherwise
-        """
-        try:
-            if isinstance(timestamp, datetime):
-                timestamp = int(timestamp.timestamp())
-            return bool(self.redis_client.expireat(key, timestamp))
-        except redis.RedisError as e:
-            print(f"Error setting expiration: {e}")
-            return False
-
-    def size(self, key: str) -> int:
-        """Get the size of the data structure."""
-        try:
-            if not self.redis_client.exists(key):
-                return 0
-            return self.redis_client.strlen(key)
-        except redis.RedisError as e:
-            print(f"Error getting size: {e}")
-            return 0
-
+    
+    @track_operation("clear")
     def clear(self, key: str) -> bool:
         """Clear all elements from the data structure."""
         try:
-            return bool(self.redis_client.delete(key))
-        except redis.RedisError as e:
-            print(f"Error clearing data structure: {e}")
+            return bool(
+                self.connection_manager.execute(
+                    "delete",
+                    self._get_key(key)
+                )
+            )
+        except Exception as e:
+            logger.error(f"Error clearing data structure: {e}")
             return False
+    
+    def close(self):
+        """Close Redis connection."""
+        self.connection_manager.close()
