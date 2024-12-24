@@ -1,5 +1,5 @@
-from typing import Any, Optional
 import logging
+from typing import Any, Optional
 
 from .base import RedisDataStructure
 
@@ -24,15 +24,11 @@ class Stack(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            serialized = self._serialize(data, include_timestamp=False)
-            result = self.connection_manager.execute(
-                "lpush",
-                self._get_key(key),
-                serialized
-            )
+            serialized = self.serialize(data, include_timestamp=False)
+            result = self.connection_manager.execute("lpush", self._get_key(key), serialized)
             return bool(result)
-        except Exception as e:
-            logger.error(f"Error pushing to stack: {e}")
+        except Exception:
+            logger.exception("Error pushing to stack")
             return False
 
     def pop(self, key: str) -> Optional[Any]:
@@ -45,17 +41,14 @@ class Stack(RedisDataStructure):
             Optional[Any]: The data if successful, None otherwise
         """
         try:
-            data = self.connection_manager.execute(
-                "lpop",
-                self._get_key(key)
-            )
+            data = self.connection_manager.execute("lpop", self._get_key(key))
             if data is not None:
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
-                return self._deserialize(data)
+                return self.deserialize(data)
             return None
-        except Exception as e:
-            logger.error(f"Error popping from stack: {e}")
+        except Exception:
+            logger.exception("Error popping from stack")
             return None
 
     def peek(self, key: str) -> Optional[Any]:
@@ -68,18 +61,14 @@ class Stack(RedisDataStructure):
             Optional[Any]: The data if successful, None otherwise
         """
         try:
-            data = self.connection_manager.execute(
-                "lindex",
-                self._get_key(key),
-                0
-            )
+            data = self.connection_manager.execute("lindex", self._get_key(key), 0)
             if data is not None:
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
-                return self._deserialize(data)
+                return self.deserialize(data)
             return None
-        except Exception as e:
-            logger.error(f"Error peeking stack: {e}")
+        except Exception:
+            logger.exception("Error peeking stack")
             return None
 
     def size(self, key: str) -> int:
@@ -92,13 +81,10 @@ class Stack(RedisDataStructure):
             int: Number of elements in the stack
         """
         try:
-            result = self.connection_manager.execute(
-                "llen",
-                self._get_key(key)
-            )
+            result = self.connection_manager.execute("llen", self._get_key(key))
             return int(result) if result is not None else 0
-        except Exception as e:
-            logger.error(f"Error getting stack size: {e}")
+        except Exception:
+            logger.exception("Error getting stack size")
             return 0
 
     def clear(self, key: str) -> bool:
@@ -111,11 +97,8 @@ class Stack(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            self.connection_manager.execute(
-                "delete",
-                self._get_key(key)
-            )
+            self.connection_manager.execute("delete", self._get_key(key))
             return True
-        except Exception as e:
-            logger.error(f"Error clearing stack: {e}")
+        except Exception:
+            logger.exception("Error clearing stack")
             return False

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Optional, Set
 
 from pydantic import BaseModel, Field
 
@@ -15,6 +15,7 @@ class User(CustomRedisDataType):
         self.joined = joined
 
     def to_dict(self) -> dict:
+        """Convert the User object to a dictionary."""
         return {
             "name": self.name,
             "joined": self.joined.isoformat(),  # Convert datetime to string
@@ -22,9 +23,10 @@ class User(CustomRedisDataType):
 
     @classmethod
     def from_dict(cls, data: dict) -> "User":
+        """Create a User object from a dictionary."""
         return cls(
             name=data["name"],
-            joined=datetime.fromisoformat(data["joined"])  # Convert string back to datetime
+            joined=datetime.fromisoformat(data["joined"]),  # Convert string back to datetime
         )
 
     def __str__(self) -> str:
@@ -33,6 +35,7 @@ class User(CustomRedisDataType):
 
 class Address(BaseModel):
     """Nested Pydantic model for demonstration."""
+
     street: str
     city: str
     country: str
@@ -41,6 +44,7 @@ class Address(BaseModel):
 
 class UserModel(BaseModel):
     """Example of a Pydantic model - works automatically with Redis structures."""
+
     name: str
     email: str
     age: int = Field(gt=0, lt=150)
@@ -149,7 +153,7 @@ def demonstrate_type_preservation():
             "user": user,
             "model": user_model,
             "date": now,
-        }
+        },
     }
     hash_map.set("type_demo_hash", "nested", nested_data)
     result = hash_map.get("type_demo_hash", "nested")

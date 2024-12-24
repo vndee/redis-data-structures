@@ -34,7 +34,10 @@ class TestStack(unittest.TestCase):
     def test_peek(self):
         """Test peek operation."""
         # Test peek on empty stack
-        self.assertIsNone(self.stack_ds.peek(self.test_key), "Peek on empty stack should return None")
+        self.assertIsNone(
+            self.stack_ds.peek(self.test_key),
+            "Peek on empty stack should return None",
+        )
 
         # Add items and test peek
         self.stack_ds.push(self.test_key, "item1")
@@ -45,7 +48,11 @@ class TestStack(unittest.TestCase):
         self.assertEqual(self.stack_ds.size(self.test_key), 2, "Size should not change after peek")
 
         # Peek again should return same item
-        self.assertEqual(self.stack_ds.peek(self.test_key), "item2", "Second peek should return same item")
+        self.assertEqual(
+            self.stack_ds.peek(self.test_key),
+            "item2",
+            "Second peek should return same item",
+        )
 
     def test_size(self):
         """Test size operations."""
@@ -100,7 +107,11 @@ class TestStack(unittest.TestCase):
         # Test peek and pop with complex items
         self.assertEqual(self.stack_ds.peek(self.test_key), test_list, "Peek should return list")
         self.assertEqual(self.stack_ds.pop(self.test_key), test_list, "Pop should return list")
-        self.assertEqual(self.stack_ds.pop(self.test_key), test_dict, "Pop should return dictionary")
+        self.assertEqual(
+            self.stack_ds.pop(self.test_key),
+            test_dict,
+            "Pop should return dictionary",
+        )
 
     def test_serialization_edge_cases(self):
         """Test with various data types."""

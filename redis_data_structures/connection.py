@@ -12,9 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
-    """Manages Redis connections with advanced features like connection pooling,
-    automatic reconnection, and circuit breaking.
-    """
+    """Manages Redis connections with advanced features like connection pooling, automatic reconnection, and circuit breaking."""
 
     def __init__(
         self,
@@ -49,6 +47,7 @@ class ConnectionManager:
             ssl: Whether to use SSL/TLS for the connection
             ssl_cert_reqs: SSL certificate requirements ('none', 'optional', or 'required')
             ssl_ca_certs: Path to the CA certificate file
+            **kwargs: Additional keyword arguments for the Redis connection
         """
         # Filter out None values to avoid passing them to Redis
         connection_params = {
@@ -56,7 +55,7 @@ class ConnectionManager:
             "port": port,
             "db": db,
             "decode_responses": True,  # Always decode responses to strings
-            "encoding": "utf-8",       # Use UTF-8 encoding
+            "encoding": "utf-8",  # Use UTF-8 encoding
         }
 
         # Add optional parameters only if they are not None
@@ -77,7 +76,7 @@ class ConnectionManager:
         self.connection_params = connection_params
         self._pool = connection_pool or ConnectionPool(
             max_connections=max_connections,
-            **connection_params
+            **connection_params,
         )
 
         self._client: Optional[redis.Redis] = None
@@ -99,7 +98,7 @@ class ConnectionManager:
         max_tries=3,
         jitter=None,
         on_backoff=lambda details: logger.warning(
-            f"Retrying Redis connection after {details['wait']:.2f}s"
+            f"Retrying Redis connection after {details['wait']:.2f}s",
         ),
     )
     def execute(self, func_name: str, *args, **kwargs) -> Any:
@@ -125,9 +124,9 @@ class ConnectionManager:
             result = func(*args, **kwargs)
             self._failure_count = 0  # Reset on success
             return result
-        except (RedisError, ConnectionError) as e:
+        except (RedisError, ConnectionError):
             self._failure_count += 1
-            logger.error(f"Redis command failed: {func_name}, error: {str(e)}")
+            logger.exception(f"Redis command failed: {func_name}")
             raise
 
     def pipeline(self) -> redis.client.Pipeline:
@@ -144,14 +143,14 @@ class ConnectionManager:
             start_time = time.time()
             self.client.ping()
             latency = (time.time() - start_time) * 1000  # Convert to milliseconds
-            
+
             info = self.client.info()
             pool_info = {
                 "max_connections": self._pool.max_connections,
                 "current_connections": len(self._pool._in_use_connections),
                 "available_connections": len(self._pool._available_connections),
             }
-            
+
             return {
                 "status": "healthy",
                 "latency_ms": round(latency, 2),

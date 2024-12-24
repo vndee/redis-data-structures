@@ -6,7 +6,9 @@ from typing import Optional
 
 
 def setup_logging(
-    level: int = logging.INFO, format_string: Optional[str] = None, filename: Optional[str] = None,
+    level: int = logging.INFO,
+    format_string: Optional[str] = None,
+    filename: Optional[str] = None,
 ) -> logging.Logger:
     """Set up logging configuration.
 
@@ -25,10 +27,7 @@ def setup_logging(
     logger.setLevel(level)
 
     if not logger.handlers:
-        if filename:
-            handler = logging.FileHandler(filename)
-        else:
-            handler = logging.StreamHandler(sys.stdout)
+        handler = logging.FileHandler(filename) if filename else logging.StreamHandler(sys.stdout)
 
         formatter = logging.Formatter(format_string)
         handler.setFormatter(formatter)

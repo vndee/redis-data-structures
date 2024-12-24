@@ -1,9 +1,11 @@
-from redis_data_structures import PriorityQueue
 from enum import IntEnum
+
+from redis_data_structures import PriorityQueue
 
 
 class Priority(IntEnum):
     """Priority levels for tasks."""
+
     CRITICAL = 1
     HIGH = 2
     MEDIUM = 3

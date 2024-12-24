@@ -1,5 +1,4 @@
 import time
-from typing import Dict, Any
 
 from redis_data_structures import RingBuffer
 
@@ -76,7 +75,7 @@ def demonstrate_metrics_collection():
             print(
                 f"Recorded metrics: CPU: {metrics['cpu_usage']}%, "
                 f"Memory: {metrics['memory_usage']}%, "
-                f"I/O: {metrics['io_usage']}%"
+                f"I/O: {metrics['io_usage']}%",
             )
         else:
             print("Failed to record metrics")
@@ -89,7 +88,7 @@ def demonstrate_metrics_collection():
         print(
             f"CPU: {metrics['cpu_usage']}%, "
             f"Memory: {metrics['memory_usage']}%, "
-            f"I/O: {metrics['io_usage']}%"
+            f"I/O: {metrics['io_usage']}%",
         )
 
 

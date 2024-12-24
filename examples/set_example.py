@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from redis_data_structures import Set
 
@@ -80,18 +80,15 @@ def demonstrate_complex_data():
 
     # Store any JSON-serializable Python object
     user = {
-        'id': 'user1',
-        'name': 'Alice',
-        'joined': datetime.now().isoformat(),
-        'metadata': {
-            'role': 'admin',
-            'preferences': {'theme': 'dark'}
-        }
+        "id": "user1",
+        "name": "Alice",
+        "joined": datetime.now(timezone.utc).isoformat(),
+        "metadata": {"role": "admin", "preferences": {"theme": "dark"}},
     }
 
     # The object will be automatically serialized/deserialized
-    set_ds.add('users', user)
-    stored_user = set_ds.members('users')[0]
+    set_ds.add("users", user)
+    stored_user = set_ds.members("users")[0]
     print("\nStored user:")
     print(stored_user)
 

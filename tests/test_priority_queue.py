@@ -99,19 +99,14 @@ class TestPriorityQueue(unittest.TestCase):
 
     def test_get_all(self):
         """Test getting all items in priority order."""
-        items = [
-            ("lowest", 3),
-            ("highest", 1),
-            ("medium", 2),
-            ("also_high", 1)
-        ]
+        items = [("lowest", 3), ("highest", 1), ("medium", 2), ("also_high", 1)]
 
         for item, priority in items:
             self.pq.push(self.test_key, item, priority)
 
         all_items = self.pq.get_all(self.test_key)
         self.assertEqual(len(all_items), 4)
-        
+
         # Check items are in priority order
         priorities = [p for _, p in all_items]
         self.assertEqual(priorities, sorted(priorities))

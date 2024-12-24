@@ -1,5 +1,5 @@
-from typing import Any, Optional, Tuple
 import logging
+from typing import Any, Optional, Tuple
 
 from .base import RedisDataStructure
 
@@ -28,18 +28,12 @@ class PriorityQueue(RedisDataStructure):
         """
         try:
             cache_key = self._get_key(key)
-            serialized = self._serialize(data)
+            serialized = self.serialize(data)
             # Redis zadd expects mapping of {member: score}
             mapping = {serialized: float(priority)}
-            return bool(
-                self.connection_manager.execute(
-                    "zadd",
-                    cache_key,
-                    mapping=mapping
-                )
-            )
-        except Exception as e:
-            logger.error(f"Error pushing to priority queue: {e}")
+            return bool(self.connection_manager.execute("zadd", cache_key, mapping=mapping))
+        except Exception:
+            logger.exception("Error pushing to priority queue")
             return False
 
     def pop(self, key: str) -> Optional[Tuple[Any, int]]:
@@ -54,13 +48,7 @@ class PriorityQueue(RedisDataStructure):
         try:
             cache_key = self._get_key(key)
             # Get the first item (lowest score = highest priority)
-            items = self.connection_manager.execute(
-                "zrange",
-                cache_key,
-                0,
-                0,
-                withscores=True
-            )
+            items = self.connection_manager.execute("zrange", cache_key, 0, 0, withscores=True)
             if not items:
                 return None
 
@@ -71,17 +59,13 @@ class PriorityQueue(RedisDataStructure):
                 item = item.decode("utf-8")
 
             # Remove the item from the queue
-            if not self.connection_manager.execute(
-                "zrem",
-                cache_key,
-                item
-            ):
-                logger.error("Failed to remove item from priority queue")
+            if not self.connection_manager.execute("zrem", cache_key, item):
+                logger.exception("Failed to remove item from priority queue")
                 return None
 
-            return self._deserialize(item), int(float(priority))
-        except Exception as e:
-            logger.error(f"Error popping from priority queue: {e}")
+            return self.deserialize(item), int(float(priority))
+        except Exception:
+            logger.exception("Error popping from priority queue")
             return None
 
     def peek(self, key: str) -> Optional[Tuple[Any, int]]:
@@ -96,13 +80,7 @@ class PriorityQueue(RedisDataStructure):
         try:
             cache_key = self._get_key(key)
             # Get the first item without removing it
-            items = self.connection_manager.execute(
-                "zrange",
-                cache_key,
-                0,
-                0,
-                withscores=True
-            )
+            items = self.connection_manager.execute("zrange", cache_key, 0, 0, withscores=True)
             if not items:
                 return None
 
@@ -112,9 +90,9 @@ class PriorityQueue(RedisDataStructure):
             if isinstance(item, bytes):
                 item = item.decode("utf-8")
 
-            return self._deserialize(item), int(float(priority))
-        except Exception as e:
-            logger.error(f"Error peeking priority queue: {e}")
+            return self.deserialize(item), int(float(priority))
+        except Exception:
+            logger.exception("Error peeking priority queue")
             return None
 
     def size(self, key: str) -> int:
@@ -127,12 +105,9 @@ class PriorityQueue(RedisDataStructure):
             int: Number of items in the queue
         """
         try:
-            return self.connection_manager.execute(
-                "zcard",
-                self._get_key(key)
-            ) or 0
-        except Exception as e:
-            logger.error(f"Error getting priority queue size: {e}")
+            return self.connection_manager.execute("zcard", self._get_key(key)) or 0
+        except Exception:
+            logger.exception("Error getting priority queue size")
             return 0
 
     def clear(self, key: str) -> bool:
@@ -145,14 +120,9 @@ class PriorityQueue(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            return bool(
-                self.connection_manager.execute(
-                    "delete",
-                    self._get_key(key)
-                )
-            )
-        except Exception as e:
-            logger.error(f"Error clearing priority queue: {e}")
+            return bool(self.connection_manager.execute("delete", self._get_key(key)))
+        except Exception:
+            logger.exception("Error clearing priority queue")
             return False
 
     def get_all(self, key: str) -> list:
@@ -166,13 +136,7 @@ class PriorityQueue(RedisDataStructure):
         """
         try:
             cache_key = self._get_key(key)
-            items = self.connection_manager.execute(
-                "zrange",
-                cache_key,
-                0,
-                -1,
-                withscores=True
-            )
+            items = self.connection_manager.execute("zrange", cache_key, 0, -1, withscores=True)
             if not items:
                 return []
 
@@ -181,8 +145,8 @@ class PriorityQueue(RedisDataStructure):
             for item, priority in items:
                 if isinstance(item, bytes):
                     item = item.decode("utf-8")
-                result.append((self._deserialize(item), int(float(priority))))
+                result.append((self.deserialize(item), int(float(priority))))
             return result
-        except Exception as e:
-            logger.error(f"Error getting all items from priority queue: {e}")
+        except Exception:
+            logger.exception("Error getting all items from priority queue")
             return []

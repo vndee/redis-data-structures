@@ -28,7 +28,10 @@ class TestTrie(unittest.TestCase):
         self.assertTrue(self.trie_ds.search(self.test_key, "help"), "'help' should be found")
         self.assertTrue(self.trie_ds.search(self.test_key, "world"), "'world' should be found")
         self.assertFalse(self.trie_ds.search(self.test_key, "hell"), "'hell' should not be found")
-        self.assertFalse(self.trie_ds.search(self.test_key, "helping"), "'helping' should not be found")
+        self.assertFalse(
+            self.trie_ds.search(self.test_key, "helping"),
+            "'helping' should not be found",
+        )
 
     def test_starts_with(self):
         """Test prefix search operations."""
@@ -77,7 +80,10 @@ class TestTrie(unittest.TestCase):
         self.assertTrue(self.trie_ds.search(self.test_key, "help"), "'help' should still exist")
 
         # Try to delete non-existent word
-        self.assertFalse(self.trie_ds.delete(self.test_key, "xyz"), "Should not delete non-existent word")
+        self.assertFalse(
+            self.trie_ds.delete(self.test_key, "xyz"),
+            "Should not delete non-existent word",
+        )
 
         # Delete word and verify prefix still works
         self.assertTrue(self.trie_ds.delete(self.test_key, "help"), "Failed to delete 'help'")
@@ -101,7 +107,11 @@ class TestTrie(unittest.TestCase):
 
         # Delete word and test size
         self.assertTrue(self.trie_ds.delete(self.test_key, "hello"), "Failed to delete 'hello'")
-        self.assertEqual(self.trie_ds.size(self.test_key), 3, "Trie should have 3 words after deletion")
+        self.assertEqual(
+            self.trie_ds.size(self.test_key),
+            3,
+            "Trie should have 3 words after deletion",
+        )
 
     def test_clear(self):
         """Test clear operation."""
@@ -114,14 +124,21 @@ class TestTrie(unittest.TestCase):
         self.assertGreater(self.trie_ds.size(self.test_key), 0, "Trie should not be empty")
         self.assertTrue(self.trie_ds.clear(self.test_key), "Failed to clear trie")
         self.assertEqual(self.trie_ds.size(self.test_key), 0, "Trie should be empty after clear")
-        self.assertFalse(self.trie_ds.search(self.test_key, "hello"), "No words should exist after clear")
+        self.assertFalse(
+            self.trie_ds.search(self.test_key, "hello"),
+            "No words should exist after clear",
+        )
 
     def test_empty_string(self):
         """Test edge case with empty string."""
         # Test empty string operations
         self.assertTrue(self.trie_ds.insert(self.test_key, ""), "Failed to insert empty string")
         self.assertTrue(self.trie_ds.search(self.test_key, ""), "Empty string should be found")
-        self.assertEqual(self.trie_ds.size(self.test_key), 1, "Trie should have size 1 with empty string")
+        self.assertEqual(
+            self.trie_ds.size(self.test_key),
+            1,
+            "Trie should have size 1 with empty string",
+        )
         self.assertTrue(self.trie_ds.delete(self.test_key, ""), "Failed to delete empty string")
         self.assertFalse(self.trie_ds.search(self.test_key, ""), "Empty string should be deleted")
 

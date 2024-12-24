@@ -1,5 +1,5 @@
-from typing import List, Set
 import logging
+from typing import List
 
 from .base import RedisDataStructure
 
@@ -52,25 +52,15 @@ class Trie(RedisDataStructure):
             current_prefix = ""
             for char in word:
                 node_key = self._get_node_key(key, current_prefix)
-                self.connection_manager.execute(
-                    "hset",
-                    node_key,
-                    char,
-                    "1"
-                )
+                self.connection_manager.execute("hset", node_key, char, "1")
                 current_prefix = current_prefix + char if current_prefix else char
 
             # Mark the end of the word
             end_key = self._get_node_key(key, current_prefix)
-            self.connection_manager.execute(
-                "hset",
-                end_key,
-                "*",
-                "1"
-            )
+            self.connection_manager.execute("hset", end_key, "*", "1")
             return True
-        except Exception as e:
-            logger.error(f"Error inserting into trie: {e}")
+        except Exception:
+            logger.exception("Error inserting into trie")
             return False
 
     def search(self, key: str, word: str) -> bool:
@@ -85,11 +75,7 @@ class Trie(RedisDataStructure):
         """
         try:
             if not word:
-                return bool(self.connection_manager.execute(
-                    "hexists",
-                    self._get_key(key),
-                    "*"
-                ))
+                return bool(self.connection_manager.execute("hexists", self._get_key(key), "*"))
 
             if not isinstance(word, str):
                 return False
@@ -98,22 +84,14 @@ class Trie(RedisDataStructure):
             current_prefix = ""
             for char in word:
                 node_key = self._get_node_key(key, current_prefix)
-                if not self.connection_manager.execute(
-                    "hexists",
-                    node_key,
-                    char
-                ):
+                if not self.connection_manager.execute("hexists", node_key, char):
                     return False
                 current_prefix = current_prefix + char if current_prefix else char
 
             end_key = self._get_node_key(key, current_prefix)
-            return bool(self.connection_manager.execute(
-                "hexists",
-                end_key,
-                "*"
-            ))
-        except Exception as e:
-            logger.error(f"Error searching trie: {e}")
+            return bool(self.connection_manager.execute("hexists", end_key, "*"))
+        except Exception:
+            logger.exception("Error searching trie")
             return False
 
     def starts_with(self, key: str, prefix: str) -> List[str]:
@@ -140,11 +118,7 @@ class Trie(RedisDataStructure):
             current = ""
             for char in prefix:
                 node_key = self._get_node_key(key, current)
-                if not self.connection_manager.execute(
-                    "hexists",
-                    node_key,
-                    char
-                ):
+                if not self.connection_manager.execute("hexists", node_key, char):
                     return []
                 current = current + char if current else char
 
@@ -152,8 +126,8 @@ class Trie(RedisDataStructure):
             words: List[str] = []
             self._collect_words(key, prefix, prefix, words)
             return sorted(words)  # Return sorted list for consistency
-        except Exception as e:
-            logger.error(f"Error in starts_with: {e}")
+        except Exception:
+            logger.exception("Error in starts_with")
             return []
 
     def _get_all_words(self, key: str) -> List[str]:
@@ -166,11 +140,7 @@ class Trie(RedisDataStructure):
             List[str]: All words in the trie
         """
         words: List[str] = []
-        if self.connection_manager.execute(
-            "hexists",
-            self._get_key(key),
-            "*"
-        ):
+        if self.connection_manager.execute("hexists", self._get_key(key), "*"):
             words.append("")
         self._collect_words(key, "", "", words)
         return sorted(words)
@@ -187,27 +157,20 @@ class Trie(RedisDataStructure):
         node_key = self._get_node_key(key, prefix)
 
         # If this is a word, add it to results
-        if self.connection_manager.execute(
-            "hexists",
-            node_key,
-            "*"
-        ):
+        if self.connection_manager.execute("hexists", node_key, "*"):
             words.append(current_word)
 
         # Get and process all children
         try:
-            children = self.connection_manager.execute(
-                "hkeys",
-                node_key
-            )
+            children = self.connection_manager.execute("hkeys", node_key)
             for child in children:
                 # Handle both string and bytes responses
                 child_str = child.decode("utf-8") if isinstance(child, bytes) else child
                 if child_str != "*":
                     next_prefix = prefix + child_str if prefix else child_str
                     self._collect_words(key, next_prefix, current_word + child_str, words)
-        except Exception as e:
-            logger.error(f"Error collecting words: {e}")
+        except Exception:
+            logger.exception("Error collecting words")
 
     def delete(self, key: str, word: str) -> bool:
         """Delete a word from the trie.
@@ -230,33 +193,23 @@ class Trie(RedisDataStructure):
 
             # Remove the word marker
             end_key = self._get_node_key(key, word)
-            self.connection_manager.execute(
-                "hdel",
-                end_key,
-                "*"
-            )
+            self.connection_manager.execute("hdel", end_key, "*")
 
             # If the node has no other children, we can remove it and continue up
             current = word
             while current:
                 node_key = self._get_node_key(key, current)
-                children = self.connection_manager.execute(
-                    "hkeys",
-                    node_key
-                )
+                children = self.connection_manager.execute("hkeys", node_key)
                 if not children:
                     # No children, delete this node and continue up
-                    self.connection_manager.execute(
-                        "delete",
-                        node_key
-                    )
+                    self.connection_manager.execute("delete", node_key)
                     current = current[:-1]  # Remove last character
                 else:
                     break  # Node has other children, stop here
 
             return True
-        except Exception as e:
-            logger.error(f"Error deleting from trie: {e}")
+        except Exception:
+            logger.exception("Error deleting from trie")
             return False
 
     def size(self, key: str) -> int:
@@ -271,11 +224,7 @@ class Trie(RedisDataStructure):
         try:
             # Count all nodes with the word marker
             count = 0
-            if self.connection_manager.execute(
-                "hexists",
-                self._get_key(key),
-                "*"
-            ):
+            if self.connection_manager.execute("hexists", self._get_key(key), "*"):
                 count += 1
 
             # Use scan to iterate through all keys
@@ -286,25 +235,21 @@ class Trie(RedisDataStructure):
                     "scan",
                     cursor,
                     match=pattern,
-                    count=100
+                    count=100,
                 )
-                
+
                 if keys:
                     for key_name in keys:
                         if isinstance(key_name, bytes):
                             key_name = key_name.decode("utf-8")
-                        if self.connection_manager.execute(
-                            "hexists",
-                            key_name,
-                            "*"
-                        ):
+                        if self.connection_manager.execute("hexists", key_name, "*"):
                             count += 1
                 if cursor == 0:  # End of iteration
                     break
 
             return count
-        except Exception as e:
-            logger.error(f"Error getting trie size: {e}")
+        except Exception:
+            logger.exception("Error getting trie size")
             return 0
 
     def clear(self, key: str) -> bool:
@@ -325,27 +270,21 @@ class Trie(RedisDataStructure):
                     "scan",
                     cursor,
                     match=pattern,
-                    count=100
+                    count=100,
                 )
-                
+
                 if keys:
                     # Delete keys in batches
                     for i in range(0, len(keys), 100):
-                        batch = keys[i:i+100]
+                        batch = keys[i : i + 100]
                         if batch:
-                            self.connection_manager.execute(
-                                "delete",
-                                *batch
-                            )
+                            self.connection_manager.execute("delete", *batch)
                 if cursor == 0:  # End of iteration
                     break
 
             # Delete the root key
-            self.connection_manager.execute(
-                "delete",
-                self._get_key(key)
-            )
+            self.connection_manager.execute("delete", self._get_key(key))
             return True
-        except Exception as e:
-            logger.error(f"Error clearing trie: {e}")
+        except Exception:
+            logger.exception("Error clearing trie")
             return False

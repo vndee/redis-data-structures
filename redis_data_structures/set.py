@@ -1,7 +1,6 @@
-from typing import Any, Optional, Tuple
-from typing import Set as PySet
-import json
 import logging
+from typing import Any, Optional
+from typing import Set as PySet
 
 from .base import RedisDataStructure
 
@@ -31,17 +30,17 @@ class Set(RedisDataStructure):
 
         if type_name == "NoneType":
             return None
-        elif type_name in ("int", "float", "str", "bool"):
+        if type_name in ("int", "float", "str", "bool"):
             return data
-        elif type_name == "list":
+        if type_name == "list":
             return [self._restore_type(item) for item in data]
-        elif type_name == "dict":
+        if type_name == "dict":
             return {k: self._restore_type(v) for k, v in data.items()}
-        elif type_name == "tuple":
+        if type_name == "tuple":
             return tuple(self._restore_type(item) for item in data)
-        elif type_name == "set":
-            return set(self._restore_type(item) for item in data)
-        
+        if type_name == "set":
+            return {self._restore_type(item) for item in data}
+
         return data
 
     def _make_hashable(self, value: Any) -> Any:
@@ -69,10 +68,7 @@ class Set(RedisDataStructure):
             Set[Any]: Set containing all members with their original types
         """
         try:
-            items = self.connection_manager.execute(
-                "smembers",
-                self._get_key(key)
-            )
+            items = self.connection_manager.execute("smembers", self._get_key(key))
             if not items:
                 return set()
 
@@ -81,16 +77,16 @@ class Set(RedisDataStructure):
                 try:
                     if isinstance(item, bytes):
                         item = item.decode("utf-8")
-                    deserialized = self._deserialize(item)
+                    deserialized = self.deserialize(item)
                     restored = self._restore_type(deserialized)
                     result.append(restored)
-                except Exception as e:
-                    logger.error(f"Error processing item: {e}")
+                except Exception:
+                    logger.exception("Error processing item")
                     continue
 
             return result
-        except Exception as e:
-            logger.error(f"Error getting set members: {e}")
+        except Exception:
+            logger.exception("Error getting set members")
             return set()
 
     def pop(self, key: str) -> Optional[Any]:
@@ -105,18 +101,15 @@ class Set(RedisDataStructure):
             Optional[Any]: Random element if successful, None if set is empty
         """
         try:
-            data = self.connection_manager.execute(
-                "spop",
-                self._get_key(key)
-            )
+            data = self.connection_manager.execute("spop", self._get_key(key))
             if data is not None:
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
-                deserialized = self._deserialize(data)
+                deserialized = self.deserialize(data)
                 return self._restore_type(deserialized)
             return None
-        except Exception as e:
-            logger.error(f"Error popping from set: {e}")
+        except Exception:
+            logger.exception("Error popping from set")
             return None
 
     def add(self, key: str, data: Any) -> bool:
@@ -135,15 +128,11 @@ class Set(RedisDataStructure):
         """
         try:
             # Serialize the data directly without making it hashable
-            serialized = self._serialize(data, include_timestamp=False)
-            result = self.connection_manager.execute(
-                "sadd",
-                self._get_key(key),
-                serialized
-            )
+            serialized = self.serialize(data, include_timestamp=False)
+            result = self.connection_manager.execute("sadd", self._get_key(key), serialized)
             return bool(result)  # sadd returns 1 if added, 0 if already exists
-        except Exception as e:
-            logger.error(f"Error adding to set: {e}")
+        except Exception:
+            logger.exception("Error adding to set")
             return False
 
     def remove(self, key: str, data: Any) -> bool:
@@ -161,15 +150,11 @@ class Set(RedisDataStructure):
         """
         try:
             # Serialize the data directly without making it hashable
-            serialized = self._serialize(data, include_timestamp=False)
-            result = self.connection_manager.execute(
-                "srem",
-                self._get_key(key),
-                serialized
-            )
+            serialized = self.serialize(data, include_timestamp=False)
+            result = self.connection_manager.execute("srem", self._get_key(key), serialized)
             return bool(result)  # srem returns 1 if removed, 0 if not found
-        except Exception as e:
-            logger.error(f"Error removing from set: {e}")
+        except Exception:
+            logger.exception("Error removing from set")
             return False
 
     def contains(self, key: str, data: Any) -> bool:
@@ -187,15 +172,11 @@ class Set(RedisDataStructure):
         """
         try:
             # Serialize the data directly without making it hashable
-            serialized = self._serialize(data, include_timestamp=False)
-            result = self.connection_manager.execute(
-                "sismember",
-                self._get_key(key),
-                serialized
-            )
+            serialized = self.serialize(data, include_timestamp=False)
+            result = self.connection_manager.execute("sismember", self._get_key(key), serialized)
             return bool(result)  # sismember returns 1 if exists, 0 otherwise
-        except Exception as e:
-            logger.error(f"Error checking set membership: {e}")
+        except Exception:
+            logger.exception("Error checking set membership")
             return False
 
     def size(self, key: str) -> int:
@@ -210,13 +191,10 @@ class Set(RedisDataStructure):
             int: Number of items in the set
         """
         try:
-            result = self.connection_manager.execute(
-                "scard",
-                self._get_key(key)
-            )
+            result = self.connection_manager.execute("scard", self._get_key(key))
             return int(result)  # scard returns integer count
-        except Exception as e:
-            logger.error(f"Error getting set size: {e}")
+        except Exception:
+            logger.exception("Error getting set size")
             return 0
 
     def clear(self, key: str) -> bool:
@@ -231,11 +209,8 @@ class Set(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            self.connection_manager.execute(
-                "delete",
-                self._get_key(key)
-            )
+            self.connection_manager.execute("delete", self._get_key(key))
             return True
-        except Exception as e:
-            logger.error(f"Error clearing set: {e}")
+        except Exception:
+            logger.exception("Error clearing set")
             return False

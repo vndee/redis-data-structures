@@ -1,5 +1,5 @@
-from typing import Any, List
 import logging
+from typing import Any, List
 
 from .base import RedisDataStructure
 
@@ -34,13 +34,10 @@ class RingBuffer(RedisDataStructure):
     def _get_current_position(self, key: str) -> int:
         """Get the current write position for the buffer."""
         try:
-            pos = self.connection_manager.execute(
-                "get",
-                self._get_position_key(key)
-            )
+            pos = self.connection_manager.execute("get", self._get_position_key(key))
             return int(pos) if pos is not None else 0
-        except Exception as e:
-            logger.error(f"Error getting position: {e}")
+        except Exception:
+            logger.exception("Error getting position")
             return 0
 
     def push(self, key: str, data: Any) -> bool:
@@ -57,7 +54,7 @@ class RingBuffer(RedisDataStructure):
         """
         try:
             # Serialize data
-            serialized = self._serialize(data)
+            serialized = self.serialize(data)
 
             # Get current size
             current_size = self.size(key)
@@ -77,8 +74,8 @@ class RingBuffer(RedisDataStructure):
             # Execute pipeline
             pipe.execute()
             return True
-        except Exception as e:
-            logger.error(f"Error pushing to ring buffer: {e}")
+        except Exception:
+            logger.exception("Error pushing to ring buffer")
             return False
 
     def get_all(self, key: str) -> List[Any]:
@@ -92,20 +89,15 @@ class RingBuffer(RedisDataStructure):
         """
         try:
             # Get all items
-            items = self.connection_manager.execute(
-                "lrange",
-                self._get_key(key),
-                0,
-                -1
-            )
+            items = self.connection_manager.execute("lrange", self._get_key(key), 0, -1)
 
             # Deserialize items
             return [
-                self._deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
+                self.deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
                 for item in items
             ]
-        except Exception as e:
-            logger.error(f"Error getting items from ring buffer: {e}")
+        except Exception:
+            logger.exception("Error getting items from ring buffer")
             return []
 
     def get_latest(self, key: str, n: int = 1) -> List[Any]:
@@ -120,20 +112,15 @@ class RingBuffer(RedisDataStructure):
         """
         try:
             # Get latest n items
-            items = self.connection_manager.execute(
-                "lrange",
-                self._get_key(key),
-                -n,
-                -1
-            )
+            items = self.connection_manager.execute("lrange", self._get_key(key), -n, -1)
 
             # Deserialize items in reverse order
             return [
-                self._deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
+                self.deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
                 for item in reversed(items)
             ]
-        except Exception as e:
-            logger.error(f"Error getting latest items from ring buffer: {e}")
+        except Exception:
+            logger.exception("Error getting latest items from ring buffer")
             return []
 
     def size(self, key: str) -> int:
@@ -146,12 +133,9 @@ class RingBuffer(RedisDataStructure):
             int: Number of items in the buffer
         """
         try:
-            return self.connection_manager.execute(
-                "llen",
-                self._get_key(key)
-            ) or 0
-        except Exception as e:
-            logger.error(f"Error getting ring buffer size: {e}")
+            return self.connection_manager.execute("llen", self._get_key(key)) or 0
+        except Exception:
+            logger.exception("Error getting ring buffer size")
             return 0
 
     def clear(self, key: str) -> bool:
@@ -169,6 +153,6 @@ class RingBuffer(RedisDataStructure):
             pipe.delete(self._get_position_key(key))
             pipe.execute()
             return True
-        except Exception as e:
-            logger.error(f"Error clearing ring buffer: {e}")
+        except Exception:
+            logger.exception("Error clearing ring buffer")
             return False

@@ -1,6 +1,7 @@
 """Health check utilities for Redis Data Structures."""
 
 import time
+from contextlib import suppress
 from typing import Dict, Optional, Tuple
 
 import redis
@@ -9,7 +10,10 @@ from .logging import logger
 
 
 def check_redis_connection(
-    host: str = "localhost", port: int = 6379, password: Optional[str] = None, timeout: float = 5.0,
+    host: str = "localhost",
+    port: int = 6379,
+    password: Optional[str] = None,
+    timeout: float = 5.0,
 ) -> Tuple[bool, str]:
     """Check Redis connection health.
 
@@ -30,26 +34,26 @@ def check_redis_connection(
         client.ping()
 
         # Get basic info
-        info = client.info()
+        _ = client.info()
         latency = time.time() - start_time
 
         return True, f"Redis is healthy (latency: {latency:.3f}s)"
 
-    except redis.ConnectionError as e:
-        logger.error(f"Redis connection failed: {e}")
-        return False, f"Connection failed: {e!s}"
+    except redis.ConnectionError:
+        logger.exception("Redis connection failed")
+        return False, "Connection failed"
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
+        logger.exception("Health check failed")
         return False, f"Health check failed: {e!s}"
     finally:
-        try:
+        with suppress(Exception):
             client.close()
-        except:
-            pass
 
 
 def get_redis_metrics(
-    host: str = "localhost", port: int = 6379, password: Optional[str] = None,
+    host: str = "localhost",
+    port: int = 6379,
+    password: Optional[str] = None,
 ) -> Dict[str, str]:
     """Get basic Redis metrics.
 
@@ -75,10 +79,8 @@ def get_redis_metrics(
         }
 
     except Exception as e:
-        logger.error(f"Failed to get Redis metrics: {e}")
+        logger.exception(f"Failed to get Redis metrics: {e}")
         return {"error": str(e)}
     finally:
-        try:
+        with suppress(Exception):
             client.close()
-        except:
-            pass

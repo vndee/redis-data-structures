@@ -1,6 +1,6 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from datetime import datetime
+from datetime import datetime, timezone
+from unittest.mock import patch
 
 from redis.exceptions import RedisError
 
@@ -48,11 +48,7 @@ class TestHashMap(unittest.TestCase):
 
     def test_get_all(self):
         # Test getting all fields and values
-        test_data = {
-            "field1": "value1",
-            "field2": "value2",
-            "field3": "value3"
-        }
+        test_data = {"field1": "value1", "field2": "value2", "field3": "value3"}
 
         # Set each field with proper serialization
         for field, value in test_data.items():
@@ -89,7 +85,7 @@ class TestHashMap(unittest.TestCase):
         # Test with complex data types
         test_dict = {"key": "value", "nested": {"data": True}}
         test_list = [1, 2, [3, 4]]
-        test_datetime = datetime.now()
+        test_datetime = datetime.now(tz=timezone.utc)
         test_set = {1, 2, 3}
         test_tuple = (1, "two", 3.0)
 
@@ -98,7 +94,7 @@ class TestHashMap(unittest.TestCase):
             "list_field": test_list,
             "datetime_field": test_datetime,
             "set_field": test_set,
-            "tuple_field": test_tuple
+            "tuple_field": test_tuple,
         }
 
         # Test setting complex types
@@ -110,7 +106,10 @@ class TestHashMap(unittest.TestCase):
             retrieved = self.hash_map.get(self.test_key, field)
             if field == "datetime_field":
                 # Compare datetime string representations due to microsecond precision
-                self.assertEqual(retrieved.strftime("%Y-%m-%d %H:%M:%S"), value.strftime("%Y-%m-%d %H:%M:%S"))
+                self.assertEqual(
+                    retrieved.strftime("%Y-%m-%d %H:%M:%S"),
+                    value.strftime("%Y-%m-%d %H:%M:%S"),
+                )
             elif field == "set_field":
                 self.assertEqual(set(retrieved), value)
             elif field == "tuple_field":

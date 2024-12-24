@@ -1,6 +1,6 @@
 """Synchronous Redis Data Structure implementations."""
 
-from .base import RedisDataStructure, SerializedData, CustomRedisDataType
+from .base import CustomRedisDataType, RedisDataStructure, SerializedData
 from .bloom_filter import BloomFilter
 from .connection import ConnectionManager
 from .deque import Deque
@@ -17,6 +17,7 @@ from .trie import Trie
 __all__ = [
     "BloomFilter",
     "ConnectionManager",
+    "CustomRedisDataType",
     "Deque",
     "Graph",
     "HashMap",

@@ -1,13 +1,13 @@
-import math
 import logging
-from typing import Any, Optional
+import math
+from typing import Any
 
 try:
     import mmh3  # MurmurHash3 for efficient hashing
-except ImportError:
+except ImportError as err:
     raise ImportError(
         "mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.",
-    )
+    ) from err
 
 from .base import RedisDataStructure
 
@@ -22,12 +22,7 @@ class BloomFilter(RedisDataStructure):
     possible, but false negatives are not.
     """
 
-    def __init__(
-        self,
-        expected_elements: int = 10000,
-        false_positive_rate: float = 0.01,
-        **kwargs
-    ):
+    def __init__(self, expected_elements: int = 10000, false_positive_rate: float = 0.01, **kwargs):
         """Initialize Bloom Filter.
 
         Args:
@@ -38,10 +33,10 @@ class BloomFilter(RedisDataStructure):
         super().__init__(**kwargs)
 
         # Calculate optimal filter size and number of hash functions
-        self.bit_size = self._get_optimal_size(expected_elements, false_positive_rate)
-        self.num_hashes = self._get_optimal_num_hashes(expected_elements, self.bit_size)
+        self.bit_size = self.get_optimal_size(expected_elements, false_positive_rate)
+        self.num_hashes = self.get_optimal_num_hashes(expected_elements, self.bit_size)
 
-    def _get_optimal_size(self, n: int, p: float) -> int:
+    def get_optimal_size(self, n: int, p: float) -> int:
         """Calculate optimal bit array size.
 
         Args:
@@ -53,7 +48,7 @@ class BloomFilter(RedisDataStructure):
         """
         return int(-n * math.log(p) / (math.log(2) ** 2))
 
-    def _get_optimal_num_hashes(self, n: int, m: int) -> int:
+    def get_optimal_num_hashes(self, n: int, m: int) -> int:
         """Calculate optimal number of hash functions.
 
         Args:
@@ -65,7 +60,7 @@ class BloomFilter(RedisDataStructure):
         """
         return max(1, int(m / n * math.log(2)))
 
-    def _get_hash_values(self, item: Any) -> list[int]:
+    def get_hash_values(self, item: Any) -> list[int]:
         """Generate hash values for an item.
 
         Args:
@@ -95,7 +90,7 @@ class BloomFilter(RedisDataStructure):
             bool: True if successful
         """
         try:
-            hash_values = self._get_hash_values(item)
+            hash_values = self.get_hash_values(item)
             pipeline = self.connection_manager.pipeline()
             bloom_key = self._get_key(key)
 
@@ -104,8 +99,8 @@ class BloomFilter(RedisDataStructure):
 
             pipeline.execute()
             return True
-        except Exception as e:
-            logger.error(f"Error adding item to Bloom filter: {e}")
+        except Exception:
+            logger.exception("Error adding item to Bloom filter")
             return False
 
     def contains(self, key: str, item: Any) -> bool:
@@ -119,7 +114,7 @@ class BloomFilter(RedisDataStructure):
             bool: True if item might exist, False if definitely doesn't exist
         """
         try:
-            hash_values = self._get_hash_values(item)
+            hash_values = self.get_hash_values(item)
             bloom_key = self._get_key(key)
 
             # Check if all bits are set
@@ -127,8 +122,8 @@ class BloomFilter(RedisDataStructure):
                 if not self.connection_manager.execute("getbit", bloom_key, hash_val):
                     return False
             return True
-        except Exception as e:
-            logger.error(f"Error checking item in Bloom filter: {e}")
+        except Exception:
+            logger.exception("Error checking item in Bloom filter")
             return False
 
     def clear(self, key: str) -> bool:
