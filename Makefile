@@ -1,7 +1,7 @@
 .PHONY: setup test clean build publish install-dev format check lint test-unit test-integration test-all
 
 # Python and package management settings
-PYTHON := python3
+PYTHON := python
 UV := uv
 PIP := $(UV) pip
 PACKAGE_NAME := redis-data-structures
