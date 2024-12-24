@@ -42,10 +42,11 @@ jobs:
         run: |
           uv add pytest
           uv add pytest-cov
-          uv run python -m pytest --cov=redis_data_structures tests/
+          uv run python -m pytest --cov=redis_data_structures --cov-report=xml tests/
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: vndee/redis-data-structures
+          
