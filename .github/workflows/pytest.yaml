@@ -1,4 +1,4 @@
-name: CI
+name: Test
 
 on:
   push:
@@ -33,10 +33,10 @@ jobs:
       - name: Install uv
         run: |
           pip install uv
-          
+
       - name: Install dependencies
         run: |
-          uv install
+          uv sync 
 
       - name: Run tests with coverage
         run: |
