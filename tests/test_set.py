@@ -262,3 +262,27 @@ def test_make_hashable(set_ds):
     assert set_ds.make_hashable("hello") == "hello"
     assert set_ds.make_hashable(True) is True
     assert set_ds.make_hashable(None) is None
+    assert set_ds.make_hashable({1, 2, 3}) == (1, 2, 3)
+    assert set_ds.make_hashable(User(name="Alice", age=30)) == "User(name=Alice, age=30)"
+
+
+def test_error_clear_set(set_ds):
+    """Test error handling in clear method."""
+    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
+        assert not set_ds.clear("test_set")
+
+
+def test_error_members_get(set_ds):
+    """Test error handling in members method."""
+    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
+        assert set_ds.members("test_set") == []
+
+
+def test_members_error_handling(set_ds):
+    """Test error handling in members method."""
+    mock_data = [b'item1', b'item2', b'item3']
+
+    with patch.object(set_ds.connection_manager, "execute", return_value=mock_data):
+        with patch.object(set_ds, "deserialize", side_effect=[Exception("Deserialization error"), "item2", "item3"]):
+            result = set_ds.members("test_set")
+            assert result == ["item2", "item3"]  # Expect only the successfully deserialized items

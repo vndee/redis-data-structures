@@ -2,12 +2,11 @@ import logging
 import math
 from typing import Any
 
+# Try to import mmh3, raise ImportError if not available
 try:
-    import mmh3  # MurmurHash3 for efficient hashing
-except ImportError as err:
-    raise ImportError(
-        "mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.",
-    ) from err
+    import mmh3
+except ImportError:
+    raise ImportError("mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.")
 
 from .base import RedisDataStructure
 

@@ -132,3 +132,31 @@ def test_clear_error_handling(ring_buffer):
     """Test error handling during clear operation."""
     with patch.object(ring_buffer.connection_manager, "pipeline", side_effect=RedisError):
         assert not ring_buffer.clear("test_ring_buffer")
+
+
+def test_get_current_position(ring_buffer):
+    """Test getting the current position of the ring buffer."""
+    # Push items into the ring buffer
+    assert ring_buffer.push("test_ring_buffer", "item1")
+    assert ring_buffer.push("test_ring_buffer", "item2")
+    
+    # Check the current position after pushing two items
+    assert ring_buffer.get_current_position("test_ring_buffer") == 2
+
+    # Push one more item
+    assert ring_buffer.push("test_ring_buffer", "item3")
+    
+    # Check the current position after pushing three items
+    assert ring_buffer.get_current_position("test_ring_buffer") == 3
+
+    # Clear the ring buffer
+    ring_buffer.clear("test_ring_buffer")
+    
+    # Check the current position after clearing
+    assert ring_buffer.get_current_position("test_ring_buffer") == 0
+
+
+def test_get_current_position_error_handling(ring_buffer):
+    """Test error handling during get_current_position operation."""
+    with patch.object(ring_buffer.connection_manager, "execute", side_effect=RedisError):
+        assert ring_buffer.get_current_position("test_ring_buffer") == 0

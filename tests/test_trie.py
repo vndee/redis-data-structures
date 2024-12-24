@@ -102,3 +102,26 @@ def test_error_handling(trie_ds):
         assert not trie_ds.delete("test_trie", "test")
         assert trie_ds.size("test_trie") == 0
         assert not trie_ds.clear("test_trie")
+
+
+def test_type_validation(trie_ds):
+    """Test type validation."""
+    assert trie_ds.insert("test_trie", "hello")
+    assert trie_ds.insert("test_trie", 123) is False
+    assert trie_ds.search("test_trie", "hello")
+    assert trie_ds.search("test_trie", 123) is False
+    assert trie_ds.starts_with("test_trie", "hel") == ["hello"]
+    assert trie_ds.starts_with("test_trie", 123) == []
+    assert trie_ds.delete("test_trie", "hello")
+    assert trie_ds.delete("test_trie", 123) is False
+
+
+def test_get_all_words(trie_ds):
+    """Test get all words operation."""
+    words = ["hello", "help", "world", "helper"]
+    for word in words:
+        assert trie_ds.insert("test_trie", word)
+    assert set(trie_ds.get_all_words("test_trie")) == set(words)
+
+    assert set(trie_ds.starts_with("test_trie", "")) == set(words)
+

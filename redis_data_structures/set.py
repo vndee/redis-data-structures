@@ -87,7 +87,7 @@ class Set(RedisDataStructure):
             return result
         except Exception:
             logger.exception("Error getting set members")
-            return set()
+            return []
 
     def pop(self, key: str) -> Optional[Any]:
         """Remove and return a random element from the set.

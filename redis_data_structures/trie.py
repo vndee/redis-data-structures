@@ -112,7 +112,7 @@ class Trie(RedisDataStructure):
 
             # Handle empty prefix - return all words
             if not prefix:
-                return self._get_all_words(key)
+                return self.get_all_words(key)
 
             # First verify the prefix exists
             current = ""
@@ -130,7 +130,7 @@ class Trie(RedisDataStructure):
             logger.exception("Error in starts_with")
             return []
 
-    def _get_all_words(self, key: str) -> List[str]:
+    def get_all_words(self, key: str) -> List[str]:
         """Get all words in the trie.
 
         Args:

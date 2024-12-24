@@ -1,4 +1,6 @@
 import pytest
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from redis_data_structures.config import Config, DataStructureConfig, RedisConfig
 from redis_data_structures.exceptions import ConfigurationError
@@ -93,3 +95,65 @@ def test_config_from_yaml_invalid(tmp_path):
 
     with pytest.raises(ConfigurationError):
         Config.from_yaml(str(yaml_file))
+
+
+def test_from_yaml_load_error():
+    """Test loading configuration from YAML file raises ConfigurationError."""
+    with patch("yaml.safe_load", side_effect=Exception("YAML load error")):
+        with pytest.raises(ConfigurationError, match="Failed to load configuration from"):
+            Config.from_yaml("invalid_path.yaml")
+
+
+def test_to_dict():
+    """Test converting configuration to dictionary."""
+    config = Config(
+        redis=MagicMock(host="localhost", port=6379, db=0, password=None, ssl=False, max_connections=10),
+        data_structures=DataStructureConfig(
+            prefix="test_prefix",
+            compression_enabled=False,
+            compression_threshold=1024,
+            backup_interval=3600,
+            debug_enabled=False
+        )
+    )
+    expected_dict = {
+        "redis": {
+            "host": "localhost",
+            "port": 6379,
+            "db": 0,  # Ensure this matches the mock
+            "password": None,
+            "ssl": False,
+            "max_connections": 10,
+        },
+        "data_structures": {
+            "prefix": "test_prefix",
+            "compression_enabled": False,
+            "compression_threshold": 1024,
+            "backup_interval": 3600,
+            "debug_enabled": False,
+        },
+    }
+    assert config.to_dict() == expected_dict
+
+
+def test_validate_compression_threshold_error():
+    """Test validation raises ConfigurationError for invalid compression threshold."""
+    config = Config(
+        redis=MagicMock(),
+        data_structures=DataStructureConfig(compression_threshold=-1)
+    )
+    with pytest.raises(ConfigurationError, match="Invalid compression threshold"):
+        config.validate()
+        
+
+def test_validate_backup_interval_error():
+    """Test validation raises ConfigurationError for invalid backup interval."""
+    config = Config(
+        redis=MagicMock(),
+        data_structures=DataStructureConfig(
+            compression_threshold=1024,
+            backup_interval=-1
+        )
+    )
+    with pytest.raises(ConfigurationError, match="Invalid backup interval"):
+        config.validate()

@@ -31,7 +31,7 @@ class RingBuffer(RedisDataStructure):
         """Get the Redis key for storing the current write position."""
         return f"{self._get_key(key)}:pos"
 
-    def _get_current_position(self, key: str) -> int:
+    def get_current_position(self, key: str) -> int:
         """Get the current write position for the buffer."""
         try:
             pos = self.connection_manager.execute("get", self._get_position_key(key))
@@ -63,6 +63,11 @@ class RingBuffer(RedisDataStructure):
             pipe = self.connection_manager.pipeline()
 
             cache_key = self._get_key(key)
+            pos_key = self._get_position_key(key)
+
+            # Always increment position counter as it tracks total items pushed
+            pipe.incr(pos_key)
+
             if current_size < self.capacity:
                 # If we haven't reached capacity, just append
                 pipe.rpush(cache_key, serialized)

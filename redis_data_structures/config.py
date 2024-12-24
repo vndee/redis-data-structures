@@ -121,6 +121,8 @@ class Config:
                 "prefix": self.data_structures.prefix,
                 "compression_enabled": self.data_structures.compression_enabled,
                 "debug_enabled": self.data_structures.debug_enabled,
+                "backup_interval": self.data_structures.backup_interval,
+                "compression_threshold": self.data_structures.compression_threshold,
             },
         }
 

@@ -24,6 +24,9 @@ class User(CustomRedisDataType):
 
     def __eq__(self, other):
         return isinstance(other, User) and self.name == other.name and self.age == other.age
+    
+    def __str__(self) -> str:
+        return f"User(name={self.name}, age={self.age})"
 
 
 class TestRedisDataStructure:

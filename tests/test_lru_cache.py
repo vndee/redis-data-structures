@@ -355,3 +355,17 @@ def test_get_all_items(lru_cache):
     lru_cache.put("test_lru_cache", "key1", "value1")
     lru_cache.put("test_lru_cache", "key2", "value2")
     assert lru_cache.get_all("test_lru_cache") == {"key1": "value1", "key2": "value2"}
+
+
+def test_get_all_deserialization_error_handling(lru_cache):
+    """Test error handling during deserialization in get_all operation."""
+    # Mock the execute method to return a list of fields and values
+    mock_data = [b"field1", b"value1", b"field2", b"value2"]
+
+    with patch.object(lru_cache.connection_manager, "execute", return_value=mock_data):
+        with patch.object(lru_cache, "deserialize", side_effect=Exception("Deserialization error")):
+            result = lru_cache.get_all("test_lru_cache")
+            assert result == {
+                "field1": None,
+                "field2": None,
+            }  # Expect None for deserialization errors

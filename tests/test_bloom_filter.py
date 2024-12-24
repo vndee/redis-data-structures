@@ -1,15 +1,19 @@
 """Tests for BloomFilter implementation."""
 
 import math
+import importlib
+import sys
 from typing import List
 
 import pytest
+from unittest.mock import patch
+from redis.exceptions import RedisError
 
-from redis_data_structures import BloomFilter
+from redis_data_structures.bloom_filter import BloomFilter
 
 
 @pytest.fixture
-def bloom_filter(connection_manager) -> BloomFilter:
+def bloom_filter(connection_manager) -> 'BloomFilter':
     """Create a BloomFilter instance for testing."""
     return BloomFilter(
         expected_elements=1000,
@@ -41,6 +45,26 @@ def sample_items() -> List:
 @pytest.mark.integration
 class TestBloomFilter:
     """Test cases for BloomFilter implementation."""
+
+    def test_bloom_filter_import_error(self, monkeypatch):
+        """Test that BloomFilter raises an ImportError if mmh3 is not installed."""
+        
+        # Remove the module if it's already imported
+        if 'mmh3' in sys.modules:
+            del sys.modules['mmh3']
+        if 'redis_data_structures.bloom_filter' in sys.modules:
+            del sys.modules['redis_data_structures.bloom_filter']
+            
+        # Patch __import__ to raise ImportError for mmh3
+        def mock_import(name, *args, **kwargs):
+            if name == 'mmh3':
+                raise ImportError("No module named 'mmh3'")
+            return importlib.__import__(name, *args, **kwargs)
+            
+        monkeypatch.setattr('builtins.__import__', mock_import)
+        
+        with pytest.raises(ImportError, match="mmh3 is required for BloomFilter"):
+            from redis_data_structures.bloom_filter import BloomFilter
 
     def test_add_and_contains(self, bloom_filter: BloomFilter, test_key: str):
         """Test adding items and checking membership."""
@@ -124,3 +148,19 @@ class TestBloomFilter:
             / math.log(1 - p ** (1 / bloom_filter.get_optimal_num_hashes(n, bloom_filter.size()))),
         )
         assert abs(bloom_filter.size() - expected_size) / expected_size < 0.5
+
+    def test_add_error_handling(self, bloom_filter):
+        """Test error handling during add operation."""
+        # Simulate an error in getting hash values
+        with patch.object(bloom_filter, "get_hash_values", side_effect=Exception("Hashing error")):
+            assert not bloom_filter.add("test_bloom_filter", "test1")
+
+        # Simulate an error in the pipeline execution
+        with patch.object(bloom_filter.connection_manager, "pipeline") as mock_pipeline:
+            mock_pipeline.return_value.execute.side_effect = Exception("Pipeline execution error")
+            assert not bloom_filter.add("test_bloom_filter", "test1")
+
+    def test_contains_error_handling(self, bloom_filter):
+        """Test error handling during contains operation."""
+        with patch.object(bloom_filter.connection_manager, "execute", side_effect=RedisError):
+            assert not bloom_filter.contains("test_bloom_filter", "test1")

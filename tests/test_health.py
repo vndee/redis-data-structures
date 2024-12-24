@@ -53,3 +53,10 @@ class TestHealthCheck:
             metrics = get_redis_metrics(self.host, self.port, self.password)
             assert "error" in metrics
             assert metrics["error"] == "Failed to get Redis metrics"
+    
+    def test_healthcheck_failed_without_connection_error(self):
+        """Test healthcheck failed without connection error."""
+        with patch("redis.Redis.ping", side_effect=Exception("Failed to ping")):
+            is_healthy, message = check_redis_connection(self.host, self.port, self.password)
+            assert is_healthy is False
+            assert "Health check failed" in message
