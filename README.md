@@ -1,9 +1,33 @@
 # Redis Data Structures
 
+[![PyPI version](https://badge.fury.io/py/redis-data-structures.svg)](https://badge.fury.io/py/redis-data-structures)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
 A Python library providing high-level, Redis-backed data structures with a clean, Pythonic interface. Perfect for distributed systems, microservices, and any application requiring persistent, thread-safe data structures.
+
+📚 [Detailed Usage Guide](docs/usage.md) | 💡 [Examples](examples/)
+
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Data Structures](#data-structures)
+- [Usage Examples](#usage-examples)
+  - [Queue](#queue)
+  - [Stack](#stack)
+  - [Set](#set)
+- [Advanced Topics](#advanced-topics)
+  - [Connection Management](#connection-management)
+  - [Complex Types](#complex-types)
+  - [Best Practices](#best-practices)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
+✨ **Key Benefits**
 - Thread-safe data structures backed by Redis
 - Clean, Pythonic interface
 - Connection pooling and automatic retries
@@ -22,112 +46,78 @@ pip install redis-data-structures
 ```python
 from redis_data_structures import Queue, Stack, Set, ConnectionManager
 
-# Initialize connection manager
-connection_manager = ConnectionManager(
-    host='localhost',
-    port=6379,
-    db=0
-)
+# Initialize connection
+conn = ConnectionManager(host='localhost', port=6379, db=0)
 
-# Create data structures
-queue = Queue(connection_manager=connection_manager)
-stack = Stack(connection_manager=connection_manager)
-set_ds = Set(connection_manager=connection_manager)
-
-# Use them like regular Python data structures
+# Create and use data structures
+queue = Queue(connection_manager=conn)
 queue.push('tasks', {'id': 1, 'action': 'process'})
+
+stack = Stack(connection_manager=conn)
 stack.push('history', {'event': 'user_login'})
+
+set_ds = Set(connection_manager=conn)
 set_ds.add('users', {'id': 'user1', 'name': 'Alice'})
 ```
 
-## Available Data Structures
+## Data Structures
 
-- **Queue**: FIFO queue for job processing and message passing
-- **Stack**: LIFO stack for undo systems and execution contexts
-- **Set**: Unique collection for membership testing and deduplication
-- **HashMap**: Key-value store for caching and metadata
-- **PriorityQueue**: Priority-based queue for task scheduling
-- **RingBuffer**: Fixed-size circular buffer for logs and metrics
-- **Graph**: Directed graph for relationships and networks
-- **Trie**: Prefix tree for autocomplete and spell checking
-- **BloomFilter**: Probabilistic set for membership testing
-- **Deque**: Double-ended queue for sliding windows
+| Structure | Description | Use Case |
+|-----------|-------------|----------|
+| Queue | FIFO queue | Job processing, message passing |
+| Stack | LIFO stack | Undo systems, execution contexts |
+| Set | Unique collection | Membership testing, deduplication |
+| HashMap | Key-value store | Caching, metadata storage |
+| PriorityQueue | Priority-based queue | Task scheduling |
+| RingBuffer | Fixed-size circular buffer | Logs, metrics |
+| Graph | Directed graph | Relationships, networks |
+| Trie | Prefix tree | Autocomplete, spell checking |
+| BloomFilter | Probabilistic set | Membership testing |
+| Deque | Double-ended queue | Sliding windows |
 
-## Basic Usage
+## Usage Examples
 
-### Queue Example
+### Queue
 
 ```python
 from redis_data_structures import Queue, ConnectionManager
 
-# Initialize connection manager
-connection_manager = ConnectionManager(
-    host='localhost',
-    port=6379,
-    db=0
-)
+conn = ConnectionManager(host='localhost', port=6379)
+queue = Queue(connection_manager=conn)
 
-# Create queue
-queue = Queue(connection_manager=connection_manager)
-
-# Add items
+# Basic operations
 queue.push('tasks', {'id': 1, 'action': 'process'})
-queue.push('tasks', {'id': 2, 'action': 'analyze'})
-
-# Process items
-task = queue.pop('tasks')  # Returns first task
-size = queue.size('tasks')  # Get current size
+task = queue.pop('tasks')
+size = queue.size('tasks')
 ```
 
-### Stack Example
+### Stack
 
 ```python
-from redis_data_structures import Stack, ConnectionManager
+from redis_data_structures import Stack
 
-# Initialize connection manager
-connection_manager = ConnectionManager(
-    host='localhost',
-    port=6379,
-    db=0
-)
+stack = Stack(connection_manager=conn)
 
-# Create stack
-stack = Stack(connection_manager=connection_manager)
-
-# Add items
-stack.push('commands', {'action': 'create', 'data': {'id': 1}})
-stack.push('commands', {'action': 'update', 'data': {'id': 1}})
-
-# Process items
-command = stack.pop('commands')  # Returns last command
-size = stack.size('commands')    # Get current size
+# Basic operations
+stack.push('commands', {'action': 'create'})
+command = stack.pop('commands')
+size = stack.size('commands')
 ```
 
-### Set Example
+### Set
 
 ```python
-from redis_data_structures import Set, ConnectionManager
+from redis_data_structures import Set
 
-# Initialize connection manager
-connection_manager = ConnectionManager(
-    host='localhost',
-    port=6379,
-    db=0
-)
+set_ds = Set(connection_manager=conn)
 
-# Create set
-set_ds = Set(connection_manager=connection_manager)
-
-# Add items
-set_ds.add('users', {'id': 'user1', 'name': 'Alice'})
-set_ds.add('users', {'id': 'user2', 'name': 'Bob'})
-
-# Check membership
+# Basic operations
+set_ds.add('users', {'id': 'user1'})
 exists = set_ds.contains('users', {'id': 'user1'})
 members = set_ds.members('users')
 ```
 
-## Advanced Usage
+## Advanced Topics
 
 ### Connection Management
 
@@ -135,23 +125,15 @@ members = set_ds.members('users')
 from redis_data_structures import ConnectionManager
 from datetime import timedelta
 
-# Create connection manager with advanced features
-connection_manager = ConnectionManager(
+conn = ConnectionManager(
     host='redis.example.com',
     port=6380,
     max_connections=20,
     retry_max_attempts=5,
     circuit_breaker_threshold=10,
     circuit_breaker_timeout=timedelta(minutes=5),
-    ssl=True,
-    ssl_cert_reqs='required',
-    ssl_ca_certs='/path/to/ca.pem'
+    ssl=True
 )
-
-# Share connection manager across data structures
-queue = Queue(connection_manager=connection_manager)
-stack = Stack(connection_manager=connection_manager)
-set_ds = Set(connection_manager=connection_manager)
 ```
 
 ### Complex Types
@@ -159,53 +141,54 @@ set_ds = Set(connection_manager=connection_manager)
 ```python
 from datetime import datetime
 
-# Store any JSON-serializable Python object
+# Any JSON-serializable object
 user = {
     'id': 'user1',
     'name': 'Alice',
     'joined': datetime.now().isoformat(),
-    'metadata': {
-        'role': 'admin',
-        'preferences': {'theme': 'dark'}
-    }
+    'metadata': {'role': 'admin'}
 }
 
-# The object will be automatically serialized/deserialized
 set_ds.add('users', user)
-stored_user = set_ds.members('users')[0]
 ```
 
-## Best Practices
+### Best Practices
 
 1. **Connection Management**
-   - Use a shared connection manager for multiple data structures
-   - Configure appropriate connection pool size
-   - Enable automatic retries for transient failures
+   - Use a shared connection manager
+   - Configure appropriate pool size
+   - Enable automatic retries
 
 2. **Error Handling**
    ```python
    try:
        queue.push('tasks', task)
    except Exception as e:
-       logger.error(f"Error adding task: {e}")
-       # Handle error...
+       logger.error(f"Error: {e}")
    ```
 
-3. **Health Checks**
+3. **Health Monitoring**
    ```python
-   health = connection_manager.health_check()
+   health = conn.health_check()
    if health['status'] != 'healthy':
-       logger.warning(f"Connection issues: {health}")
+       logger.warning(f"Issues: {health}")
    ```
+
+## Documentation
+
+For detailed usage instructions and advanced features, please refer to:
+
+- 📖 [Usage Guide](docs/usage.md) - Comprehensive documentation covering all features
+- 🎯 [Examples](examples/) - Real-world examples and use cases
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests with `pytest`
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT License. See LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
