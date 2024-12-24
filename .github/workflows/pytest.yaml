@@ -40,8 +40,9 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv add pytest-cov pytest
-          make test
+          uv add pytest
+          uv add pytest-cov
+          uv run python -m pytest --cov=redis_data_structures tests/
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
