@@ -170,3 +170,21 @@ class HashMap(RedisDataStructure):
         except Exception:
             logger.exception("Error getting hash size")
             return 0
+
+    def clear(self, key: str) -> bool:
+        """Clear all fields from the hash map.
+
+        Args:
+            key (str): The Redis key for this hash map
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Use delete instead of del (del is a Python keyword)
+            # delete returns the number of keys that were removed
+            self.connection_manager.execute("delete", self._get_key(key))
+            return True
+        except Exception:
+            logger.exception("Error clearing hash")
+            return False

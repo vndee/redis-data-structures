@@ -98,7 +98,7 @@ class RedisDataStructure:
                 "deserialize": lambda x: tuple(self.deserialize_value(item) for item in x),
             },
             set: {
-                "serialize": lambda x: [self.serialize_value(item) for item in sorted(x)],
+                "serialize": lambda x: [self.serialize_value(item) for item in x],
                 "deserialize": lambda x: set(self.deserialize_value(item) for item in x),
             },
             bytes: {

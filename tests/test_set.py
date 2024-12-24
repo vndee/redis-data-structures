@@ -1,268 +1,264 @@
-import unittest
 from unittest.mock import patch
 
+import pytest
 from redis.exceptions import RedisError
 
 from redis_data_structures import Set
+from tests.test_base import User
 
 
-class TestSet(unittest.TestCase):
-    def setUp(self):
-        """Set up test cases."""
-        self.set_ds = Set()
-        self.test_key = "test_set"
-        self.set_ds.clear(self.test_key)
-
-    def tearDown(self):
-        """Clean up after tests."""
-        self.set_ds.clear(self.test_key)
-
-    def test_add_and_remove(self):
-        """Test basic add and remove operations."""
-        # Test adding items
-        self.assertTrue(self.set_ds.add(self.test_key, "item1"), "Failed to add item1")
-        self.assertTrue(self.set_ds.add(self.test_key, "item2"), "Failed to add item2")
-
-        # Test size after adding
-        self.assertEqual(self.set_ds.size(self.test_key), 2, "Set should have 2 items")
-
-        # Test removing item
-        self.assertTrue(self.set_ds.remove(self.test_key, "item1"), "Failed to remove item1")
-        self.assertEqual(self.set_ds.size(self.test_key), 1, "Set should have 1 item after removal")
-
-    def test_add_duplicate(self):
-        """Test adding duplicate items."""
-        # First addition should succeed
-        self.assertTrue(self.set_ds.add(self.test_key, "item1"), "Failed to add item1")
-        # Second addition should fail (duplicate)
-        self.assertFalse(
-            self.set_ds.add(self.test_key, "item1"),
-            "Adding duplicate should return False",
-        )
-        # Size should still be 1
-        self.assertEqual(
-            self.set_ds.size(self.test_key),
-            1,
-            "Set size should be 1 after adding duplicate",
-        )
-
-    def test_remove_nonexistent(self):
-        """Test removing non-existent item."""
-        self.assertFalse(
-            self.set_ds.remove(self.test_key, "nonexistent"),
-            "Removing non-existent item should return False",
-        )
-
-    def test_contains(self):
-        """Test contains operation."""
-        # Add an item
-        self.set_ds.add(self.test_key, "item1")
-
-        # Test membership
-        self.assertTrue(
-            self.set_ds.contains(self.test_key, "item1"),
-            "Set should contain added item",
-        )
-        self.assertFalse(
-            self.set_ds.contains(self.test_key, "nonexistent"),
-            "Set should not contain non-existent item",
-        )
-
-    def test_members(self):
-        """Test getting all members."""
-        items = {"item1", "item2", "item3"}
-        for item in items:
-            self.assertTrue(self.set_ds.add(self.test_key, item), f"Failed to add {item}")
-
-        # Test members retrieval
-        members = self.set_ds.members(self.test_key)
-        self.assertEqual(set(members), items, "Retrieved members should match added items")
-
-    def test_size(self):
-        """Test size operations."""
-        # Test empty set
-        self.assertEqual(self.set_ds.size(self.test_key), 0, "Empty set should have size 0")
-
-        # Test after adding one item
-        self.set_ds.add(self.test_key, "item1")
-        self.assertEqual(
-            self.set_ds.size(self.test_key),
-            1,
-            "Set should have size 1 after adding one item",
-        )
-
-        # Test after adding second item
-        self.set_ds.add(self.test_key, "item2")
-        self.assertEqual(
-            self.set_ds.size(self.test_key),
-            2,
-            "Set should have size 2 after adding second item",
-        )
-
-        # Test after adding duplicate
-        self.set_ds.add(self.test_key, "item1")
-        self.assertEqual(
-            self.set_ds.size(self.test_key),
-            2,
-            "Set size should not change after adding duplicate",
-        )
-
-    def test_clear(self):
-        """Test clear operation."""
-        # Add items
-        self.set_ds.add(self.test_key, "item1")
-        self.set_ds.add(self.test_key, "item2")
-
-        # Clear and verify
-        self.assertTrue(self.set_ds.clear(self.test_key))
-        self.assertEqual(self.set_ds.size(self.test_key), 0, "Set should be empty after clear")
-        self.assertEqual(
-            self.set_ds.members(self.test_key),
-            set(),
-            "Set members should be empty after clear",
-        )
-
-    def test_pop(self):
-        """Test pop operation."""
-        # Test pop on empty set
-        self.assertIsNone(self.set_ds.pop(self.test_key), "Pop on empty set should return None")
-
-        # Add items and test pop
-        items = {"item1", "item2", "item3"}
-        for item in items:
-            self.set_ds.add(self.test_key, item)
-
-        # Pop and verify
-        popped = self.set_ds.pop(self.test_key)
-        self.assertIn(popped, items, "Popped item should be one of the added items")
-        self.assertEqual(self.set_ds.size(self.test_key), 2, "Set size should decrease after pop")
-        self.assertFalse(
-            self.set_ds.contains(self.test_key, popped),
-            "Set should not contain popped item",
-        )
-
-    def test_complex_data_types(self):
-        """Test with complex data types."""
-        # Test with JSON data
-        test_json1 = {"key": "value", "nested": {"data": True}}
-        test_json2 = [1, 2, [3, 4]]
-
-        # Add complex items
-        self.assertTrue(self.set_ds.add(self.test_key, test_json1), "Failed to add first JSON item")
-        self.assertTrue(
-            self.set_ds.add(self.test_key, test_json2),
-            "Failed to add second JSON item",
-        )
-
-        # Test membership
-        self.assertTrue(
-            self.set_ds.contains(self.test_key, test_json1),
-            "Set should contain first JSON item",
-        )
-        self.assertTrue(
-            self.set_ds.contains(self.test_key, test_json2),
-            "Set should contain second JSON item",
-        )
-
-        # Test members retrieval
-        members = self.set_ds.members(self.test_key)
-        self.assertEqual(len(members), 2, "Set should contain exactly 2 items")
-        self.assertTrue(
-            test_json1 in members,
-            "Members should contain first JSON item",
-        )
-        self.assertTrue(
-            test_json2 in members,
-            "Members should contain second JSON item",
-        )
-
-    def test_serialization_edge_cases(self):
-        """Test with various data types."""
-        test_cases = [
-            None,
-            True,
-            False,
-            42,
-            3.14,
-            "",
-            "Hello",
-            [],
-            [1, 2, 3],
-            {},
-            {"a": 1, "b": 2},
-            {"nested": {"data": [1, 2, 3]}},
-        ]
-
-        for data in test_cases:
-            with self.subTest(data=data):
-                self.set_ds.clear(self.test_key)  # Clear before each test
-
-                # Test add
-                self.assertTrue(self.set_ds.add(self.test_key, data), f"Failed to add {data!r}")
-
-                # Test contains
-                self.assertTrue(
-                    self.set_ds.contains(self.test_key, data),
-                    f"Failed to find {data!r}",
-                )
-
-                # Test members
-                members = self.set_ds.members(self.test_key)
-                self.assertEqual(len(members), 1, f"Set should contain exactly 1 item for {data!r}")
-                self.assertTrue(
-                    data in members,
-                    f"Members should contain {data!r}",
-                )
-
-                # Test remove
-                self.assertTrue(
-                    self.set_ds.remove(self.test_key, data),
-                    f"Failed to remove {data!r}",
-                )
-
-    def test_add_error_handling(self):
-        """Test error handling in add method."""
-        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
-            self.assertFalse(
-                self.set_ds.add(self.test_key, "data"),
-                "Should return False on Redis error",
-            )
-
-    def test_remove_error_handling(self):
-        """Test error handling in remove method."""
-        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
-            self.assertFalse(
-                self.set_ds.remove(self.test_key, "data"),
-                "Should return False on Redis error",
-            )
-
-    def test_contains_error_handling(self):
-        """Test error handling in contains method."""
-        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
-            self.assertFalse(
-                self.set_ds.contains(self.test_key, "data"),
-                "Should return False on Redis error",
-            )
-
-    def test_members_error_handling(self):
-        """Test error handling in members method."""
-        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
-            self.assertEqual(
-                self.set_ds.members(self.test_key),
-                set(),
-                "Should return empty set on Redis error",
-            )
-
-    def test_size_error_handling(self):
-        """Test error handling in size method."""
-        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
-            self.assertEqual(self.set_ds.size(self.test_key), 0, "Should return 0 on Redis error")
-
-    def test_pop_error_handling(self):
-        """Test error handling in pop method."""
-        with patch.object(self.set_ds.connection_manager, "execute", side_effect=RedisError):
-            self.assertIsNone(self.set_ds.pop(self.test_key), "Should return None on Redis error")
+@pytest.fixture
+def set_ds(connection_manager) -> Set:
+    """Create a Set instance for testing."""
+    s = Set()
+    test_key = "test_set"
+    s.clear(test_key)
+    yield s
+    s.clear(test_key)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_add_and_remove(set_ds):
+    """Test basic add and remove operations."""
+    assert set_ds.add("test_set", "item1")
+    assert set_ds.add("test_set", "item2")
+
+    assert set_ds.size("test_set") == 2
+    assert set_ds.remove("test_set", "item1")
+    assert set_ds.size("test_set") == 1
+
+
+def test_add_duplicate(set_ds):
+    """Test adding duplicate items."""
+    assert set_ds.add("test_set", "item1")
+    assert not set_ds.add("test_set", "item1")  # Adding duplicate should fail
+    assert set_ds.size("test_set") == 1
+
+
+def test_remove_nonexistent(set_ds):
+    """Test removing non-existent item."""
+    assert not set_ds.remove("test_set", "nonexistent")
+
+
+def test_contains(set_ds):
+    """Test contains operation."""
+    set_ds.add("test_set", "item1")
+    assert set_ds.contains("test_set", "item1")
+    assert not set_ds.contains("test_set", "nonexistent")
+
+
+def test_members(set_ds):
+    """Test getting all members."""
+    items = {"item1", "item2", "item3"}
+    for item in items:
+        assert set_ds.add("test_set", item)
+
+    members = set_ds.members("test_set")
+    assert set(members) == items
+
+
+def test_size(set_ds):
+    """Test size operations."""
+    assert set_ds.size("test_set") == 0
+
+    set_ds.add("test_set", "item1")
+    assert set_ds.size("test_set") == 1
+
+    set_ds.add("test_set", "item2")
+    assert set_ds.size("test_set") == 2
+
+    set_ds.add("test_set", "item1")  # Adding duplicate
+    assert set_ds.size("test_set") == 2  # Size should not change
+
+
+def test_clear(set_ds):
+    """Test clear operation."""
+    set_ds.add("test_set", "item1")
+    set_ds.add("test_set", "item2")
+
+    assert set_ds.clear("test_set")
+    assert set_ds.size("test_set") == 0
+    assert set_ds.members("test_set") == set()
+
+
+def test_pop(set_ds):
+    """Test pop operation."""
+    assert set_ds.pop("test_set") is None  # Pop on empty set
+
+    set_ds.add("test_set", "item1")
+    set_ds.add("test_set", "item2")
+
+    popped = set_ds.pop("test_set")
+    assert popped in {"item1", "item2"}
+    assert set_ds.size("test_set") == 1
+
+
+def test_complex_data_types(set_ds):
+    """Test with complex data types."""
+    test_json1 = {"key": "value", "nested": {"data": True}}
+    test_json2 = [1, 2, [3, 4]]
+
+    assert set_ds.add("test_set", test_json1)
+    assert set_ds.add("test_set", test_json2)
+
+    assert set_ds.contains("test_set", test_json1)
+    assert set_ds.contains("test_set", test_json2)
+
+    members = set_ds.members("test_set")
+    assert len(members) == 2
+    assert test_json1 in members
+    assert test_json2 in members
+
+
+def test_serialization_edge_cases(set_ds):
+    """Test with various data types."""
+    test_cases = [
+        None,
+        True,
+        False,
+        42,
+        3.14,
+        "",
+        "Hello",
+        [],
+        [1, 2, 3],
+        {},
+        {"a": 1, "b": 2},
+        {"nested": {"data": [1, 2, 3]}},
+    ]
+
+    for data in test_cases:
+        set_ds.clear("test_set")  # Clear before each test
+        assert set_ds.add("test_set", data)
+        assert set_ds.contains("test_set", data)
+        assert set_ds.size("test_set") == 1
+        assert data in set_ds.members("test_set")
+
+
+def test_add_error_handling(set_ds):
+    """Test error handling in add method."""
+    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
+        assert not set_ds.add("test_set", "data")
+
+
+def test_remove_error_handling(set_ds):
+    """Test error handling in remove method."""
+    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
+        assert not set_ds.remove("test_set", "data")
+
+
+def test_contains_error_handling(set_ds):
+    """Test error handling in contains method."""
+    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
+        assert not set_ds.contains("test_set", "data")
+
+
+def test_members_error_handling(set_ds):
+    """Test error handling in members method."""
+    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
+        assert set_ds.members("test_set") == set()
+
+
+def test_size_error_handling(set_ds):
+    """Test error handling in size method."""
+    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
+        assert set_ds.size("test_set") == 0
+
+
+def test_pop_error_handling(set_ds):
+    """Test error handling in pop method."""
+    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
+        assert set_ds.pop("test_set") is None
+
+
+# Additional tests for increased coverage
+def test_add_and_remove_multiple_items(set_ds):
+    """Test adding and removing multiple items."""
+    items = ["item1", "item2", "item3"]
+    for item in items:
+        assert set_ds.add("test_set", item)
+
+    assert set_ds.size("test_set") == 3
+
+    for item in items:
+        assert set_ds.remove("test_set", item)
+
+    assert set_ds.size("test_set") == 0
+
+
+def test_clear_empty_set(set_ds):
+    """Test clearing an already empty set."""
+    assert set_ds.clear("test_set")  # Should not raise an error
+
+
+def test_contains_various_data_types(set_ds):
+    """Test checking membership for various data types."""
+    assert set_ds.add("test_set", 42)
+    assert set_ds.add("test_set", "string")
+    assert set_ds.add("test_set", (1, 2))
+    assert set_ds.add("test_set", {"key": "value"})
+
+    assert set_ds.contains("test_set", 42)
+    assert set_ds.contains("test_set", "string")
+    assert set_ds.contains("test_set", (1, 2))
+    assert set_ds.contains("test_set", {"key": "value"})
+
+
+def test_size_after_multiple_operations(set_ds):
+    """Test size after multiple add and remove operations."""
+    assert set_ds.size("test_set") == 0
+    set_ds.add("test_set", "item1")
+    set_ds.add("test_set", "item2")
+    assert set_ds.size("test_set") == 2
+    set_ds.remove("test_set", "item1")
+    assert set_ds.size("test_set") == 1
+    set_ds.remove("test_set", "item2")
+    assert set_ds.size("test_set") == 0
+
+
+def test_pop_from_single_item_set(set_ds):
+    """Test popping from a set with one item."""
+    set_ds.add("test_set", "item1")
+    popped = set_ds.pop("test_set")
+    assert popped == "item1"
+    assert set_ds.size("test_set") == 0
+
+
+def test_restore_type(set_ds):
+    """Test restore_type method."""
+    assert set_ds.restore_type({"_type": "int", "value": 42}) == 42
+    assert set_ds.restore_type({"_type": "float", "value": 3.14}) == 3.14
+    assert set_ds.restore_type({"_type": "str", "value": "hello"}) == "hello"
+    assert set_ds.restore_type({"_type": "bool", "value": True}) is True
+    assert set_ds.restore_type({"_type": "NoneType", "value": None}) is None
+
+    assert set_ds.restore_type({"_type": "list", "value": [1, 2, 3]}) == [1, 2, 3]
+    assert set_ds.restore_type({"_type": "dict", "value": {"a": 1, "b": 2}}) == {"a": 1, "b": 2}
+    assert set_ds.restore_type({"_type": "tuple", "value": (1, 2, 3)}) == (1, 2, 3)
+
+    assert User.from_dict(
+        set_ds.restore_type({"_type": "User", "value": {"name": "Alice", "age": 30}}),
+    ) == User(name="Alice", age=30)
+    assert set_ds.restore_type(
+        {
+            "_type": "tuple",
+            "value": [{"_type": "int", "value": 1}, {"_type": "str", "value": "two"}],
+        },
+    ) == (1, "two")
+    assert set_ds.restore_type(
+        {
+            "_type": "set",
+            "value": [{"_type": "str", "value": "item1"}, {"_type": "str", "value": "item2"}],
+        },
+    ) == {"item1", "item2"}
+
+
+def test_make_hashable(set_ds):
+    """Test make_hashable method."""
+    assert set_ds.make_hashable({"a": 1, "b": 2}) == (("a", 1), ("b", 2))
+    assert set_ds.make_hashable([1, 2, 3]) == (1, 2, 3)
+    assert set_ds.make_hashable((1, 2, 3)) == (1, 2, 3)
+    assert set_ds.make_hashable(42) == 42
+    assert set_ds.make_hashable(3.14) == 3.14
+    assert set_ds.make_hashable("hello") == "hello"
+    assert set_ds.make_hashable(True) is True
+    assert set_ds.make_hashable(None) is None

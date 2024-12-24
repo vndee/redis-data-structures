@@ -78,9 +78,9 @@ def get_redis_metrics(
             "total_commands_processed": str(info.get("total_commands_processed", "unknown")),
         }
 
-    except Exception as e:
-        logger.exception(f"Failed to get Redis metrics: {e}")
-        return {"error": str(e)}
+    except Exception:
+        logger.exception("Failed to get Redis metrics")
+        return {"error": "Failed to get Redis metrics"}
     finally:
         with suppress(Exception):
             client.close()

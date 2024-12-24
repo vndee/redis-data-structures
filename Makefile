@@ -1,4 +1,4 @@
-.PHONY: setup test clean build publish install-dev format check lint
+.PHONY: setup test clean build publish install-dev format check lint test-unit test-integration test-all
 
 # Python and package management settings
 PYTHON := python3
@@ -9,6 +9,7 @@ PACKAGE_NAME := redis-data-structures
 # Test settings
 TEST_PATH := tests
 COVERAGE_PATH := htmlcov
+PYTEST_ARGS := -v --tb=short
 
 setup:  ## Install dependencies
 	$(UV) venv
@@ -20,15 +21,35 @@ setup-dev:  ## Install development dependencies
 	$(PIP) install pre-commit
 	pre-commit install
 
-test:  ## Run tests
-	$(PYTHON) -m unittest discover $(TEST_PATH)
+test:  ## Run all tests with coverage
+	$(PYTHON) -m pytest $(PYTEST_ARGS) \
+		--cov=$(PACKAGE_NAME) \
+		--cov-report=term-missing \
+		--cov-report=html \
+		$(TEST_PATH)
 
-test-coverage:  ## Run tests with coverage report
-	$(PIP) install coverage
-	coverage run -m unittest discover $(TEST_PATH)
-	coverage report
-	coverage html
+test-unit:  ## Run unit tests only
+	$(PYTHON) -m pytest $(PYTEST_ARGS) -m "not integration and not slow" $(TEST_PATH)
+
+test-integration:  ## Run integration tests only
+	$(PYTHON) -m pytest $(PYTEST_ARGS) -m "integration" $(TEST_PATH)
+
+test-fast:  ## Run all tests except slow ones
+	$(PYTHON) -m pytest $(PYTEST_ARGS) -m "not slow" $(TEST_PATH)
+
+test-coverage:  ## Run tests with detailed coverage report
+	$(PYTHON) -m pytest $(PYTEST_ARGS) \
+		--cov=$(PACKAGE_NAME) \
+		--cov-report=term-missing \
+		--cov-report=html \
+		--cov-report=xml \
+		--cov-fail-under=90 \
+		$(TEST_PATH)
 	@echo "HTML coverage report generated in $(COVERAGE_PATH)/"
+
+test-watch:  ## Run tests in watch mode
+	$(PIP) install pytest-watch
+	ptw $(TEST_PATH) -- $(PYTEST_ARGS)
 
 clean:  ## Clean build artifacts
 	rm -rf build/

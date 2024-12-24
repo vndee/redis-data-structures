@@ -20,7 +20,7 @@ class Set(RedisDataStructure):
     while maintaining the performance characteristics of Redis sets.
     """
 
-    def _restore_type(self, value: Any) -> Any:
+    def restore_type(self, value: Any) -> Any:
         """Restore original type from deserialized value."""
         if not isinstance(value, dict) or "_type" not in value:
             return value
@@ -33,26 +33,26 @@ class Set(RedisDataStructure):
         if type_name in ("int", "float", "str", "bool"):
             return data
         if type_name == "list":
-            return [self._restore_type(item) for item in data]
+            return [self.restore_type(item) for item in data]
         if type_name == "dict":
-            return {k: self._restore_type(v) for k, v in data.items()}
+            return {k: self.restore_type(v) for k, v in data.items()}
         if type_name == "tuple":
-            return tuple(self._restore_type(item) for item in data)
+            return tuple(self.restore_type(item) for item in data)
         if type_name == "set":
-            return {self._restore_type(item) for item in data}
+            return {self.restore_type(item) for item in data}
 
         return data
 
-    def _make_hashable(self, value: Any) -> Any:
+    def make_hashable(self, value: Any) -> Any:
         """Convert value to a hashable type."""
         if isinstance(value, (int, float, str, bool, tuple)) or value is None:
             return value
         if isinstance(value, list):
-            return tuple(self._make_hashable(item) for item in value)
+            return tuple(self.make_hashable(item) for item in value)
         if isinstance(value, dict):
-            return tuple(sorted((k, self._make_hashable(v)) for k, v in value.items()))
+            return tuple(sorted((k, self.make_hashable(v)) for k, v in value.items()))
         if isinstance(value, set):
-            return tuple(sorted(self._make_hashable(item) for item in value))
+            return tuple(sorted(self.make_hashable(item) for item in value))
         return str(value)
 
     def members(self, key: str) -> PySet[Any]:
@@ -78,7 +78,7 @@ class Set(RedisDataStructure):
                     if isinstance(item, bytes):
                         item = item.decode("utf-8")
                     deserialized = self.deserialize(item)
-                    restored = self._restore_type(deserialized)
+                    restored = self.restore_type(deserialized)
                     result.append(restored)
                 except Exception:
                     logger.exception("Error processing item")
@@ -106,7 +106,7 @@ class Set(RedisDataStructure):
                 if isinstance(data, bytes):
                     data = data.decode("utf-8")
                 deserialized = self.deserialize(data)
-                return self._restore_type(deserialized)
+                return self.restore_type(deserialized)
             return None
         except Exception:
             logger.exception("Error popping from set")

@@ -39,6 +39,8 @@ dev = [
     "mmh3>=5.0.1",
     "pre-commit>=2.21.0",
     "pydantic>=2.5.3",
+    "pytest-cov>=5.0.0",
+    "pytest>=8.3.4",
 ]
 
 [tool.black]
