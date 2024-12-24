@@ -40,8 +40,8 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv install pytest-cov
-          pytest --cov=your_package_name  # Replace with your package name
+          uv add pytest-cov
+          pytest --cov=redis_data_structures
 
       - name: Upload coverage to Codecov
         env:
