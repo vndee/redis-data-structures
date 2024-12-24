@@ -151,6 +151,7 @@ user = {
 
 set_ds.add('users', user)
 ```
+See [type preservation](docs/type_preservation.md) for more information.
 
 ### Best Practices
 
