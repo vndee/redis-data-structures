@@ -5,7 +5,7 @@ A Redis-backed Bloom filter implementation that provides probabilistic set membe
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `add` | $O(k)$ | $O(k)$ | Add an item to the filter | `SETBIT` (k times) |
 | `contains` | $O(k)$ | $O(k)$ | Check if an item might exist in the filter | `GETBIT` (k times) |
 | `clear` | $O(1)$ | $O(1)$ | Remove all items from the filter | `DELETE` |

@@ -5,7 +5,7 @@ A Redis-backed ring buffer implementation that maintains a fixed-size circular b
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `push` | $O(1)$ | $O(1)$ | Add an item (overwrites oldest if full) | `RPUSH`, `LPOP` |
 | `get_all` | $O(n)$ | $O(n)$ | Get all items in order (oldest to newest) | `LRANGE` |
 | `get_latest` | $O(n)$ | $O(n)$ | Get n most recent items | `LRANGE` |

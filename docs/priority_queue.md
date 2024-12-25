@@ -5,7 +5,7 @@ A Redis-backed priority queue implementation that maintains elements in sorted o
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `push` | $O(\log n)$ | $O(\log n)$ | Add an item with a priority | `ZADD` |
 | `pop` | $O(\log n)$ | $O(\log n)$ | Remove and return the highest priority item | `ZRANGE`, `ZREM` |
 | `peek` | $O(1)$ | $O(1)$ | Return the highest priority item without removing it | `ZRANGE` |

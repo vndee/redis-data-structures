@@ -5,7 +5,7 @@ A Redis-backed LRU (Least Recently Used) cache implementation that maintains a f
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `put` | $O(1)$ | $O(1)$ | Add or update an item | `LPUSH`, `HSET` |
 | `get` | $O(1)$ | $O(1)$ | Get an item and update access time | `HGET`, `LPUSH` |
 | `peek` | $O(1)$ | $O(1)$ | Get item without updating access time | `HGET` |

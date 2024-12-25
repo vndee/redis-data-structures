@@ -5,7 +5,7 @@ A Redis-backed hash map implementation that provides persistent key-value storag
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `set` | $O(1)$ | $O(n)$ | Set a field's value | `HSET` |
 | `get` | $O(1)$ | $O(n)$ | Get a field's value | `HGET` |
 | `delete` | $O(1)$ | $O(n)$ | Delete a field | `HDEL` |

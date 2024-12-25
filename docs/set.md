@@ -5,7 +5,7 @@ A Redis-backed set implementation that maintains a collection of unique elements
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `add` | $O(1)$ | $O(n)$ | Add an item to the set | `SADD` |
 | `remove` | $O(1)$ | $O(n)$ | Remove an item from the set | `SREM` |
 | `contains` | $O(1)$ | $O(n)$ | Check if an item exists in the set | `SISMEMBER` |

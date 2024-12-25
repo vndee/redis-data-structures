@@ -5,7 +5,7 @@ A Redis-backed double-ended queue implementation that allows efficient insertion
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `push_front` | $O(1)$ | $O(1)$ | Add an item to the front | `LPUSH` |
 | `push_back` | $O(1)$ | $O(1)$ | Add an item to the back | `RPUSH` |
 | `pop_front` | $O(1)$ | $O(1)$ | Remove and return the front item | `LPOP` |

@@ -5,7 +5,7 @@ A Redis-backed LIFO (Last-In-First-Out) stack implementation. Perfect for managi
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `push` | $O(1)$ | $O(1)$ | Add an item to the top of the stack | `LPUSH` |
 | `pop` | $O(1)$ | $O(1)$ | Remove and return the top item | `LPOP` |
 | `peek` | $O(1)$ | $O(1)$ | Return the top item without removing it | `LINDEX` |

@@ -5,7 +5,7 @@ A Redis-backed trie (prefix tree) implementation that provides efficient string 
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `insert` | $O(m)$ | $O(m)$ | Insert a word into trie | `HSET` |
 | `search` | $O(m)$ | $O(m)$ | Check if word exists | `HEXISTS` |
 | `starts_with` | $O(p + n)$ | $O(p + n)$ | Find all words with prefix | `HKEYS` |

@@ -5,7 +5,7 @@ A Redis-backed directed graph implementation using adjacency lists. Vertices can
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |
-| --- | --- | --- | --- | --- |
+| --- | :---: | :---: | --- | --- |
 | `add_vertex` | $O(1)$ | $O(1)$ | Add a vertex with optional data | `HSET` |
 | `add_edge` | $O(1)$ | $O(1)$ | Add a weighted edge between vertices | `HSET` |
 | `remove_vertex` | $O(n)$ | $O(n)$ | Remove vertex and all connected edges | `DELETE`, `HDEL` |
