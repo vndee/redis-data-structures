@@ -19,8 +19,8 @@ The following Python types are automatically preserved:
    - `int`, `float`, `str`, `bool`, `NoneType`
    - Automatically preserved without special handling
    ```python
-   hash_map.set("my_hash", "key", 42)  # int
-   hash_map.set("my_hash", "key2", True)  # bool
+   hash_map.set("key", 42)  # int
+   hash_map.set("key2", True)  # bool
    ```
 
 2. **Tuples**
@@ -28,8 +28,8 @@ The following Python types are automatically preserved:
    - Nested tuples are also preserved
    ```python
    data = (1, "two", [3, 4])
-   hash_map.set("my_hash", "tuple", data)
-   result = hash_map.get("my_hash", "tuple")
+   hash_map.set("tuple", data)
+   result = hash_map.get("tuple")
    assert isinstance(result, tuple)
    ```
 
@@ -38,8 +38,8 @@ The following Python types are automatically preserved:
    - Elements are sorted during serialization for consistency
    ```python
    data = {1, 2, 3}
-   hash_map.set("my_hash", "set", data)
-   result = hash_map.get("my_hash", "set")
+   hash_map.set("set", data)
+   result = hash_map.get("set")
    assert isinstance(result, set)
    ```
 
@@ -47,8 +47,8 @@ The following Python types are automatically preserved:
    - Preserved using hexadecimal encoding
    ```python
    data = b"binary data"
-   hash_map.set("my_hash", "bytes", data)
-   result = hash_map.get("my_hash", "bytes")
+   hash_map.set("bytes", data)
+   result = hash_map.get("bytes")
    assert isinstance(result, bytes)
    ```
 
@@ -58,8 +58,8 @@ The following Python types are automatically preserved:
    ```python
    from datetime import datetime, timezone
    data = datetime.now(timezone.utc)
-   hash_map.set("my_hash", "date", data)
-   result = hash_map.get("my_hash", "date")
+   hash_map.set("date", data)
+   result = hash_map.get("date")
    assert isinstance(result, datetime)
    ```
 
@@ -72,7 +72,7 @@ The following Python types are automatically preserved:
        "set": {4, 5, 6},
        "list": [7, 8, (9, 10)]
    }
-   hash_map.set("my_hash", "nested", data)
+   hash_map.set("nested", data)
    ```
 
 ## Custom Type Support
@@ -140,8 +140,8 @@ Both standard and Pydantic models work seamlessly with Redis structures:
 ```python
 # Standard class
 user = User("John Doe", datetime.now(timezone.utc))
-hash_map.set("users", "standard", user)
-standard_user = hash_map.get("users", "standard")
+hash_map.set("standard", user)
+standard_user = hash_map.get("standard")
 
 # Pydantic model
 pydantic_user = UserModel(
@@ -156,8 +156,8 @@ pydantic_user = UserModel(
     ),
     tags={"developer", "python"}
 )
-hash_map.set("users", "pydantic", pydantic_user)
-retrieved_user = hash_map.get("users", "pydantic")
+hash_map.set("pydantic", pydantic_user)
+retrieved_user = hash_map.get("pydantic")
 ```
 
 ## Implementation Details

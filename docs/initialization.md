@@ -99,7 +99,7 @@ from redis_data_structures import ConnectionManager, Queue, Config
 from datetime import timedelta
 
 # If environment variables are set, you can skip the config parameter
-queue = Queue()
+queue = Queue("tasks")
 
 
 # Initialize with configuration
@@ -118,7 +118,7 @@ connection_manager = ConnectionManager(
     ssl_cert_reqs='required',
     ssl_ca_certs='/path/to/ca.pem'
 )
-queue = Queue(connection_manager=connection_manager)
+queue = Queue("tasks", connection_manager=connection_manager)
 
 # Check connection health
 health = connection_manager.health_check()
@@ -150,6 +150,6 @@ from redis_data_structures import ConnectionManager
 conn = ConnectionManager(host='localhost', port=6379, db=0)
 
 # Use the connection manager for multiple data structures
-queue = Queue(connection_manager=conn)
-stack = Stack(connection_manager=conn)
+queue = Queue("tasks", connection_manager=conn)
+stack = Stack("commands", connection_manager=conn)
 ```
