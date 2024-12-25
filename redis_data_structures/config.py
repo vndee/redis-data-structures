@@ -31,11 +31,11 @@ class RedisConfig:
     ssl_cert_reqs: str = "required"
     ssl_ca_certs: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate configuration after initialization."""
         self.validate()
 
-    def validate(self):
+    def validate(self) -> None:
         """Validate configuration values."""
         if self.port < 1 or self.port > 65535:
             raise ConfigurationError(f"Invalid port number: {self.port}")
@@ -128,7 +128,7 @@ class Config:
             },
         }
 
-    def validate(self):
+    def validate(self) -> None:
         """Validate entire configuration."""
         self.redis.validate()
 

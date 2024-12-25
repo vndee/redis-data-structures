@@ -70,6 +70,7 @@ exclude = [
     "examples/.*",
     "tests/.*",
 ]
+disable_error_code = ["import-untyped"]
 
 [tool.ruff]
 line-length = 100

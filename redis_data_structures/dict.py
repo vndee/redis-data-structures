@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Iterator, List, Tuple
+from typing import Dict as DictType
 
 from .base import RedisDataStructure
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 class Dict(RedisDataStructure):
     """A python-like dictionary data structure for Redis with separate redis key if you don't want to use HashMap with `HSET` and `HGET` commands."""  # noqa: E501
 
-    def __init__(self, key: str, *args, **kwargs):
+    def __init__(self, key: str, *args: Any, **kwargs: Any) -> None:
         """Initialize the Dict data structure.
 
         Args:
@@ -20,7 +21,7 @@ class Dict(RedisDataStructure):
         super().__init__(key, *args, **kwargs)
         self.key = key
 
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any) -> bool:
         """Set a key-value pair in the dictionary.
 
         Args:
@@ -57,7 +58,7 @@ class Dict(RedisDataStructure):
             bool: True if the key-value pair was deleted successfully, False otherwise.
         """
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
-        return self.connection_manager.execute("delete", actual_key)
+        return bool(self.connection_manager.execute("delete", actual_key))
 
     def keys(self) -> List[str]:
         """Get all keys in the dictionary.
@@ -89,15 +90,16 @@ class Dict(RedisDataStructure):
         """
         return [(key.split(":")[-1], self.get(key)) for key in self.keys()]
 
-    def clear(self) -> None:
+    def clear(self) -> bool:
         """Clear the dictionary."""
         for key in self.keys():
             self.delete(key)
+        return True
 
     def exists(self, key: str) -> bool:
         """Check if a key exists in the dictionary."""
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
-        return self.connection_manager.execute("exists", actual_key)
+        return bool(self.connection_manager.execute("exists", actual_key))
 
     def size(self) -> int:
         """Get the number of key-value pairs in the dictionary."""
@@ -157,10 +159,13 @@ class Dict(RedisDataStructure):
         """Return a string representation of the dictionary."""
         return str(self.to_dict())
 
-    def __eq__(self, other: "Dict") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check if the dictionary is equal to another dictionary."""
+        if not isinstance(other, Dict):
+            return False
+
         return self.to_dict() == other.to_dict()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> DictType[str, Any]:
         """Return a dictionary representation of the dictionary."""
         return {key: self.get(key) for key in self.keys()}

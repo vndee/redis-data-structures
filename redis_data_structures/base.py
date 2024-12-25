@@ -12,7 +12,7 @@ try:
 
     PYDANTIC_AVAILABLE = True
 except ImportError:
-    BaseModel = object
+    BaseModel = object  # type: ignore[assignment, misc]
     PYDANTIC_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ class RedisDataStructure:
         key: str,
         connection_manager: Optional[ConnectionManager] = None,
         config: Optional[Config] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         """Initialize Redis data structure."""
         # Initialize configuration
@@ -132,7 +132,7 @@ class RedisDataStructure:
             if isinstance(val, type_class):
                 return {
                     "_type": type_class.__name__,
-                    "value": handlers["serialize"](val),
+                    "value": handlers["serialize"](val),  # type: ignore[index]
                 }
 
         # Handle lists
@@ -177,7 +177,7 @@ class RedisDataStructure:
             return val
 
         type_name = val["_type"]
-        data = val.get("value")
+        data: Any = val.get("value")
         module_name = val.get("module")
 
         # Handle None
@@ -191,7 +191,7 @@ class RedisDataStructure:
         # Handle registered types
         for type_class, handlers in self.type_handlers.items():
             if type_class.__name__ == type_name:
-                return handlers["deserialize"](data)
+                return handlers["deserialize"](data)  # type: ignore[index]
 
         # Handle collections
         if type_name == "list":
@@ -246,7 +246,8 @@ class RedisDataStructure:
             ):
                 import zlib
 
-                result = zlib.compress(result.encode())
+                result = zlib.compress(result.encode())  # type: ignore[assignment]
+                result = result.hex()  # type: ignore[attr-defined]
 
             return result
         except Exception:
@@ -257,10 +258,11 @@ class RedisDataStructure:
         """Deserialize string to value."""
         try:
             # Check if data is compressed
-            if self.config.data_structures.compression_enabled and isinstance(data, bytes):
+            if self.config.data_structures.compression_enabled and len(data) % 2 == 0:
                 import zlib
 
-                data = zlib.decompress(data).decode()
+                data = bytes.fromhex(data)  # type: ignore[assignment]
+                data = zlib.decompress(data).decode()  # type: ignore[arg-type]
 
             if not data:
                 return None
@@ -270,7 +272,7 @@ class RedisDataStructure:
         except Exception as e:
             raise SerializationError(f"Failed to deserialize data: {e}") from None
 
-    def set_ttl(self, key: str, ttl: Union[int, timedelta]) -> bool:
+    def set_ttl(self, key: str, ttl: Union[int, timedelta, datetime]) -> bool:
         """Set Time To Live (TTL) for a key."""
         try:
             if isinstance(ttl, timedelta):
@@ -289,7 +291,7 @@ class RedisDataStructure:
             logger.exception("Error setting TTL")
             return False
 
-    def get_ttl(self, key: str) -> Optional[int]:
+    def get_ttl(self, key: str) -> Any:
         """Get remaining Time To Live (TTL) for a key."""
         try:
             return self.connection_manager.execute("ttl", key)
@@ -313,6 +315,6 @@ class RedisDataStructure:
             logger.exception("Error clearing data structure")
             return False
 
-    def close(self):
+    def close(self) -> None:
         """Close Redis connection."""
         self.connection_manager.close()

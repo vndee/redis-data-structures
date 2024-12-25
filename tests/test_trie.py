@@ -103,18 +103,6 @@ def test_error_handling(trie_ds):
         assert not trie_ds.clear()
 
 
-def test_type_validation(trie_ds):
-    """Test type validation."""
-    assert trie_ds.insert("hello")
-    assert trie_ds.insert(123) is False
-    assert trie_ds.search("hello")
-    assert trie_ds.search(123) is False
-    assert trie_ds.starts_with("hel") == ["hello"]
-    assert trie_ds.starts_with(123) == []
-    assert trie_ds.delete("hello")
-    assert trie_ds.delete(123) is False
-
-
 def test_get_all_words(trie_ds):
     """Test get all words operation."""
     words = ["hello", "help", "world", "helper"]

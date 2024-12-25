@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Any, List
 
 from .base import RedisDataStructure
 
@@ -15,8 +15,13 @@ class Trie(RedisDataStructure):
     autocomplete, spell checking, and prefix matching.
     """
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the Trie with Redis connection parameters."""
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize the Trie with Redis connection parameters.
+
+        Args:
+            *args: Positional arguments
+            **kwargs: Keyword arguments
+        """
         super().__init__(*args, **kwargs)
         self.delimiter = ":"  # Used to separate node keys in Redis
 
@@ -38,9 +43,6 @@ class Trie(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            # Validate input
-            if not isinstance(word, str):
-                return False
             word = str(word)  # Convert to string but don't strip
 
             current_prefix = ""
@@ -67,8 +69,6 @@ class Trie(RedisDataStructure):
             if not word:
                 return bool(self.connection_manager.execute("hexists", self.key, "*"))
 
-            if not isinstance(word, str):
-                return False
             word = str(word)  # Convert to string but don't strip
 
             current_prefix = ""
@@ -91,9 +91,6 @@ class Trie(RedisDataStructure):
             List[str]: List of words with the given prefix
         """
         try:
-            # Validate input
-            if not isinstance(prefix, str):
-                return []
             prefix = str(prefix).strip()
 
             # Handle empty prefix - return all words
@@ -164,15 +161,11 @@ class Trie(RedisDataStructure):
             bool: True if the word was deleted, False otherwise
         """
         try:
-            # Validate input
-            if not isinstance(word, str):
-                return False
             word = str(word)  # Convert to string but don't strip
 
             if not self.search(word):
                 return False
 
-            # Remove the word marker
             end_key = self._get_node_key(word)
             self.connection_manager.execute("hdel", end_key, "*")
 

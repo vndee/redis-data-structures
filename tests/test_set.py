@@ -76,7 +76,7 @@ def test_clear(set_ds):
 
     assert set_ds.clear()
     assert set_ds.size() == 0
-    assert set_ds.members() == set()
+    assert set_ds.members() == []
 
 
 def test_pop(set_ds):

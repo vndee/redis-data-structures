@@ -1,6 +1,6 @@
 import logging
 import math
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from .base import RedisDataStructure
 
@@ -18,7 +18,7 @@ class BloomFilter(RedisDataStructure):
     _mmh3: Optional[Any] = None  # Cache for mmh3 module
 
     @classmethod
-    def _get_mmh3(cls):
+    def _get_mmh3(cls) -> Any:
         """Lazily import mmh3 module when needed."""
         if cls._mmh3 is None:
             try:
@@ -36,14 +36,14 @@ class BloomFilter(RedisDataStructure):
         key: str,
         expected_elements: int = 10000,
         false_positive_rate: float = 0.01,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Initialize Bloom Filter.
 
         Args:
-            key: The key for the Bloom filter
-            expected_elements: Expected number of elements to be added
-            false_positive_rate: Desired false positive probability
+            key (str): The key for the Bloom filter
+            expected_elements (int): Expected number of elements to be added
+            false_positive_rate (float): Desired false positive probability
             **kwargs: Additional Redis connection parameters
         """
         # Check for mmh3 availability on initialization
@@ -79,7 +79,7 @@ class BloomFilter(RedisDataStructure):
         """
         return max(1, int(m / n * math.log(2)))
 
-    def get_hash_values(self, item: Any) -> list[int]:
+    def get_hash_values(self, item: Any) -> List[int]:
         """Generate hash values for an item.
 
         Args:

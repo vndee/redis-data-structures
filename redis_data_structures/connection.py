@@ -31,8 +31,8 @@ class ConnectionManager:
         ssl: bool = False,
         ssl_cert_reqs: Optional[str] = None,
         ssl_ca_certs: Optional[str] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Initialize the connection manager.
 
         Args:
@@ -103,7 +103,7 @@ class ConnectionManager:
             f"Retrying Redis connection after {details['wait']:.2f}s",
         ),
     )
-    def execute(self, func_name: str, *args, **kwargs) -> Any:
+    def execute(self, func_name: str, *args: Any, **kwargs: Any) -> Any:
         """Execute a Redis command with automatic retries and circuit breaking.
 
         Args:
@@ -146,7 +146,7 @@ class ConnectionManager:
             self.client.ping()
             latency = (time.time() - start_time) * 1000  # Convert to milliseconds
 
-            info = self.client.info()
+            info: Any = self.client.info()
             pool_info = {
                 "max_connections": self._pool.max_connections,
                 "current_connections": len(self._pool._in_use_connections),  # noqa: SLF001
@@ -176,11 +176,11 @@ class ConnectionManager:
                 },
             }
 
-    def close(self):
+    def close(self) -> None:
         """Close all connections in the pool."""
         if self._client:
             self._client.close()
             self._client = None
         if self._pool:
             self._pool.disconnect()
-            self._pool = None
+            self._pool = None  # type: ignore[assignment]

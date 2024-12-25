@@ -109,7 +109,7 @@ class TestRedisDataStructure:
         # Create a large string that will trigger compression
         large_data = "x" * 1000
         serialized = rds.serialize(large_data)
-        assert isinstance(serialized, bytes)  # Compressed data should be bytes
+        assert isinstance(serialized, str)  # Compressed data should be bytes
 
         # Verify we can deserialize it back
         deserialized = rds.deserialize(serialized)

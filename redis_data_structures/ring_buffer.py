@@ -17,7 +17,7 @@ class RingBuffer(RedisDataStructure):
     the current write position.
     """
 
-    def __init__(self, key: str, capacity: int, **kwargs):
+    def __init__(self, key: str, capacity: int, **kwargs: Any) -> None:
         """Initialize the ring buffer.
 
         Args:

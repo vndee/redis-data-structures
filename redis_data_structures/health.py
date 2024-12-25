@@ -2,7 +2,7 @@
 
 import time
 from contextlib import suppress
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import redis
 
@@ -68,7 +68,7 @@ def get_redis_metrics(
     try:
         client = redis.Redis(host=host, port=port, password=password)
 
-        info = client.info()
+        info: Any = client.info()
 
         return {
             "version": info.get("redis_version", "unknown"),

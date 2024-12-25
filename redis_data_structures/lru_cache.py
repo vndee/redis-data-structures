@@ -13,13 +13,16 @@ class LRUCache(RedisDataStructure):
     recently used items are automatically removed when the cache reaches its capacity.
     """
 
-    def __init__(self, key: str, capacity: int = 1000, **kwargs):
+    def __init__(self, key: str, capacity: int = 1000, **kwargs: Any) -> None:
         """Initialize LRU cache.
 
         Args:
             key (str): The key for the LRU cache
             capacity (int): Maximum number of items in the cache
             **kwargs: Additional Redis connection parameters
+
+        Raises:
+            ValueError: If capacity is less than 1
         """
         super().__init__(key, **kwargs)
         self.capacity = max(1, capacity)  # Ensure minimum capacity of 1

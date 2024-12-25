@@ -1,6 +1,5 @@
 import logging
-from typing import Any, Optional
-from typing import Set as PySet
+from typing import Any, List, Optional
 
 from .base import RedisDataStructure
 
@@ -26,7 +25,7 @@ class Set(RedisDataStructure):
             return value
 
         type_name = value.get("_type")
-        data = value.get("value")
+        data: Any = value.get("value")
 
         if type_name == "NoneType":
             return None
@@ -55,7 +54,7 @@ class Set(RedisDataStructure):
             return tuple(sorted(self.make_hashable(item) for item in value))
         return str(value)
 
-    def members(self) -> PySet[Any]:
+    def members(self) -> List[Any]:
         """Get all members of the set.
 
         This operation is O(N) where N is the size of the set.
@@ -67,7 +66,7 @@ class Set(RedisDataStructure):
         try:
             items = self.connection_manager.execute("smembers", self.key)
             if not items:
-                return set()
+                return []
 
             result = []
             for item in items:
