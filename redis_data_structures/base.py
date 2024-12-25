@@ -276,10 +276,11 @@ class RedisDataStructure:
             if isinstance(ttl, timedelta):
                 ttl = int(ttl.total_seconds())
             elif isinstance(ttl, datetime):
-                # Ensure ttl is timezone-aware
                 if ttl.tzinfo is None:
                     ttl = ttl.replace(tzinfo=timezone.utc)  # Make it timezone-aware
-                ttl = int((ttl - datetime.now(timezone.utc)).total_seconds())
+                    ttl = int((ttl - datetime.now(timezone.utc)).total_seconds())
+                else:
+                    ttl = int((ttl - datetime.now(ttl.tzinfo)).total_seconds())
             else:
                 ttl = int(ttl)
 
