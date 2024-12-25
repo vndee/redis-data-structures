@@ -139,3 +139,16 @@ print(f"Circuit Breaker: {health['circuit_breaker']}")  # Shows failure count, t
 # - Configurable retry attempts and timeouts
 # - JSON serialization for complex types
 # - Compression support for large values
+
+### Reusable Connection Manager
+
+```python
+from redis_data_structures import ConnectionManager
+
+# Create a reusable connection manager
+conn = ConnectionManager(host='localhost', port=6379, db=0)
+
+# Use the connection manager for multiple data structures
+queue = Queue(connection_manager=conn)
+stack = Stack(connection_manager=conn)
+```
