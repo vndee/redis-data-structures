@@ -7,7 +7,7 @@
 
 A Python library providing high-level, Redis-backed data structures with a clean, Pythonic interface. Perfect for distributed systems, microservices, and any application requiring persistent, thread-safe data structures, especially in environments where multiple workers share the same data structure.
 
-📚 **[Detailed Usage Guide](docs/usage.md)** | 💡 **[Examples](examples/)**
+💡 **[Examples](examples/)**
 
 
 ### 📋 Table of Contents
@@ -39,6 +39,7 @@ A Python library providing high-level, Redis-backed data structures with a clean
 pip install redis-data-structures
 ```
 
+> **Note:** Ensure that Redis is running for the library to function properly.
 
 ### 🚀 Quick Start
 
@@ -80,16 +81,16 @@ set_ds = Set()
 
 | Structure       | Description                | Use Case                          |
 |------------------|----------------------------|-----------------------------------|
-| Queue            | FIFO queue                 | Job processing, message passing    |
-| Stack            | LIFO stack                 | Undo systems, execution contexts   |
-| Set              | Unique collection          | Membership testing, deduplication  |
-| HashMap          | Key-value store            | Caching, metadata storage          |
-| PriorityQueue    | Priority-based queue       | Task scheduling                    |
-| RingBuffer       | Fixed-size circular buffer  | Logs, metrics                      |
-| Graph            | Graph with adjacency list  | Relationships, networks            |
-| Trie             | Prefix tree                | Autocomplete, spell checking       |
-| BloomFilter      | Probabilistic set          | Membership testing                  |
-| Deque            | Double-ended queue         | Sliding windows                    |
+| [Queue](docs/queue.md)            | FIFO queue                 | Job processing, message passing    |
+| [Stack](docs/stack.md)            | LIFO stack                 | Undo systems, execution contexts   |
+| [Set](docs/set.md)              | Unique collection          | Membership testing, deduplication  |
+| [HashMap](docs/hash_map.md)          | Key-value store            | Caching, metadata storage          |
+| [PriorityQueue](docs/priority_queue.md)    | Priority-based queue       | Task scheduling                    |
+| [RingBuffer](docs/ring_buffer.md)       | Fixed-size circular buffer  | Logs, metrics                      |
+| [Graph](docs/graph.md)            | Graph with adjacency list  | Relationships, networks            |
+| [Trie](docs/trie.md)             | Prefix tree                | Autocomplete, spell checking       |
+| [BloomFilter](docs/bloom_filter.md)      | Probabilistic set          | Membership testing                  |
+| [Deque](docs/deque.md)            | Double-ended queue         | Sliding windows                    |
 
 
 ### 💻 Usage Examples
@@ -126,7 +127,7 @@ peek = priority_queue.peek('tasks')
 
 ...
 ```
-For more examples, see **[usage](docs/usage.md)** and **[examples](examples/)**.
+For more examples, see **[examples](examples/)**.
 
 
 ### 🔗 Connection Management
@@ -136,8 +137,9 @@ from redis_data_structures import ConnectionManager
 from datetime import timedelta
 
 conn = ConnectionManager(
-    host='redis.example.com',
-    port=6380,
+    host='localhost',
+    port=6379,
+    db=0,
     max_connections=20,
     retry_max_attempts=5,
     circuit_breaker_threshold=10,
@@ -210,14 +212,6 @@ user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': '
 set_ds.add('users', user)
 ```
 See **[type preservation](docs/type_preservation.md)** for more information.
-
-### 📖 Documentation
-
-For detailed usage instructions and advanced features, please refer to:
-
-- 📖 **[Usage Guide](docs/usage.md)** - Comprehensive documentation covering all features
-- 🎯 **[Examples](examples/)** - Real-world examples and use cases
-
 
 ### 🤝 Contributing
 
