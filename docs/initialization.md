@@ -139,6 +139,7 @@ print(f"Circuit Breaker: {health['circuit_breaker']}")  # Shows failure count, t
 # - Configurable retry attempts and timeouts
 # - JSON serialization for complex types
 # - Compression support for large values
+```
 
 ### Reusable Connection Manager
 
