@@ -1,48 +1,50 @@
-# Redis Data Structures
+# 🌟 Redis Data Structures
 
 [![PyPI version](https://badge.fury.io/py/redis-data-structures.svg)](https://badge.fury.io/py/redis-data-structures)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![codecov](https://codecov.io/gh/vndee/redis-data-structures/graph/badge.svg?token=O9DSUSEJCI)](https://codecov.io/gh/vndee/redis-data-structures)
 
-A Python library providing high-level, Redis-backed data structures with a clean, Pythonic interface. Perfect for distributed systems, microservices, and any application requiring persistent, thread-safe data structures.
+A Python library providing high-level, Redis-backed data structures with a clean, Pythonic interface. Perfect for distributed systems, microservices, and any application requiring persistent, thread-safe data structures, especially in environments where multiple workers share the same data structure.
 
-📚 [Detailed Usage Guide](docs/usage.md) | 💡 [Examples](examples/)
+📚 **[Detailed Usage Guide](docs/usage.md)** | 💡 **[Examples](examples/)**
 
-## Table of Contents
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Data Structures](#data-structures)
-- [Usage Examples](#usage-examples)
-  - [Queue](#queue)
-  - [Stack](#stack)
-  - [Set](#set)
-- [Advanced Topics](#advanced-topics)
-  - [Connection Management](#connection-management)
-  - [Complex Types](#complex-types)
-  - [Best Practices](#best-practices)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
+---
 
-## Features
+## 📋 Table of Contents
+- [✨ Features](#features)
+- [📦 Installation](#installation)
+- [🚀 Quick Start](#quick-start)
+- [📊 Data Structures](#data-structures)
+- [💻 Usage Examples](#usage-examples)
+- [🔗 Connection Management](#connection-management)
+- [🔍 Complex Types](#complex-types)
+- [📖 Documentation](#documentation)
+- [🤝 Contributing](#contributing)
+- [📝 License](#license)
 
-✨ **Key Benefits**
-- Thread-safe data structures backed by Redis
-- Clean, Pythonic interface
-- Connection pooling and automatic retries
-- Circuit breaker pattern for fault tolerance
-- JSON serialization for complex types
-- Comprehensive documentation and examples
+---
 
-## Installation
+## ✨ Features
+
+- **Thread-safe** data structures backed by Redis
+- Clean, **Pythonic interface**
+- Connection pooling and **automatic retries**
+- **Circuit breaker** pattern for fault tolerance
+- JSON serialization and **type preservation** for complex types
+- **Async support** (coming soon)
+
+---
+
+## 📦 Installation
 
 ```bash
 pip install redis-data-structures
 ```
 
-## Quick Start
+---
+
+## 🚀 Quick Start
 
 ```python
 from redis_data_structures import Queue, Stack, Set, ConnectionManager
@@ -61,66 +63,80 @@ set_ds = Set(connection_manager=conn)
 set_ds.add('users', {'id': 'user1', 'name': 'Alice'})
 ```
 
-## Data Structures
+You can also skip using `ConnectionManager` if the following environment variables are set:
 
-| Structure | Description | Use Case |
-|-----------|-------------|----------|
-| Queue | FIFO queue | Job processing, message passing |
-| Stack | LIFO stack | Undo systems, execution contexts |
-| Set | Unique collection | Membership testing, deduplication |
-| HashMap | Key-value store | Caching, metadata storage |
-| PriorityQueue | Priority-based queue | Task scheduling |
-| RingBuffer | Fixed-size circular buffer | Logs, metrics |
-| Graph | Directed graph | Relationships, networks |
-| Trie | Prefix tree | Autocomplete, spell checking |
-| BloomFilter | Probabilistic set | Membership testing |
-| Deque | Double-ended queue | Sliding windows |
-
-## Usage Examples
-
-### Queue
+- `REDIS_HOST`
+- `REDIS_PORT`
+- `REDIS_DB`
+- `REDIS_USERNAME`
+- `REDIS_PASSWORD`
 
 ```python
-from redis_data_structures import Queue, ConnectionManager
+from redis_data_structures import Queue, Stack, Set
 
-conn = ConnectionManager(host='localhost', port=6379)
-queue = Queue(connection_manager=conn)
+queue = Queue()
+stack = Stack()
+set_ds = Set()
+```
+
+---
+
+## 📊 Data Structures
+
+| Structure       | Description                | Use Case                          |
+|------------------|----------------------------|-----------------------------------|
+| Queue            | FIFO queue                 | Job processing, message passing    |
+| Stack            | LIFO stack                 | Undo systems, execution contexts   |
+| Set              | Unique collection          | Membership testing, deduplication  |
+| HashMap          | Key-value store            | Caching, metadata storage          |
+| PriorityQueue    | Priority-based queue       | Task scheduling                    |
+| RingBuffer       | Fixed-size circular buffer  | Logs, metrics                      |
+| Graph            | Graph with adjacency list  | Relationships, networks            |
+| Trie             | Prefix tree                | Autocomplete, spell checking       |
+| BloomFilter      | Probabilistic set          | Membership testing                  |
+| Deque            | Double-ended queue         | Sliding windows                    |
+
+---
+
+## 💻 Usage Examples
+
+```python
+from redis_data_structures import Queue
+
+queue = Queue()
 
 # Basic operations
 queue.push('tasks', {'id': 1, 'action': 'process'})
 task = queue.pop('tasks')
 size = queue.size('tasks')
-```
 
-### Stack
-
-```python
-from redis_data_structures import Stack
-
-stack = Stack(connection_manager=conn)
-
-# Basic operations
+stack = Stack()
 stack.push('commands', {'action': 'create'})
 command = stack.pop('commands')
 size = stack.size('commands')
-```
 
-### Set
-
-```python
-from redis_data_structures import Set
-
-set_ds = Set(connection_manager=conn)
-
-# Basic operations
+set_ds = Set()
 set_ds.add('users', {'id': 'user1'})
 exists = set_ds.contains('users', {'id': 'user1'})
 members = set_ds.members('users')
+
+hash_map = HashMap()
+hash_map.set('user:1', {'name': 'Alice', 'age': 30})
+user = hash_map.get('user:1')
+exists = hash_map.exists('user:1')
+
+priority_queue = PriorityQueue()
+priority_queue.push('tasks', {'id': 1, 'priority': 1})
+task = priority_queue.pop('tasks')
+peek = priority_queue.peek('tasks')
+
+...
 ```
+For more examples, see **[usage](docs/usage.md)** and **[examples](examples/)**.
 
-## Advanced Topics
+---
 
-### Connection Management
+## 🔗 Connection Management
 
 ```python
 from redis_data_structures import ConnectionManager
@@ -135,9 +151,18 @@ conn = ConnectionManager(
     circuit_breaker_timeout=timedelta(minutes=5),
     ssl=True
 )
+
+# Reuse for multiple queues
+pq1 = PriorityQueue(connection_manager=connection_manager)
+pq2 = PriorityQueue(connection_manager=connection_manager)
+
+stack = Stack(connection_manager=connection_manager)
+set_ds = Set(connection_manager=connection_manager)
 ```
 
-### Complex Types
+---
+
+## 🔍 Complex Types
 
 ```python
 from datetime import datetime
@@ -151,39 +176,62 @@ user = {
 }
 
 set_ds.add('users', user)
+
+# Custom types
+from redis_data_structures import CustomRedisDataType
+
+class User(CustomRedisDataType):
+    id: str
+    name: str
+    joined: datetime
+    metadata: dict
+
+    def __init__(self, id: str, name: str, joined: datetime, metadata: dict):
+        self.id = id
+        self.name = name
+        self.joined = joined
+        self.metadata = metadata
+
+    def from_dict(cls, data: dict):
+        return cls(id=data['id'], name=data['name'], joined=data['joined'], metadata=data['metadata'])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'joined': self.joined,
+            'metadata': self.metadata
+        }
+
+user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
+set_ds.add('users', user)
+
+# Pydantic models
+from pydantic import BaseModel
+
+class User(BaseModel):
+    id: str
+    name: str
+    joined: datetime
+    metadata: dict
+
+user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
+set_ds.add('users', user)
 ```
-See [type preservation](docs/type_preservation.md) for more information.
+See **[type preservation](docs/type_preservation.md)** for more information.
 
-### Best Practices
+---
 
-1. **Connection Management**
-   - Use a shared connection manager
-   - Configure appropriate pool size
-   - Enable automatic retries
-
-2. **Error Handling**
-   ```python
-   try:
-       queue.push('tasks', task)
-   except Exception as e:
-       logger.error(f"Error: {e}")
-   ```
-
-3. **Health Monitoring**
-   ```python
-   health = conn.health_check()
-   if health['status'] != 'healthy':
-       logger.warning(f"Issues: {health}")
-   ```
-
-## Documentation
+## 📖 Documentation
 
 For detailed usage instructions and advanced features, please refer to:
 
-- 📖 [Usage Guide](docs/usage.md) - Comprehensive documentation covering all features
-- 🎯 [Examples](examples/) - Real-world examples and use cases
+- 📖 **[Usage Guide](docs/usage.md)** - Comprehensive documentation covering all features
+- 🎯 **[Examples](examples/)** - Real-world examples and use cases
 
-## Contributing
+---
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -191,6 +239,8 @@ For detailed usage instructions and advanced features, please refer to:
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+---
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 📝 License
+
+This project is licensed under the MIT License - see the **[LICENSE](LICENSE)** file for details.
