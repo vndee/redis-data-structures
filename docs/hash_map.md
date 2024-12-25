@@ -2,6 +2,8 @@
 
 A Redis-backed hash map implementation that provides persistent key-value storage with type preservation. Perfect for storing structured data, managing user profiles, caching complex objects, and maintaining configuration settings.
 
+> **Note:** For more granular control over individual key expiration or when dealing with very large values, consider using [Dict](./dict.md).
+
 ## Features
 
 | Feature | Average Cost | Worst Case | Description | Implementation |

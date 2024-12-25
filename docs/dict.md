@@ -1,6 +1,6 @@
 # Dict
 
-A Redis-backed dictionary implementation that provides persistent key-value storage with type preservation. Unlike HashMap which uses Redis HSET/HGET commands, this implementation uses separate Redis keys for each dictionary entry, making it suitable for cases where you need more granular control over individual key expiration or when dealing with very large values.
+A Redis-backed dictionary implementation that provides persistent key-value storage with type preservation. Unlike [HashMap](./hashmap.md) which uses Redis `HSET`/`HGET` commands, this implementation uses separate Redis keys for each dictionary entry, making it suitable for cases where you need more granular control over individual key expiration or when dealing with very large values.
 
 ## Features
 
