@@ -11,7 +11,8 @@ A Redis-backed Bloom filter implementation that provides probabilistic set membe
 | `clear` | $O(1)$ | $O(1)$ | Remove all items from the filter | `DELETE` |
 | `size` | $O(1)$ | $O(1)$ | Return the size of the filter in bits | Calculated |
 
-where $k$ is the number of hash functions used (automatically optimized based on the expected number of elements and desired false positive rate)
+where:
+- $k$ is the number of hash functions used (automatically optimized based on the expected number of elements and desired false positive rate)
 
 ## Basic Usage
 

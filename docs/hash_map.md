@@ -18,7 +18,7 @@ A Redis-backed hash map implementation that provides persistent key-value storag
 where:
 - $n$ is the number of fields in the hash map
 
-Note: The $O(n)$ worst case for operations like `set`, `get`, `delete`, and `exists` occurs due to potential hash collisions in Redis's internal hash table implementation and the size of the serialized values being stored/retrieved.
+> **Note:** The $O(n)$ worst case for operations like `set`, `get`, `delete`, and `exists` occurs due to potential hash collisions in Redis's internal hash table implementation and the size of the serialized values being stored/retrieved.
 
 ## Basic Usage
 
