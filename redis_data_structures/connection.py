@@ -78,7 +78,7 @@ class ConnectionManager:
         self.connection_params = connection_params
         self._pool = connection_pool or ConnectionPool(
             max_connections=max_connections,
-            **connection_params,
+            **connection_params,  # type: ignore[arg-type]
         )
 
         self._client: Optional[redis.Redis] = None
