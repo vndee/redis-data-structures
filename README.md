@@ -11,16 +11,16 @@ A Python library providing high-level, Redis-backed data structures with a clean
 
 
 ### 📋 Table of Contents
-- [✨ Features](#✨-features)
-- [📦 Installation](#📦-installation)
-- [🚀 Quick Start](#🚀-quick-start)
-- [📊 Data Structures](#📊-data-structures)
-- [💻 Usage Examples](#💻-usage-examples)
-- [🔗 Connection Management](#🔗-connection-management)
-- [🔍 Complex Types](#🔍-complex-types)
-- [📖 Documentation](#📖-documentation)
-- [🤝 Contributing](#🤝-contributing)
-- [📝 License](#📝-license)
+- [✨ Features](#-features)
+- [📦 Installation](#-installation)
+- [🚀 Quick Start](#-quick-start)
+- [📊 Data Structures](#-data-structures)
+- [💻 Usage Examples](#-usage-examples)
+- [🔗 Connection Management](#-connection-management)
+- [🔍 Complex Types](#-complex-types)
+- [📖 Documentation](#-documentation)
+- [🤝 Contributing](#-contributing)
+- [📝 License](#-license)
 
 
 ### ✨ Features
