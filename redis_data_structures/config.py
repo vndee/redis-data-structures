@@ -104,7 +104,9 @@ class Config:
 
             return cls(redis=redis_config, data_structures=ds_config)
         except Exception as e:
-            raise ConfigurationError(f"Failed to load configuration from {path}: {e}")
+            raise ConfigurationError(
+                f"Failed to load configuration from {path}: {e}",
+            ) from None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""

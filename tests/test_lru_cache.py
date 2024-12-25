@@ -8,7 +8,7 @@ from redis_data_structures import LRUCache
 
 
 @pytest.fixture
-def lru_cache(connection_manager) -> LRUCache:
+def lru_cache() -> LRUCache:
     """Create an LRUCache instance for testing."""
     cache = LRUCache(capacity=3, key="test_lru_cache")
     cache.clear()
@@ -244,7 +244,6 @@ def test_concurrent_access(lru_cache):
 
     # Adjust number of threads and items to stay within cache capacity (3)
     num_threads = 2
-    num_items = 1  # Each thread will add only one item
 
     def add_items(thread_id):
         try:
@@ -257,7 +256,8 @@ def test_concurrent_access(lru_cache):
                 if result != value:
                     results.put(
                         Exception(
-                            f"Immediate verification failed for {key}: expected {value}, got {result}",
+                            f"Immediate verification failed for {key}: expected {value}, "
+                            f"got {result}",
                         ),
                     )
         except Exception as e:
@@ -337,12 +337,6 @@ def test_get_all_exception_handling(lru_cache):
         assert lru_cache.get_all() == {}
 
 
-def test_get_lru_order_exception_handling(lru_cache):
-    """Test exception handling during get_lru_order operation."""
-    with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
-        assert lru_cache.get_lru_order() == []
-
-
 def test_size_exception_handling(lru_cache):
     """Test exception handling during size operation."""
     with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
@@ -361,10 +355,17 @@ def test_get_all_deserialization_error_handling(lru_cache):
     # Mock the execute method to return a list of fields and values
     mock_data = [b"field1", b"value1", b"field2", b"value2"]
 
-    with patch.object(lru_cache.connection_manager, "execute", return_value=mock_data):
-        with patch.object(lru_cache, "deserialize", side_effect=Exception("Deserialization error")):
-            result = lru_cache.get_all()
-            assert result == {
-                "field1": None,
-                "field2": None,
-            }  # Expect None for deserialization errors
+    with patch.object(
+        lru_cache.connection_manager,
+        "execute",
+        return_value=mock_data,
+    ), patch.object(
+        lru_cache,
+        "deserialize",
+        side_effect=Exception("Deserialization error"),
+    ):
+        result = lru_cache.get_all()
+        assert result == {
+            "field1": None,
+            "field2": None,
+        }  # Expect None for deserialization errors

@@ -82,7 +82,7 @@ class HashMap(RedisDataStructure):
             logger.exception("Error checking hash field existence")
             return False
 
-    def get_all(self) -> Dict[str, Any]:
+    def get_all(self) -> Dict[str, Any]:  # noqa: C901
         """Get all fields and values from the hash map.
 
         Returns:

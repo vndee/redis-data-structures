@@ -7,7 +7,7 @@ from redis_data_structures import Graph
 
 
 @pytest.fixture
-def graph(connection_manager) -> Graph:
+def graph() -> Graph:
     """Create a Graph instance for testing."""
     g = Graph("test_graph")
     g.clear()

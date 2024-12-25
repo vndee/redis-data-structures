@@ -1,6 +1,7 @@
 from redis_data_structures import Dict
 from redis_data_structures.connection import ConnectionManager
 
+
 def main():
     # Initialize connection manager
     connection_manager = ConnectionManager(host="localhost", port=6379, db=0)
@@ -11,11 +12,11 @@ def main():
     # Example: Setting values
     my_dict.set("name", "Alice")
     my_dict.set("age", 30)
-    my_dict.set("is_student", False)
+    my_dict.set("is_student", False)  # noqa: FBT003
 
     # Example: Getting values
     print("Name:", my_dict.get("name"))  # Output: Alice
-    print("Age:", my_dict.get("age"))    # Output: 30
+    print("Age:", my_dict.get("age"))  # Output: 30
     print("Is Student:", my_dict.get("is_student"))  # Output: False
 
     # Example: Updating a value
@@ -28,12 +29,8 @@ def main():
 
     # Example: Working with complex data types
     complex_data = {
-        "address": {
-            "street": "123 Main St",
-            "city": "Wonderland",
-            "zip": "12345"
-        },
-        "hobbies": ["reading", "hiking", "coding"]
+        "address": {"street": "123 Main St", "city": "Wonderland", "zip": "12345"},
+        "hobbies": ["reading", "hiking", "coding"],
     }
     my_dict.set("profile", complex_data)
 
@@ -46,6 +43,7 @@ def main():
     connection_manager.close()
 
     print("Size:", my_dict.size())
+
 
 if __name__ == "__main__":
     main()

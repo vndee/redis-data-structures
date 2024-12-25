@@ -11,6 +11,7 @@ class User(CustomRedisDataType):
     """Example of a custom Redis data type using standard class."""
 
     def __init__(self, name: str, joined: datetime):
+        """Initialize the User object."""
         self.name = name
         self.joined = joined
 
@@ -30,6 +31,7 @@ class User(CustomRedisDataType):
         )
 
     def __str__(self) -> str:
+        """Return a string representation of the User object."""
         return f"User(name='{self.name}', joined={self.joined.isoformat()})"
 
 
@@ -53,6 +55,7 @@ class UserModel(BaseModel):
     tags: Set[str] = set()
 
     def __str__(self) -> str:
+        """Return a string representation of the UserModel instance."""
         return f"UserModel(name='{self.name}', email='{self.email}', age={self.age})"
 
 
@@ -200,16 +203,17 @@ def print_nested_structure(obj: Any, indent: int = 2) -> None:
 def set_examples():
     """Demonstrate the usage of the Set data structure."""
     from datetime import datetime
+
     from redis_data_structures import Set
 
     set_ds = Set("users")
 
     # Any JSON-serializable object
     user = {
-        'id': 'user1',
-        'name': 'Alice',
-        'joined': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'metadata': {'role': 'admin'}
+        "id": "user1",
+        "name": "Alice",
+        "joined": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "metadata": {"role": "admin"},
     }
 
     set_ds.add(user)
@@ -223,24 +227,38 @@ def set_examples():
         joined: datetime
         metadata: dict
 
-        def __init__(self, id: str, name: str, joined: datetime, metadata: dict):
+        def __init__(self, id: str, name: str, joined: datetime, metadata: dict):  # noqa: A002
+            """Initialize the User object."""
             self.id = id
             self.name = name
             self.joined = joined
             self.metadata = metadata
 
-        def from_dict(cls, data: dict):
-            return cls(id=data['id'], name=data['name'], joined=data['joined'], metadata=data['metadata'])
+        @classmethod
+        def from_dict(cls, data: dict) -> "User":
+            """Create a User object from a dictionary."""
+            return cls(
+                id=data["id"],
+                name=data["name"],
+                joined=datetime.fromisoformat(data["joined"]),
+                metadata=data["metadata"],
+            )
 
-        def to_dict(self):
+        def to_dict(self) -> dict:
+            """Convert the User object to a dictionary."""
             return {
-                'id': self.id,
-                'name': self.name,
-                'joined': self.joined.strftime('%Y-%m-%d %H:%M:%S'),
-                'metadata': self.metadata
+                "id": self.id,
+                "name": self.name,
+                "joined": self.joined.isoformat(),
+                "metadata": self.metadata,
             }
 
-    user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
+    user = User(
+        id="user1",
+        name="Alice",
+        joined=datetime.now(timezone.utc),
+        metadata={"role": "admin"},
+    )
     set_ds.add(user)
     print(set_ds.contains(user))
 
@@ -253,7 +271,12 @@ def set_examples():
         joined: datetime
         metadata: dict
 
-    user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
+    user = User(
+        id="user1",
+        name="Alice",
+        joined=datetime.now(timezone.utc),
+        metadata={"role": "admin"},
+    )
     set_ds.add(user)
     print(set_ds.contains(user))
 

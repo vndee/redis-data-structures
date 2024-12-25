@@ -6,6 +6,7 @@ from .base import RedisDataStructure
 
 logger = logging.getLogger(__name__)
 
+
 class BloomFilter(RedisDataStructure):
     """Redis-backed Bloom Filter implementation.
 
@@ -13,7 +14,7 @@ class BloomFilter(RedisDataStructure):
     to test whether an element is a member of a set. False positives are
     possible, but false negatives are not.
     """
-    
+
     _mmh3: Optional[Any] = None  # Cache for mmh3 module
 
     @classmethod
@@ -22,22 +23,32 @@ class BloomFilter(RedisDataStructure):
         if cls._mmh3 is None:
             try:
                 import mmh3
+
                 cls._mmh3 = mmh3
             except ImportError:
-                raise ImportError("mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.")
+                raise ImportError(
+                    "mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.",
+                ) from None
         return cls._mmh3
 
-    def __init__(self, key: str, expected_elements: int = 10000, false_positive_rate: float = 0.01, **kwargs):
+    def __init__(
+        self,
+        key: str,
+        expected_elements: int = 10000,
+        false_positive_rate: float = 0.01,
+        **kwargs,
+    ):
         """Initialize Bloom Filter.
 
         Args:
+            key: The key for the Bloom filter
             expected_elements: Expected number of elements to be added
             false_positive_rate: Desired false positive probability
             **kwargs: Additional Redis connection parameters
         """
         # Check for mmh3 availability on initialization
         self._get_mmh3()
-        
+
         super().__init__(key, **kwargs)
 
         # Calculate optimal filter size and number of hash functions

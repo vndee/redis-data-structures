@@ -33,7 +33,7 @@ class Trie(RedisDataStructure):
 
     def insert(self, word: str) -> bool:
         """Insert a word into the trie.
-        
+
         Returns:
             bool: True if successful, False otherwise
         """
@@ -59,7 +59,7 @@ class Trie(RedisDataStructure):
 
     def search(self, word: str) -> bool:
         """Search for a word in the trie.
-    
+
         Returns:
             bool: True if the word exists, False otherwise
         """

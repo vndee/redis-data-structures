@@ -37,9 +37,5 @@ class CapacityError(RedisDataStructureError):
     """Raised when a data structure reaches its capacity limit."""
 
 
-class TimeoutError(RedisDataStructureError):
+class TimeoutError(RedisDataStructureError):  # noqa: A001
     """Raised when an operation times out."""
-
-
-class CircuitBreakerError(RedisDataStructureError):
-    """Raised when the circuit breaker is open."""

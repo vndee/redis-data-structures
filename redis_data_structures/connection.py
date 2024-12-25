@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
-    """Manages Redis connections with advanced features like connection pooling, automatic reconnection, and circuit breaking."""
+    """Manages Redis connections with advanced features like connection pooling, automatic reconnection, and circuit breaking."""  # noqa: E501
 
     def __init__(
         self,
@@ -119,7 +119,7 @@ class ConnectionManager:
         """
         if self._failure_count >= self._circuit_breaker_threshold:
             logger.error("Circuit breaker is open, Redis commands are blocked")
-            raise RedisError("Circuit breaker is open")
+            raise RedisError("Circuit breaker is open") from None
 
         try:
             func = getattr(self.client, func_name)
@@ -129,7 +129,7 @@ class ConnectionManager:
         except (RedisError, ConnectionError, CircuitBreakerError):
             self._failure_count += 1
             logger.exception(f"Redis command failed: {func_name}")
-            raise CircuitBreakerError("Circuit breaker is open")
+            raise CircuitBreakerError("Circuit breaker is open") from None
 
     def pipeline(self) -> redis.client.Pipeline:
         """Get a Redis pipeline for batch operations."""
@@ -149,8 +149,8 @@ class ConnectionManager:
             info = self.client.info()
             pool_info = {
                 "max_connections": self._pool.max_connections,
-                "current_connections": len(self._pool._in_use_connections),
-                "available_connections": len(self._pool._available_connections),
+                "current_connections": len(self._pool._in_use_connections),  # noqa: SLF001
+                "available_connections": len(self._pool._available_connections),  # noqa: SLF001
             }
 
             return {

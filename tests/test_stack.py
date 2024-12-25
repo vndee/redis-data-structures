@@ -7,7 +7,7 @@ from redis_data_structures import Stack
 
 
 @pytest.fixture
-def stack_ds(connection_manager) -> Stack:
+def stack_ds() -> Stack:
     """Create a Stack instance for testing."""
     stack = Stack(key="test_stack")
     stack.clear()

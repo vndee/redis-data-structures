@@ -95,7 +95,6 @@ def demonstrate_set_operations():
     """Demonstrate set functionality with tag management."""
     # Initialize set
     set_ds = Set("example:post1:tags")
-    post2_tags_key = "example:post2:tags"
 
     # Clear any existing data
     set_ds.clear()

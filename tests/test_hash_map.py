@@ -8,7 +8,7 @@ from redis_data_structures import HashMap
 
 
 @pytest.fixture
-def hash_map(connection_manager) -> HashMap:
+def hash_map() -> HashMap:
     """Create a HashMap instance for testing."""
     hm = HashMap("test_hash_map")
     hm.clear()
@@ -298,10 +298,13 @@ def test_get_all_deserialization_error_handling(hash_map):
     # Mock the execute method to return a list of fields and values
     mock_data = [b"field1", b"value1", b"field2", b"value2"]
 
-    with patch.object(hash_map.connection_manager, "execute", return_value=mock_data):
-        with patch.object(hash_map, "deserialize", side_effect=Exception("Deserialization error")):
-            result = hash_map.get_all()
-            assert result == {
-                "field1": None,
-                "field2": None,
-            }  # Expect None for deserialization errors
+    with patch.object(hash_map.connection_manager, "execute", return_value=mock_data), patch.object(
+        hash_map,
+        "deserialize",
+        side_effect=Exception("Deserialization error"),
+    ):
+        result = hash_map.get_all()
+        assert result == {
+            "field1": None,
+            "field2": None,
+        }  # Expect None for deserialization errors

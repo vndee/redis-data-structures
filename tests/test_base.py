@@ -11,11 +11,15 @@ from redis_data_structures.exceptions import SerializationError
 
 
 class User(CustomRedisDataType):
+    """User class for testing."""
+
     def __init__(self, name: str, age: int):
+        """Initialize a User object."""
         self.name = name
         self.age = age
 
     def to_dict(self) -> dict:
+        """Convert User object to a dictionary."""
         return {"name": self.name, "age": self.age}
 
     @classmethod
@@ -23,9 +27,11 @@ class User(CustomRedisDataType):
         return cls(data["name"], data["age"])
 
     def __eq__(self, other):
+        """Check if two User objects are equal."""
         return isinstance(other, User) and self.name == other.name and self.age == other.age
-    
+
     def __str__(self) -> str:
+        """Return a string representation of the User object."""
         return f"User(name={self.name}, age={self.age})"
 
 
@@ -36,7 +42,11 @@ class TestRedisDataStructure:
         self.config = Config.from_env()
         mock_connection = Mock(spec=ConnectionManager)
         mock_connection.execute.return_value = True
-        self.rds = RedisDataStructure(key="test_key", config=self.config, connection_manager=mock_connection)
+        self.rds = RedisDataStructure(
+            key="test_key",
+            config=self.config,
+            connection_manager=mock_connection,
+        )
 
     def test_serialize_custom_type(self):
         """Test serialization of a custom type."""
@@ -190,7 +200,7 @@ class TestRedisDataStructure:
         # Test serialization error
         class UnserializableObject:
             def __repr__(self):
-                raise Exception("Cannot serialize")
+                raise Exception("Cannot serialize")  # noqa: TRY002
 
         with pytest.raises(SerializationError):
             self.rds.serialize(UnserializableObject())

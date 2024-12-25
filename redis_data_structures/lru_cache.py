@@ -17,6 +17,7 @@ class LRUCache(RedisDataStructure):
         """Initialize LRU cache.
 
         Args:
+            key (str): The key for the LRU cache
             capacity (int): Maximum number of items in the cache
             **kwargs: Additional Redis connection parameters
         """
@@ -184,9 +185,9 @@ class LRUCache(RedisDataStructure):
             logger.exception("Error getting cache size")
             return 0
 
-    def get_all(self) -> dict:
+    def get_all(self) -> dict:  # noqa: C901
         """Get all items from the cache.
-    
+
         Returns:
             dict: Dictionary of all field-value pairs in the cache
         """

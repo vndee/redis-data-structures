@@ -7,7 +7,7 @@ from redis_data_structures import Trie
 
 
 @pytest.fixture
-def trie_ds(connection_manager) -> Trie:
+def trie_ds() -> Trie:
     """Create a Trie instance for testing."""
     trie = Trie(key="test_trie")
     trie.clear()
@@ -120,8 +120,7 @@ def test_get_all_words(trie_ds):
     words = ["hello", "help", "world", "helper"]
     for word in words:
         assert trie_ds.insert(word)
-        
+
     assert set(trie_ds.get_all_words()) == set(words)
 
     assert set(trie_ds.starts_with("")) == set(words)
-

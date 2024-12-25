@@ -4,6 +4,7 @@ from .base import CustomRedisDataType, RedisDataStructure, SerializedData
 from .bloom_filter import BloomFilter
 from .connection import ConnectionManager
 from .deque import Deque
+from .dict import Dict
 from .graph import Graph
 from .hash_map import HashMap
 from .lru_cache import LRUCache
@@ -13,13 +14,13 @@ from .ring_buffer import RingBuffer
 from .set import Set
 from .stack import Stack
 from .trie import Trie
-from .dict import Dict
 
 __all__ = [
     "BloomFilter",
     "ConnectionManager",
     "CustomRedisDataType",
     "Deque",
+    "Dict",
     "Graph",
     "HashMap",
     "LRUCache",
@@ -31,5 +32,4 @@ __all__ = [
     "Set",
     "Stack",
     "Trie",
-    "Dict",
 ]

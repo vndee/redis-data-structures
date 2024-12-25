@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from redis.exceptions import ConnectionError
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from redis_data_structures.health import check_redis_connection, get_redis_metrics
 
@@ -24,7 +24,7 @@ class TestHealthCheck:
 
     def test_check_redis_connection_failure(self):
         """Test Redis connection failure."""
-        with patch("redis.Redis.ping", side_effect=ConnectionError):
+        with patch("redis.Redis.ping", side_effect=RedisConnectionError):
             is_healthy, message = check_redis_connection(self.host, self.port, self.password)
             assert is_healthy is False
             assert "Connection failed" in message
@@ -53,7 +53,7 @@ class TestHealthCheck:
             metrics = get_redis_metrics(self.host, self.port, self.password)
             assert "error" in metrics
             assert metrics["error"] == "Failed to get Redis metrics"
-    
+
     def test_healthcheck_failed_without_connection_error(self):
         """Test healthcheck failed without connection error."""
         with patch("redis.Redis.ping", side_effect=Exception("Failed to ping")):

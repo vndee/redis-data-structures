@@ -7,6 +7,7 @@ from redis.exceptions import RedisError
 from redis_data_structures.connection import ConnectionManager
 from redis_data_structures.exceptions import CircuitBreakerError
 
+
 @pytest.fixture
 def connection_manager():
     """Create a ConnectionManager instance with mocked Redis."""
@@ -52,7 +53,7 @@ def test_execute_failure(connection_manager):
     connection_manager.client.get.side_effect = RedisError("Test error")
     with pytest.raises(CircuitBreakerError):
         connection_manager.execute("get", "test_key")
-    assert connection_manager._failure_count > 0
+    assert connection_manager._failure_count > 0  # noqa: SLF001
 
 
 def test_health_check_success(connection_manager):
@@ -80,8 +81,8 @@ def test_health_check_failure(connection_manager):
 def test_close_connection(connection_manager):
     """Test connection closing."""
     connection_manager.close()
-    assert connection_manager._client is None
-    assert connection_manager._pool is None
+    assert connection_manager._client is None  # noqa: SLF001
+    assert connection_manager._pool is None  # noqa: SLF001
 
 
 def test_pipeline(connection_manager):
@@ -147,7 +148,7 @@ def test_circuit_breaker():
         with pytest.raises(RedisError) as exc_info:
             manager.execute("get", "key")
         assert "Circuit breaker is open" in str(exc_info.value)
-        assert manager._failure_count >= manager._circuit_breaker_threshold
+        assert manager._failure_count >= manager._circuit_breaker_threshold  # noqa: SLF001
 
 
 def test_connection_params_filtering():

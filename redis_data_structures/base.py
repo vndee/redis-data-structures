@@ -100,7 +100,7 @@ class RedisDataStructure:
             },
             set: {
                 "serialize": lambda x: [self.serialize_value(item) for item in x],
-                "deserialize": lambda x: set(self.deserialize_value(item) for item in x),
+                "deserialize": lambda x: {self.deserialize_value(item) for item in x},
             },
             bytes: {
                 "serialize": lambda x: x.hex(),
@@ -171,7 +171,7 @@ class RedisDataStructure:
             "value": str(val),
         }
 
-    def deserialize_value(self, val: Any) -> Any:
+    def deserialize_value(self, val: Any) -> Any:  # noqa: C901
         """Helper method to deserialize a single value."""
         if not isinstance(val, dict) or "_type" not in val:
             return val
@@ -251,7 +251,7 @@ class RedisDataStructure:
             return result
         except Exception:
             logger.exception("Failed to serialize value")
-            raise SerializationError("Failed to serialize value")
+            raise SerializationError("Failed to serialize value") from None
 
     def deserialize(self, data: str) -> Any:
         """Deserialize string to value."""
@@ -268,7 +268,7 @@ class RedisDataStructure:
             deserialized = json.loads(data)
             return self.deserialize_value(deserialized)
         except Exception as e:
-            raise SerializationError(f"Failed to deserialize data: {e}")
+            raise SerializationError(f"Failed to deserialize data: {e}") from None
 
     def set_ttl(self, key: str, ttl: Union[int, timedelta]) -> bool:
         """Set Time To Live (TTL) for a key."""

@@ -30,7 +30,7 @@ class Deque(RedisDataStructure):
         except Exception:
             logger.exception("Error pushing to front of deque")
             return False
-    
+
     def push_back(self, data: Any) -> bool:
         """Push an item to the back of the deque.
 

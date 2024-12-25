@@ -7,7 +7,7 @@ from redis_data_structures import Deque
 
 
 @pytest.fixture
-def deque(connection_manager) -> Deque:
+def deque() -> "Deque":
     """Create a Deque instance for testing."""
     dq = Deque("test_deque")
     dq.clear()

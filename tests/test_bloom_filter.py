@@ -1,19 +1,19 @@
 """Tests for BloomFilter implementation."""
 
-import math
 import importlib
+import math
 import sys
 from typing import List
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 from redis.exceptions import RedisError
 
 from redis_data_structures.bloom_filter import BloomFilter
 
 
 @pytest.fixture
-def bloom_filter(connection_manager) -> 'BloomFilter':
+def bloom_filter(connection_manager) -> "BloomFilter":
     """Create a BloomFilter instance for testing."""
     return BloomFilter(
         key="test_bloom_filter",
@@ -49,21 +49,20 @@ class TestBloomFilter:
 
     def test_bloom_filter_import_error(self, monkeypatch):
         """Test that BloomFilter raises an ImportError when used without mmh3."""
-        
         from redis_data_structures.bloom_filter import BloomFilter
-        
-        if 'mmh3' in sys.modules:
-            del sys.modules['mmh3']
-        
-        BloomFilter._mmh3 = None
-        
+
+        if "mmh3" in sys.modules:
+            del sys.modules["mmh3"]
+
+        BloomFilter._mmh3 = None  # noqa: SLF001
+
         def mock_import(name, *args, **kwargs):
-            if name == 'mmh3':
+            if name == "mmh3":
                 raise ImportError("No module named 'mmh3'")
             return importlib.__import__(name, *args, **kwargs)
-            
-        monkeypatch.setattr('builtins.__import__', mock_import)
-        
+
+        monkeypatch.setattr("builtins.__import__", mock_import)
+
         with pytest.raises(ImportError, match="mmh3 is required for BloomFilter"):
             BloomFilter("test_bloom_filter", expected_elements=1000, false_positive_rate=0.01)
 

@@ -21,6 +21,7 @@ class RingBuffer(RedisDataStructure):
         """Initialize the ring buffer.
 
         Args:
+            key (str): The key for the ring buffer
             capacity (int): Maximum number of elements in the buffer
             **kwargs: Redis connection parameters
         """

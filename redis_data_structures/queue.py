@@ -88,4 +88,3 @@ class Queue(RedisDataStructure):
         except Exception:
             logger.exception("Error clearing queue")
             return False
-

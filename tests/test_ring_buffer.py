@@ -1,11 +1,13 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 from redis.exceptions import RedisError
+
 from redis_data_structures import RingBuffer
 
 
 @pytest.fixture
-def ring_buffer(connection_manager) -> RingBuffer:
+def ring_buffer() -> RingBuffer:
     """Create a RingBuffer instance for testing."""
     buffer = RingBuffer("test_ring_buffer", capacity=3)
     buffer.clear()
@@ -138,19 +140,19 @@ def test_get_current_position(ring_buffer):
     # Push items into the ring buffer
     assert ring_buffer.push("item1")
     assert ring_buffer.push("item2")
-    
+
     # Check the current position after pushing two items
     assert ring_buffer.get_current_position() == 2
 
     # Push one more item
     assert ring_buffer.push("item3")
-    
+
     # Check the current position after pushing three items
     assert ring_buffer.get_current_position() == 3
 
     # Clear the ring buffer
     ring_buffer.clear()
-    
+
     # Check the current position after clearing
     assert ring_buffer.get_current_position() == 0
 
