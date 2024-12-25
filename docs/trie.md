@@ -14,9 +14,9 @@ A Redis-backed trie (prefix tree) implementation that provides efficient string 
 | `clear` | $O(n)$ | $O(n)$ | Remove all words | `DELETE` |
 
 where:
-- m is the length of the word
-- p is the length of the prefix
-- n is the number of words in the trie
+- $m$ is the length of the word
+- $p$ is the length of the prefix
+- $n$ is the number of words in the trie
 
 ## Basic Usage
 

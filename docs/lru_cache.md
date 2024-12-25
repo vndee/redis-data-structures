@@ -16,7 +16,7 @@ A Redis-backed LRU (Least Recently Used) cache implementation that maintains a f
 | `get_lru_order` | $O(n)$ | $O(n)$ | Get items in LRU order | `LRANGE` |
 
 where:
-- n is the number of items in the cache
+- $n$ is the number of items in the cache
 
 ## Basic Usage
 

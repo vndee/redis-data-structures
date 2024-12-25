@@ -18,7 +18,7 @@ A Redis-backed directed graph implementation using adjacency lists. Vertices can
 | `clear` | $O(n)$ | $O(n)$ | Remove all vertices and edges | `DELETE` |
 
 where:
-- n is the number of vertices in the graph
+- $n$ is the number of vertices in the graph
 
 ## Basic Usage
 

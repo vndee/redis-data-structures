@@ -14,7 +14,7 @@ A Redis-backed priority queue implementation that maintains elements in sorted o
 | `get_all` | $O(n)$ | $O(n)$ | Get all items in priority order | `ZRANGE` |
 
 where:
-- n is the number of items in the queue
+- $n$ is the number of items in the queue
 
 ## Basic Usage
 

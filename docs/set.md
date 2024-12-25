@@ -15,7 +15,7 @@ A Redis-backed set implementation that maintains a collection of unique elements
 | `clear` | $O(1)$ | $O(1)$ | Remove all items | `DELETE` |
 
 where:
-- n is the number of items in the set
+- $n$ is the number of items in the set
 
 ## Basic Usage
 

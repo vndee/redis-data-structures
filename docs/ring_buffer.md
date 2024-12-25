@@ -13,7 +13,7 @@ A Redis-backed ring buffer implementation that maintains a fixed-size circular b
 | `clear` | $O(1)$ | $O(1)$ | Remove all items | `DELETE` |
 
 where:
-- n is the number of items in the ring buffer
+- $n$ is the number of items in the ring buffer
 
 ## Basic Usage
 
