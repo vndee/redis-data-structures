@@ -70,8 +70,8 @@ class RedisDataStructure:
     def __init__(
         self,
         key: str,
-        config: Optional[Config] = None,
         connection_manager: Optional[ConnectionManager] = None,
+        config: Optional[Config] = None,
         **kwargs,
     ):
         """Initialize Redis data structure."""

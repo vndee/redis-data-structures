@@ -85,6 +85,7 @@ Refer to **[initialization](docs/initialization.md)** for more information.
 | [Queue](docs/queue.md)            | FIFO queue                 | Job processing, message passing    |
 | [Stack](docs/stack.md)            | LIFO stack                 | Undo systems, execution contexts   |
 | [Set](docs/set.md)              | Unique collection          | Membership testing, deduplication  |
+| [Dict](docs/dict.md)              | Python-like dictionary (key-value store)            | Caching, metadata storage          |
 | [HashMap](docs/hash_map.md)          | Key-value store            | Caching, metadata storage          |
 | [PriorityQueue](docs/priority_queue.md)    | Priority-based queue       | Task scheduling                    |
 | [RingBuffer](docs/ring_buffer.md)       | Fixed-size circular buffer  | Logs, metrics                      |

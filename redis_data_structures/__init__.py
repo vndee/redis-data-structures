@@ -13,6 +13,7 @@ from .ring_buffer import RingBuffer
 from .set import Set
 from .stack import Stack
 from .trie import Trie
+from .dict import Dict
 
 __all__ = [
     "BloomFilter",
@@ -30,4 +31,5 @@ __all__ = [
     "Set",
     "Stack",
     "Trie",
+    "Dict",
 ]
