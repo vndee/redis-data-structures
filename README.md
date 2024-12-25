@@ -11,21 +11,21 @@ A Python library providing high-level, Redis-backed data structures with a clean
 
 ---
 
-## 📋 Table of Contents
-- [✨ Features](#features)
-- [📦 Installation](#installation)
-- [🚀 Quick Start](#quick-start)
-- [📊 Data Structures](#data-structures)
-- [💻 Usage Examples](#usage-examples)
-- [🔗 Connection Management](#connection-management)
-- [🔍 Complex Types](#complex-types)
-- [📖 Documentation](#documentation)
-- [🤝 Contributing](#contributing)
-- [📝 License](#license)
+### 📋 Table of Contents
+- [✨ Features](#✨-features)
+- [📦 Installation](#📦-installation)
+- [🚀 Quick Start](#🚀-quick-start)
+- [📊 Data Structures](#📊-data-structures)
+- [💻 Usage Examples](#💻-usage-examples)
+- [🔗 Connection Management](#🔗-connection-management)
+- [🔍 Complex Types](#🔍-complex-types)
+- [📖 Documentation](#📖-documentation)
+- [🤝 Contributing](#🤝-contributing)
+- [📝 License](#📝-license)
 
 ---
 
-## ✨ Features
+### ✨ Features
 
 - **Thread-safe** data structures backed by Redis
 - Clean, **Pythonic interface**
@@ -36,7 +36,7 @@ A Python library providing high-level, Redis-backed data structures with a clean
 
 ---
 
-## 📦 Installation
+### 📦 Installation
 
 ```bash
 pip install redis-data-structures
@@ -44,7 +44,7 @@ pip install redis-data-structures
 
 ---
 
-## 🚀 Quick Start
+### 🚀 Quick Start
 
 ```python
 from redis_data_structures import Queue, Stack, Set, ConnectionManager
@@ -81,7 +81,7 @@ set_ds = Set()
 
 ---
 
-## 📊 Data Structures
+### 📊 Data Structures
 
 | Structure       | Description                | Use Case                          |
 |------------------|----------------------------|-----------------------------------|
@@ -98,7 +98,7 @@ set_ds = Set()
 
 ---
 
-## 💻 Usage Examples
+### 💻 Usage Examples
 
 ```python
 from redis_data_structures import Queue
@@ -136,7 +136,7 @@ For more examples, see **[usage](docs/usage.md)** and **[examples](examples/)**.
 
 ---
 
-## 🔗 Connection Management
+### 🔗 Connection Management
 
 ```python
 from redis_data_structures import ConnectionManager
@@ -162,7 +162,7 @@ set_ds = Set(connection_manager=connection_manager)
 
 ---
 
-## 🔍 Complex Types
+### 🔍 Complex Types
 
 ```python
 from datetime import datetime
@@ -222,7 +222,7 @@ See **[type preservation](docs/type_preservation.md)** for more information.
 
 ---
 
-## 📖 Documentation
+### 📖 Documentation
 
 For detailed usage instructions and advanced features, please refer to:
 
@@ -231,7 +231,7 @@ For detailed usage instructions and advanced features, please refer to:
 
 ---
 
-## 🤝 Contributing
+### 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -241,6 +241,6 @@ For detailed usage instructions and advanced features, please refer to:
 
 ---
 
-## 📝 License
+### 📝 License
 
 This project is licensed under the MIT License - see the **[LICENSE](LICENSE)** file for details.
