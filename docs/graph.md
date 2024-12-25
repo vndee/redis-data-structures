@@ -26,31 +26,30 @@ where:
 from redis_data_structures import Graph
 
 # Initialize graph
-graph = Graph()
-graph_key = "my_graph"
+graph = Graph("my_graph")
 
 # Add vertices with data
-graph.add_vertex(graph_key, "v1", {"name": "Vertex 1", "value": 42})
-graph.add_vertex(graph_key, "v2", {"name": "Vertex 2", "value": 43})
+graph.add_vertex("v1", {"name": "Vertex 1", "value": 42})
+graph.add_vertex("v2", {"name": "Vertex 2", "value": 43})
 
 # Add weighted edges
-graph.add_edge(graph_key, "v1", "v2", weight=1.5)
+graph.add_edge("v1", "v2", weight=1.5)
 
 # Get vertex data
-data = graph.get_vertex_data(graph_key, "v1")
+data = graph.get_vertex_data("v1")
 
 # Get neighbors with weights
-neighbors = graph.get_neighbors(graph_key, "v1")  # {"v2": 1.5}
+neighbors = graph.get_neighbors("v1")  # {"v2": 1.5}
 
 # Check edge weight
-weight = graph.get_edge_weight(graph_key, "v1", "v2")  # 1.5
+weight = graph.get_edge_weight("v1", "v2")  # 1.5
 
 # Remove edges and vertices
-graph.remove_edge(graph_key, "v1", "v2")
-graph.remove_vertex(graph_key, "v1")
+graph.remove_edge("v1", "v2")
+graph.remove_vertex("v1")
 
 # Clear graph
-graph.clear(graph_key)
+graph.clear()
 ```
 
 ## Advanced Usage
@@ -62,8 +61,7 @@ from datetime import datetime
 
 class SocialNetwork:
     def __init__(self):
-        self.graph = Graph()
-        self.network_key = "social_network"
+        self.graph = Graph("social_network")
     
     def add_user(self, user_id: str, profile: Dict[str, Any]) -> bool:
         """Add a user to the network."""
@@ -72,28 +70,28 @@ class SocialNetwork:
             "joined_at": datetime.now().isoformat(),
             "last_active": datetime.now().isoformat()
         }
-        return self.graph.add_vertex(self.network_key, user_id, profile_data)
+        return self.graph.add_vertex(user_id, profile_data)
     
     def create_connection(self, user1: str, user2: str, strength: float) -> bool:
         """Create a bidirectional connection between users."""
         if not all([
-            self.graph.vertex_exists(self.network_key, user1),
-            self.graph.vertex_exists(self.network_key, user2)
+            self.graph.vertex_exists(user1),
+            self.graph.vertex_exists(user2)
         ]):
             return False
             
         return all([
-            self.graph.add_edge(self.network_key, user1, user2, strength),
-            self.graph.add_edge(self.network_key, user2, user1, strength)
+            self.graph.add_edge(user1, user2, strength),
+            self.graph.add_edge(user2, user1, strength)
         ])
     
     def get_connections(self, user_id: str) -> Dict[str, Dict[str, Any]]:
         """Get all connections for a user with their profiles."""
         connections = {}
-        neighbors = self.graph.get_neighbors(self.network_key, user_id)
+        neighbors = self.graph.get_neighbors(user_id)
         
         for neighbor_id, strength in neighbors.items():
-            profile = self.graph.get_vertex_data(self.network_key, neighbor_id)
+            profile = self.graph.get_vertex_data(neighbor_id)
             if profile:
                 connections[neighbor_id] = {
                     **profile,
@@ -104,13 +102,13 @@ class SocialNetwork:
     
     def get_mutual_connections(self, user1: str, user2: str) -> Set[str]:
         """Find mutual connections between two users."""
-        user1_connections = set(self.graph.get_neighbors(self.network_key, user1).keys())
-        user2_connections = set(self.graph.get_neighbors(self.network_key, user2).keys())
+        user1_connections = set(self.graph.get_neighbors(user1).keys())
+        user2_connections = set(self.graph.get_neighbors(user2).keys())
         return user1_connections & user2_connections
     
     def remove_user(self, user_id: str) -> bool:
         """Remove a user and all their connections."""
-        return self.graph.remove_vertex(self.network_key, user_id)
+        return self.graph.remove_vertex(user_id)
 
 # Usage
 network = SocialNetwork()
@@ -146,8 +144,7 @@ import json
 
 class DependencyManager:
     def __init__(self):
-        self.graph = Graph()
-        self.deps_key = "dependency_graph"
+        self.graph = Graph("dependency_graph")
     
     def add_package(self, package_id: str, metadata: Dict[str, Any]) -> bool:
         """Add a package to the dependency graph."""
@@ -156,17 +153,17 @@ class DependencyManager:
             "added_at": datetime.now().isoformat(),
             "last_updated": datetime.now().isoformat()
         }
-        return self.graph.add_vertex(self.deps_key, package_id, package_data)
+        return self.graph.add_vertex(package_id, package_data)
     
     def add_dependency(self, package: str, depends_on: str, version_spec: str = "*") -> bool:
         """Add a dependency relationship."""
-        return self.graph.add_edge(self.deps_key, package, depends_on, 1.0)
+        return self.graph.add_edge(package, depends_on, 1.0)
     
     def get_direct_dependencies(self, package: str) -> Dict[str, Dict[str, Any]]:
         """Get direct dependencies of a package."""
         deps = {}
-        for dep_id in self.graph.get_neighbors(self.deps_key, package):
-            metadata = self.graph.get_vertex_data(self.deps_key, dep_id)
+        for dep_id in self.graph.get_neighbors(package):
+            metadata = self.graph.get_vertex_data(dep_id)
             if metadata:
                 deps[dep_id] = metadata
         return deps
@@ -180,7 +177,7 @@ class DependencyManager:
             return visited
             
         visited.add(package)
-        for dep in self.graph.get_neighbors(self.deps_key, package):
+        for dep in self.graph.get_neighbors(package):
             self.get_all_dependencies(dep, visited)
             
         return visited
@@ -203,12 +200,12 @@ class DependencyManager:
             visited.add(vertex)
             path.append(vertex)
             
-            for neighbor in self.graph.get_neighbors(self.deps_key, vertex):
+            for neighbor in self.graph.get_neighbors(vertex):
                 dfs(neighbor)
                 
             path.pop()
         
-        for vertex in self.graph.get_vertices(self.deps_key):
+        for vertex in self.graph.get_vertices():
             dfs(vertex)
             
         return cycles
@@ -245,8 +242,7 @@ import heapq
 
 class ServiceRouter:
     def __init__(self):
-        self.graph = Graph()
-        self.router_key = "service_mesh"
+        self.graph = Graph("service_mesh")
     
     def register_service(self, service_id: str, metadata: Dict[str, Any]) -> bool:
         """Register a service in the mesh."""
@@ -256,12 +252,11 @@ class ServiceRouter:
             "health_check": "healthy",
             "last_ping": datetime.now().isoformat()
         }
-        return self.graph.add_vertex(self.router_key, service_id, service_data)
+        return self.graph.add_vertex(service_id, service_data)
     
     def add_route(self, from_service: str, to_service: str, latency: float) -> bool:
         """Add a route between services with measured latency."""
         return self.graph.add_edge(
-            self.router_key, 
             from_service, 
             to_service, 
             weight=latency
@@ -270,7 +265,6 @@ class ServiceRouter:
     def update_latency(self, from_service: str, to_service: str, latency: float) -> bool:
         """Update route latency."""
         return self.graph.add_edge(
-            self.router_key,
             from_service,
             to_service,
             weight=latency
@@ -278,9 +272,9 @@ class ServiceRouter:
     
     def find_fastest_path(self, start: str, end: str) -> tuple[List[str], float]:
         """Find fastest path between services using Dijkstra's algorithm."""
-        distances = {v: float('infinity') for v in self.graph.get_vertices(self.router_key)}
+        distances = {v: float('infinity') for v in self.graph.get_vertices()}
         distances[start] = 0
-        previous = {v: None for v in self.graph.get_vertices(self.router_key)}
+        previous = {v: None for v in self.graph.get_vertices()}
         pq = [(0, start)]
         
         while pq:
@@ -292,7 +286,7 @@ class ServiceRouter:
             if current_distance > distances[current]:
                 continue
                 
-            for neighbor, latency in self.graph.get_neighbors(self.router_key, current).items():
+            for neighbor, latency in self.graph.get_neighbors(current).items():
                 distance = current_distance + latency
                 
                 if distance < distances[neighbor]:
@@ -311,7 +305,7 @@ class ServiceRouter:
     
     def get_service_health(self, service_id: str) -> Optional[Dict[str, Any]]:
         """Get service health information."""
-        return self.graph.get_vertex_data(self.router_key, service_id)
+        return self.graph.get_vertex_data(service_id)
 
 # Usage
 router = ServiceRouter()
@@ -346,8 +340,7 @@ import json
 
 class KnowledgeGraph:
     def __init__(self):
-        self.graph = Graph()
-        self.kg_key = "knowledge_graph"
+        self.graph = Graph("knowledge_graph")
     
     def add_entity(self, entity_id: str, metadata: Dict[str, Any]) -> bool:
         """Add an entity to the knowledge graph."""
@@ -356,7 +349,7 @@ class KnowledgeGraph:
             "added_at": datetime.now().isoformat(),
             "type": metadata.get("type", "unknown")
         }
-        return self.graph.add_vertex(self.kg_key, entity_id, entity_data)
+        return self.graph.add_vertex(entity_id, entity_data)
     
     def add_relationship(
         self, 
@@ -371,15 +364,15 @@ class KnowledgeGraph:
             "confidence": confidence,
             "created_at": datetime.now().isoformat()
         }
-        return self.graph.add_edge(self.kg_key, from_entity, to_entity, confidence)
+        return self.graph.add_edge(from_entity, to_entity, confidence)
     
     def get_entity_relationships(self, entity_id: str) -> Dict[str, Dict[str, Any]]:
         """Get all relationships for an entity."""
         relationships = {}
-        neighbors = self.graph.get_neighbors(self.kg_key, entity_id)
+        neighbors = self.graph.get_neighbors(entity_id)
         
         for neighbor_id, confidence in neighbors.items():
-            target = self.graph.get_vertex_data(self.kg_key, neighbor_id)
+            target = self.graph.get_vertex_data(neighbor_id)
             if target:
                 relationships[neighbor_id] = {
                     "entity": target,
@@ -410,7 +403,7 @@ class KnowledgeGraph:
                 
             visited.add(current)
             
-            for neighbor, confidence in self.graph.get_neighbors(self.kg_key, current).items():
+            for neighbor, confidence in self.graph.get_neighbors(current).items():
                 if neighbor not in visited:
                     result = dfs(
                         neighbor,

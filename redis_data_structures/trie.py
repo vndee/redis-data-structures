@@ -15,31 +15,25 @@ class Trie(RedisDataStructure):
     autocomplete, spell checking, and prefix matching.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize the Trie with Redis connection parameters."""
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
         self.delimiter = ":"  # Used to separate node keys in Redis
 
-    def _get_node_key(self, key: str, prefix: str) -> str:
+    def _get_node_key(self, prefix: str) -> str:
         """Get the Redis key for a node.
 
         Args:
-            key (str): The Redis key for this trie
             prefix (str): The prefix path to this node
 
         Returns:
             str: The complete Redis key for the node
         """
-        base_key = self._get_key(key)
-        return f"{base_key}{self.delimiter}{prefix}" if prefix else base_key
+        return f"{self.key}{self.delimiter}{prefix}" if prefix else self.key
 
-    def insert(self, key: str, word: str) -> bool:
+    def insert(self, word: str) -> bool:
         """Insert a word into the trie.
-
-        Args:
-            key (str): The Redis key for this trie
-            word (str): The word to insert
-
+        
         Returns:
             bool: True if successful, False otherwise
         """
@@ -51,31 +45,27 @@ class Trie(RedisDataStructure):
 
             current_prefix = ""
             for char in word:
-                node_key = self._get_node_key(key, current_prefix)
+                node_key = self._get_node_key(current_prefix)
                 self.connection_manager.execute("hset", node_key, char, "1")
                 current_prefix = current_prefix + char if current_prefix else char
 
             # Mark the end of the word
-            end_key = self._get_node_key(key, current_prefix)
+            end_key = self._get_node_key(current_prefix)
             self.connection_manager.execute("hset", end_key, "*", "1")
             return True
         except Exception:
             logger.exception("Error inserting into trie")
             return False
 
-    def search(self, key: str, word: str) -> bool:
+    def search(self, word: str) -> bool:
         """Search for a word in the trie.
-
-        Args:
-            key (str): The Redis key for this trie
-            word (str): The word to search for
-
+    
         Returns:
             bool: True if the word exists, False otherwise
         """
         try:
             if not word:
-                return bool(self.connection_manager.execute("hexists", self._get_key(key), "*"))
+                return bool(self.connection_manager.execute("hexists", self.key, "*"))
 
             if not isinstance(word, str):
                 return False
@@ -83,23 +73,19 @@ class Trie(RedisDataStructure):
 
             current_prefix = ""
             for char in word:
-                node_key = self._get_node_key(key, current_prefix)
+                node_key = self._get_node_key(current_prefix)
                 if not self.connection_manager.execute("hexists", node_key, char):
                     return False
                 current_prefix = current_prefix + char if current_prefix else char
 
-            end_key = self._get_node_key(key, current_prefix)
+            end_key = self._get_node_key(current_prefix)
             return bool(self.connection_manager.execute("hexists", end_key, "*"))
         except Exception:
             logger.exception("Error searching trie")
             return False
 
-    def starts_with(self, key: str, prefix: str) -> List[str]:
+    def starts_with(self, prefix: str) -> List[str]:
         """Find all words that start with the given prefix.
-
-        Args:
-            key (str): The Redis key for this trie
-            prefix (str): The prefix to search for
 
         Returns:
             List[str]: List of words with the given prefix
@@ -112,49 +98,45 @@ class Trie(RedisDataStructure):
 
             # Handle empty prefix - return all words
             if not prefix:
-                return self.get_all_words(key)
+                return self.get_all_words()
 
             # First verify the prefix exists
             current = ""
             for char in prefix:
-                node_key = self._get_node_key(key, current)
+                node_key = self._get_node_key(current)
                 if not self.connection_manager.execute("hexists", node_key, char):
                     return []
                 current = current + char if current else char
 
             # DFS to find all words with the prefix
             words: List[str] = []
-            self._collect_words(key, prefix, prefix, words)
+            self._collect_words(prefix, prefix, words)
             return sorted(words)  # Return sorted list for consistency
         except Exception:
             logger.exception("Error in starts_with")
             return []
 
-    def get_all_words(self, key: str) -> List[str]:
+    def get_all_words(self) -> List[str]:
         """Get all words in the trie.
-
-        Args:
-            key (str): The Redis key for this trie
 
         Returns:
             List[str]: All words in the trie
         """
         words: List[str] = []
-        if self.connection_manager.execute("hexists", self._get_key(key), "*"):
+        if self.connection_manager.execute("hexists", self.key, "*"):
             words.append("")
-        self._collect_words(key, "", "", words)
+        self._collect_words("", "", words)
         return sorted(words)
 
-    def _collect_words(self, key: str, prefix: str, current_word: str, words: List[str]) -> None:
+    def _collect_words(self, prefix: str, current_word: str, words: List[str]) -> None:
         """Helper method to collect all words with a given prefix using DFS.
 
         Args:
-            key (str): The Redis key for this trie
             prefix (str): The current node's prefix in the trie
             current_word (str): The word being built
             words (List[str]): List to store found words
         """
-        node_key = self._get_node_key(key, prefix)
+        node_key = self._get_node_key(prefix)
 
         # If this is a word, add it to results
         if self.connection_manager.execute("hexists", node_key, "*"):
@@ -168,15 +150,14 @@ class Trie(RedisDataStructure):
                 child_str = child.decode("utf-8") if isinstance(child, bytes) else child
                 if child_str != "*":
                     next_prefix = prefix + child_str if prefix else child_str
-                    self._collect_words(key, next_prefix, current_word + child_str, words)
+                    self._collect_words(next_prefix, current_word + child_str, words)
         except Exception:
             logger.exception("Error collecting words")
 
-    def delete(self, key: str, word: str) -> bool:
+    def delete(self, word: str) -> bool:
         """Delete a word from the trie.
 
         Args:
-            key (str): The Redis key for this trie
             word (str): The word to delete
 
         Returns:
@@ -188,17 +169,17 @@ class Trie(RedisDataStructure):
                 return False
             word = str(word)  # Convert to string but don't strip
 
-            if not self.search(key, word):
+            if not self.search(word):
                 return False
 
             # Remove the word marker
-            end_key = self._get_node_key(key, word)
+            end_key = self._get_node_key(word)
             self.connection_manager.execute("hdel", end_key, "*")
 
             # If the node has no other children, we can remove it and continue up
             current = word
             while current:
-                node_key = self._get_node_key(key, current)
+                node_key = self._get_node_key(current)
                 children = self.connection_manager.execute("hkeys", node_key)
                 if not children:
                     # No children, delete this node and continue up
@@ -212,11 +193,8 @@ class Trie(RedisDataStructure):
             logger.exception("Error deleting from trie")
             return False
 
-    def size(self, key: str) -> int:
+    def size(self) -> int:
         """Get the number of words in the trie.
-
-        Args:
-            key (str): The Redis key for this trie
 
         Returns:
             int: Number of words in the trie
@@ -224,11 +202,11 @@ class Trie(RedisDataStructure):
         try:
             # Count all nodes with the word marker
             count = 0
-            if self.connection_manager.execute("hexists", self._get_key(key), "*"):
+            if self.connection_manager.execute("hexists", self.key, "*"):
                 count += 1
 
             # Use scan to iterate through all keys
-            pattern = f"{self._get_key(key)}{self.delimiter}*"
+            pattern = f"{self.key}{self.delimiter}*"
             cursor = 0  # Start with cursor 0
             while True:
                 cursor, keys = self.connection_manager.execute(
@@ -252,18 +230,15 @@ class Trie(RedisDataStructure):
             logger.exception("Error getting trie size")
             return 0
 
-    def clear(self, key: str) -> bool:
+    def clear(self) -> bool:
         """Remove all words from the trie.
-
-        Args:
-            key (str): The Redis key for this trie
 
         Returns:
             bool: True if successful, False otherwise
         """
         try:
             # Delete all keys with the prefix
-            pattern = f"{self._get_key(key)}{self.delimiter}*"
+            pattern = f"{self.key}{self.delimiter}*"
             cursor = 0  # Start with cursor 0
             while True:
                 cursor, keys = self.connection_manager.execute(
@@ -283,7 +258,7 @@ class Trie(RedisDataStructure):
                     break
 
             # Delete the root key
-            self.connection_manager.execute("delete", self._get_key(key))
+            self.connection_manager.execute("delete", self.key)
             return True
         except Exception:
             logger.exception("Error clearing trie")

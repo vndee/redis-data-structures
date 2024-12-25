@@ -3,11 +3,10 @@ from redis_data_structures import Graph
 
 def demonstrate_graph():
     # Initialize graph
-    graph = Graph(host="localhost", port=6379, db=0)
-    graph_key = "social_network"
+    graph = Graph("social_network", host="localhost", port=6379, db=0)
 
     # Clear any existing data
-    graph.clear(graph_key)
+    graph.clear()
 
     print("=== Graph Example (Social Network) ===")
 
@@ -21,7 +20,7 @@ def demonstrate_graph():
 
     print("\nAdding users to the network...")
     for user_id, profile in users.items():
-        graph.add_vertex(graph_key, user_id, profile)
+        graph.add_vertex(user_id, profile)
         print(f"Added user: {profile['name']}")
 
     # Create friendships (edges)
@@ -36,35 +35,35 @@ def demonstrate_graph():
     ]
 
     for from_user, to_user, strength in friendships:
-        graph.add_edge(graph_key, from_user, to_user, strength)
+        graph.add_edge(from_user, to_user, strength)
         print(f"Added friendship: {from_user} -> {to_user} (strength: {strength})")
 
     # Display network information
     print("\nNetwork Information:")
-    print(f"Total users: {len(graph.get_vertices(graph_key))}")
+    print(f"Total users: {len(graph.get_vertices())}")
 
     # Display user profiles and their friends
     print("\nUser Profiles and Friends:")
-    for user_id in graph.get_vertices(graph_key):
-        profile = graph.get_vertex_data(graph_key, user_id)
-        friends = graph.get_neighbors(graph_key, user_id)
+    for user_id in graph.get_vertices():
+        profile = graph.get_vertex_data(user_id)
+        friends = graph.get_neighbors(user_id)
 
         print(f"\n{profile['name']} ({user_id}):")
         print("Friends:")
         for friend_id, strength in friends.items():
-            friend_profile = graph.get_vertex_data(graph_key, friend_id)
+            friend_profile = graph.get_vertex_data(friend_id)
             print(f"- {friend_profile['name']} (friendship strength: {strength})")
 
     # Remove a user
     print("\nRemoving David from the network...")
-    graph.remove_vertex(graph_key, "david")
+    graph.remove_vertex("david")
 
     # Show updated network
     print("\nUpdated Network Information:")
-    print(f"Total users: {len(graph.get_vertices(graph_key))}")
+    print(f"Total users: {len(graph.get_vertices())}")
 
     # Clean up
-    graph.clear(graph_key)
+    graph.clear()
     print("\nNetwork cleared!")
 
 

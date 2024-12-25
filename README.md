@@ -70,9 +70,9 @@ You can also skip using `ConnectionManager` if the following environment variabl
 ```python
 from redis_data_structures import Queue, Stack, Set
 
-queue = Queue()
-stack = Stack()
-set_ds = Set()
+queue = Queue("test_queue")
+stack = Stack("test_stack")
+set_ds = Set("test_set")
 ```
 
 Refer to **[initialization](docs/initialization.md)** for more information.
@@ -99,32 +99,32 @@ Refer to **[initialization](docs/initialization.md)** for more information.
 ```python
 from redis_data_structures import Queue
 
-queue = Queue()
+queue = Queue("tasks")
 
 # Basic operations
-queue.push('tasks', {'id': 1, 'action': 'process'})
-task = queue.pop('tasks')
-size = queue.size('tasks')
+queue.push({'id': 1, 'action': 'process'})
+task = queue.pop()
+size = queue.size()
 
-stack = Stack()
-stack.push('commands', {'action': 'create'})
-command = stack.pop('commands')
-size = stack.size('commands')
+stack = Stack("commands")
+stack.push({'action': 'create'})
+command = stack.pop()
+size = stack.size()
 
-set_ds = Set()
-set_ds.add('users', {'id': 'user1'})
-exists = set_ds.contains('users', {'id': 'user1'})
-members = set_ds.members('users')
+set_ds = Set("users")
+set_ds.add({'id': 'user1'})
+exists = set_ds.contains({'id': 'user1'})
+members = set_ds.members()
 
-hash_map = HashMap()
+hash_map = HashMap("users")
 hash_map.set('user:1', {'name': 'Alice', 'age': 30})
 user = hash_map.get('user:1')
 exists = hash_map.exists('user:1')
 
-priority_queue = PriorityQueue()
-priority_queue.push('tasks', {'id': 1, 'priority': 1})
-task = priority_queue.pop('tasks')
-peek = priority_queue.peek('tasks')
+priority_queue = PriorityQueue("tasks")
+priority_queue.push({'id': 1, 'priority': 1})
+task = priority_queue.pop()
+peek = priority_queue.peek()
 
 ...
 ```
@@ -149,11 +149,11 @@ conn = ConnectionManager(
 )
 
 # Reuse for multiple queues
-pq1 = PriorityQueue(connection_manager=connection_manager)
-pq2 = PriorityQueue(connection_manager=connection_manager)
+pq1 = PriorityQueue("tasks", connection_manager=conn)
+pq2 = PriorityQueue("tasks", connection_manager=conn)
 
-stack = Stack(connection_manager=connection_manager)
-set_ds = Set(connection_manager=connection_manager)
+stack = Stack("commands", connection_manager=conn)
+set_ds = Set("users", connection_manager=conn)
 ```
 
 ### 🔍 Complex Types
@@ -164,8 +164,8 @@ from datetime import datetime, timezone
 from pydantic import BaseModel
 
 # Initialize data structures
-cache = LRUCache(capacity=1000)  # Using default connection settings
-hash_map = HashMap()  # Using default connection settings
+cache = LRUCache("test_cache", capacity=1000)  # Using default connection settings
+hash_map = HashMap("type_demo_hash")  # Using default connection settings
 
 # Example 1: Basic Python Types
 data = {
@@ -176,8 +176,8 @@ data = {
     "none": None,
 }
 for key, value in data.items():
-    hash_map.set("type_demo_hash", key, value)
-    result = hash_map.get("type_demo_hash", key)
+    hash_map.set(key, value)
+    result = hash_map.get(key)
 
 # Example 2: Collections
 collections = {
@@ -187,18 +187,18 @@ collections = {
     "dict": {"a": 1, "b": 2},
 }
 for key, value in collections.items():
-    hash_map.set("type_demo_hash", key, value)
-    result = hash_map.get("type_demo_hash", key)
+    hash_map.set(key, value)
+    result = hash_map.get(key)
 
 # Example 3: DateTime Types
 now = datetime.now(timezone.utc)
-hash_map.set("type_demo_hash", "datetime", now)
-result = hash_map.get("type_demo_hash", "datetime")
+hash_map.set("datetime", now)
+result = hash_map.get("datetime")
 
 # Example 4: Custom Type
 user = User("John Doe", datetime.now(timezone.utc))
-hash_map.set("type_demo_hash", "custom_user", user)
-result = hash_map.get("type_demo_hash", "custom_user")
+hash_map.set("custom_user", user)
+result = hash_map.get("custom_user")
 
 # Example 5: Pydantic Models
 user_model = UserModel(
@@ -216,12 +216,12 @@ user_model = UserModel(
 )
 
 # Store in different data structures
-cache.put("type_demo_cache", "pydantic_user", user_model)
-hash_map.set("type_demo_hash", "pydantic_user", user_model)
+cache.put("pydantic_user", user_model)
+hash_map.set("pydantic_user", user_model)
 
 # Retrieve and verify
-cache_result = cache.get("type_demo_cache", "pydantic_user")
-hash_result = hash_map.get("type_demo_hash", "pydantic_user")
+cache_result = cache.get("pydantic_user")
+hash_result = hash_map.get("pydantic_user")
 
 # Example 6: Nested Structures
 nested_data = {
@@ -235,8 +235,8 @@ nested_data = {
         "date": now,
     },
 }
-hash_map.set("type_demo_hash", "nested", nested_data)
-result = hash_map.get("type_demo_hash", "nested")
+hash_map.set("nested", nested_data)
+result = hash_map.get("nested")
 
 # Example 7: Custom types with base classes
 class User(CustomRedisDataType):
@@ -251,7 +251,7 @@ class User(CustomRedisDataType):
     def from_dict(cls, data: dict) -> 'User':
         return cls(data["name"], data["age"])
 
-hash_map.set("type_demo_hash", "custom_user", User("John Doe", 30))
+hash_map.set("custom_user", User("John Doe", 30))
 ```
 See **[type preservation](docs/type_preservation.md)** for more information.
 

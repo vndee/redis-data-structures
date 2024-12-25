@@ -3,11 +3,10 @@ from redis_data_structures import HashMap
 
 def demonstrate_hash_map():
     # Initialize hash map
-    hash_map = HashMap(host="localhost", port=6379, db=0)
-    hash_key = "user_profiles"
+    hash_map = HashMap("user_profiles")
 
     # Clear any existing data
-    hash_map.clear(hash_key)
+    hash_map.clear()
 
     print("=== Hash Map Example ===")
 
@@ -20,14 +19,14 @@ def demonstrate_hash_map():
 
     # Adding user profiles
     for user_id, profile in users.items():
-        hash_map.set(hash_key, user_id, profile)
+        hash_map.set(user_id, profile)
         print(f"Added profile for user: {user_id}")
 
-    print(f"\nTotal profiles stored: {hash_map.size(hash_key)}")
+    print(f"\nTotal profiles stored: {hash_map.size()}")
 
     # Retrieving a specific profile
     user_id = "user123"
-    profile = hash_map.get(hash_key, user_id)
+    profile = hash_map.get(user_id)
     if profile:
         print(f"\nProfile for {user_id}:")
         for key, value in profile.items():
@@ -35,7 +34,7 @@ def demonstrate_hash_map():
 
     # Getting all profiles
     print("\nAll profiles:")
-    all_profiles = hash_map.get_all(hash_key)
+    all_profiles = hash_map.get_all()
     for user_id, profile in all_profiles.items():
         print(f"\nUser ID: {user_id}")
         for key, value in profile.items():
@@ -48,18 +47,18 @@ def demonstrate_hash_map():
         "email": "jane.smith@example.com",  # Updated email
         "age": 26,  # Updated age
     }
-    hash_map.set(hash_key, user_id, updated_profile)
+    hash_map.set(user_id, updated_profile)
     print(f"\nUpdated profile for user: {user_id}")
 
     # Verify the update
-    updated = hash_map.get(hash_key, user_id)
+    updated = hash_map.get(user_id)
     if updated:
         print(f"\nUpdated profile for {user_id}:")
         for key, value in updated.items():
             print(f"- {key}: {value}")
 
     # Clean up
-    hash_map.clear(hash_key)
+    hash_map.clear()
     hash_map.close()
 
 

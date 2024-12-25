@@ -13,11 +13,10 @@ class HashMap(RedisDataStructure):
     key-value storage with type preservation.
     """
 
-    def set(self, key: str, field: str, value: Any) -> bool:
+    def set(self, field: str, value: Any) -> bool:
         """Set a field in the hash map.
 
         Args:
-            key (str): The Redis key for this hash map
             field (str): The field name
             value (Any): The value to store
 
@@ -27,25 +26,22 @@ class HashMap(RedisDataStructure):
         try:
             serialized = self.serialize(value)
             logger.debug(f"Setting field {field} with serialized value: {serialized}")
-            return bool(
-                self.connection_manager.execute("hset", self._get_key(key), field, serialized),
-            )
+            return bool(self.connection_manager.execute("hset", self.key, field, serialized))
         except Exception:
             logger.exception("Error setting hash field")
             return False
 
-    def get(self, key: str, field: str) -> Optional[Any]:
+    def get(self, field: str) -> Optional[Any]:
         """Get a field from the hash map.
 
         Args:
-            key (str): The Redis key for this hash map
             field (str): The field name
 
         Returns:
             Optional[Any]: The value if successful, None otherwise
         """
         try:
-            data = self.connection_manager.execute("hget", self._get_key(key), field)
+            data = self.connection_manager.execute("hget", self.key, field)
             if data:
                 # Handle bytes response from Redis
                 if isinstance(data, bytes):
@@ -56,49 +52,44 @@ class HashMap(RedisDataStructure):
             logger.exception("Error getting hash field")
             return None
 
-    def delete(self, key: str, field: str) -> bool:
+    def delete(self, field: str) -> bool:
         """Delete a field from the hash map.
 
         Args:
-            key (str): The Redis key for this hash map
             field (str): The field name
 
         Returns:
             bool: True if successful, False otherwise
         """
         try:
-            return bool(self.connection_manager.execute("hdel", self._get_key(key), field))
+            return bool(self.connection_manager.execute("hdel", self.key, field))
         except Exception:
             logger.exception("Error deleting hash field")
             return False
 
-    def exists(self, key: str, field: str) -> bool:
+    def exists(self, field: str) -> bool:
         """Check if a field exists in the hash map.
 
         Args:
-            key (str): The Redis key for this hash map
             field (str): The field name
 
         Returns:
             bool: True if the field exists, False otherwise
         """
         try:
-            return bool(self.connection_manager.execute("hexists", self._get_key(key), field))
+            return bool(self.connection_manager.execute("hexists", self.key, field))
         except Exception:
             logger.exception("Error checking hash field existence")
             return False
 
-    def get_all(self, key: str) -> Dict[str, Any]:
+    def get_all(self) -> Dict[str, Any]:
         """Get all fields and values from the hash map.
-
-        Args:
-            key (str): The Redis key for this hash map
 
         Returns:
             Dict[str, Any]: Dictionary of field-value pairs
         """
         try:
-            data = self.connection_manager.execute("hgetall", self._get_key(key))
+            data = self.connection_manager.execute("hgetall", self.key)
             if not data:
                 return {}
 
@@ -137,17 +128,14 @@ class HashMap(RedisDataStructure):
             logger.exception("Error getting all hash fields")
             return {}
 
-    def get_fields(self, key: str) -> List[str]:
+    def get_fields(self) -> List[str]:
         """Get all fields from the hash map.
-
-        Args:
-            key (str): The Redis key for this hash map
 
         Returns:
             List[str]: List of field names
         """
         try:
-            fields = self.connection_manager.execute("hkeys", self._get_key(key))
+            fields = self.connection_manager.execute("hkeys", self.key)
             return [
                 field.decode("utf-8") if isinstance(field, bytes) else field
                 for field in (fields or [])
@@ -156,26 +144,20 @@ class HashMap(RedisDataStructure):
             logger.exception("Error getting hash fields")
             return []
 
-    def size(self, key: str) -> int:
+    def size(self) -> int:
         """Get the number of fields in the hash map.
-
-        Args:
-            key (str): The Redis key for this hash map
 
         Returns:
             int: Number of fields
         """
         try:
-            return self.connection_manager.execute("hlen", self._get_key(key)) or 0
+            return self.connection_manager.execute("hlen", self.key) or 0
         except Exception:
             logger.exception("Error getting hash size")
             return 0
 
-    def clear(self, key: str) -> bool:
+    def clear(self) -> bool:
         """Clear all fields from the hash map.
-
-        Args:
-            key (str): The Redis key for this hash map
 
         Returns:
             bool: True if successful, False otherwise
@@ -183,7 +165,7 @@ class HashMap(RedisDataStructure):
         try:
             # Use delete instead of del (del is a Python keyword)
             # delete returns the number of keys that were removed
-            self.connection_manager.execute("delete", self._get_key(key))
+            self.connection_manager.execute("delete", self.key)
             return True
         except Exception:
             logger.exception("Error clearing hash")

@@ -15,11 +15,10 @@ class PriorityQueue(RedisDataStructure):
     to be processed based on their relative importance or urgency.
     """
 
-    def push(self, key: str, data: Any, priority: int = 0) -> bool:
+    def push(self, data: Any, priority: int = 0) -> bool:
         """Push an item onto the priority queue.
 
         Args:
-            key (str): The Redis key for this priority queue
             data (Any): Data to be stored
             priority (int): Priority level (lower number = higher priority)
 
@@ -27,28 +26,23 @@ class PriorityQueue(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            cache_key = self._get_key(key)
             serialized = self.serialize(data)
             # Redis zadd expects mapping of {member: score}
             mapping = {serialized: float(priority)}
-            return bool(self.connection_manager.execute("zadd", cache_key, mapping=mapping))
+            return bool(self.connection_manager.execute("zadd", self.key, mapping=mapping))
         except Exception:
             logger.exception("Error pushing to priority queue")
             return False
 
-    def pop(self, key: str) -> Optional[Tuple[Any, int]]:
+    def pop(self) -> Optional[Tuple[Any, int]]:
         """Pop the highest priority item from the queue.
-
-        Args:
-            key (str): The Redis key for this priority queue
 
         Returns:
             Optional[Tuple[Any, int]]: Tuple of (data, priority) if successful, None otherwise
         """
         try:
-            cache_key = self._get_key(key)
             # Get the first item (lowest score = highest priority)
-            items = self.connection_manager.execute("zrange", cache_key, 0, 0, withscores=True)
+            items = self.connection_manager.execute("zrange", self.key, 0, 0, withscores=True)
             if not items:
                 return None
 
@@ -59,7 +53,7 @@ class PriorityQueue(RedisDataStructure):
                 item = item.decode("utf-8")
 
             # Remove the item from the queue
-            if not self.connection_manager.execute("zrem", cache_key, item):
+            if not self.connection_manager.execute("zrem", self.key, item):
                 logger.exception("Failed to remove item from priority queue")
                 return None
 
@@ -68,19 +62,15 @@ class PriorityQueue(RedisDataStructure):
             logger.exception("Error popping from priority queue")
             return None
 
-    def peek(self, key: str) -> Optional[Tuple[Any, int]]:
+    def peek(self) -> Optional[Tuple[Any, int]]:
         """Peek at the highest priority item without removing it.
-
-        Args:
-            key (str): The Redis key for this priority queue
 
         Returns:
             Optional[Tuple[Any, int]]: Tuple of (data, priority) if successful, None otherwise
         """
         try:
-            cache_key = self._get_key(key)
             # Get the first item without removing it
-            items = self.connection_manager.execute("zrange", cache_key, 0, 0, withscores=True)
+            items = self.connection_manager.execute("zrange", self.key, 0, 0, withscores=True)
             if not items:
                 return None
 
@@ -95,48 +85,38 @@ class PriorityQueue(RedisDataStructure):
             logger.exception("Error peeking priority queue")
             return None
 
-    def size(self, key: str) -> int:
+    def size(self) -> int:
         """Get the number of items in the priority queue.
-
-        Args:
-            key (str): The Redis key for this priority queue
 
         Returns:
             int: Number of items in the queue
         """
         try:
-            return self.connection_manager.execute("zcard", self._get_key(key)) or 0
+            return self.connection_manager.execute("zcard", self.key) or 0
         except Exception:
             logger.exception("Error getting priority queue size")
             return 0
 
-    def clear(self, key: str) -> bool:
+    def clear(self) -> bool:
         """Clear all items from the priority queue.
-
-        Args:
-            key (str): The Redis key for this priority queue
 
         Returns:
             bool: True if successful, False otherwise
         """
         try:
-            return bool(self.connection_manager.execute("delete", self._get_key(key)))
+            return bool(self.connection_manager.execute("delete", self.key))
         except Exception:
             logger.exception("Error clearing priority queue")
             return False
 
-    def get_all(self, key: str) -> list:
+    def get_all(self) -> list:
         """Get all items in the priority queue without removing them.
-
-        Args:
-            key (str): The Redis key for this priority queue
 
         Returns:
             list: List of (data, priority) tuples in priority order
         """
         try:
-            cache_key = self._get_key(key)
-            items = self.connection_manager.execute("zrange", cache_key, 0, -1, withscores=True)
+            items = self.connection_manager.execute("zrange", self.key, 0, -1, withscores=True)
             if not items:
                 return []
 

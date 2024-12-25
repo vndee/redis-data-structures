@@ -23,22 +23,21 @@ from redis_data_structures import BloomFilter
 
 # Initialize Bloom filter with custom parameters
 bf = BloomFilter(
+    key="email_blacklist",
     expected_elements=1000,  # Expect to store ~1000 elements
     false_positive_rate=0.01  # 1% false positive rate
 )
 
-filter_key = "email_blacklist"
-
 # Add items to the filter
-bf.add(filter_key, "spam@example.com")
-bf.add(filter_key, "malicious@example.com")
+bf.add("spam@example.com")
+bf.add("malicious@example.com")
 
 # Check if items exist
-is_spam = bf.contains(filter_key, "spam@example.com")  # Returns True
-is_safe = bf.contains(filter_key, "legitimate@example.com")  # Likely returns False
+is_spam = bf.contains("spam@example.com")  # Returns True
+is_safe = bf.contains("legitimate@example.com")  # Likely returns False
 
 # Clear the filter
-bf.clear(filter_key)
+bf.clear()
 
 # Get filter size in bits
 size = bf.size()
@@ -54,25 +53,25 @@ import json
 class DuplicateDetector:
     def __init__(self, expected_items: int = 10000):
         self.bloom = BloomFilter(
+            key="seen_items",
             expected_elements=expected_items,
             false_positive_rate=0.001  # 0.1% false positive rate for higher accuracy
         )
-        self.filter_key = "seen_items"
-    
+
     def is_duplicate(self, item: any) -> bool:
         """Check if item might be a duplicate."""
         # Convert complex objects to JSON for consistent hashing
         if not isinstance(item, (str, int, float, bool)):
             item = json.dumps(item, sort_keys=True)
             
-        return self.bloom.contains(self.filter_key, item)
+        return self.bloom.contains(item)
     
     def mark_seen(self, item: any) -> None:
         """Mark item as seen."""
         if not isinstance(item, (str, int, float, bool)):
             item = json.dumps(item, sort_keys=True)
-            
-        self.bloom.add(self.filter_key, item)
+
+        self.bloom.add(item)
     
     def process_items(self, items: List[any]) -> Set[any]:
         """Process items and return unique ones."""
@@ -101,8 +100,7 @@ class URLDeduplicator:
             expected_elements=expected_urls,
             false_positive_rate=0.001
         )
-        self.filter_key = "crawled_urls"
-    
+
     def normalize_url(self, url: str) -> str:
         """Normalize URL for consistent checking."""
         parsed = urlparse(url.lower())
@@ -111,12 +109,12 @@ class URLDeduplicator:
     def is_crawled(self, url: str) -> bool:
         """Check if URL has been crawled."""
         normalized = self.normalize_url(url)
-        return self.bloom.contains(self.filter_key, normalized)
+        return self.bloom.contains(normalized)
     
     def mark_crawled(self, url: str) -> None:
         """Mark URL as crawled."""
         normalized = self.normalize_url(url)
-        self.bloom.add(self.filter_key, normalized)
+        self.bloom.add(normalized)
     
     def filter_urls(self, urls: Set[str]) -> Set[str]:
         """Filter out previously crawled URLs."""
@@ -145,27 +143,20 @@ from datetime import datetime, timedelta
 class UserActivityTracker:
     def __init__(self, expected_users: int = 100000):
         self.bloom = BloomFilter(
+            key="user_activity",
             expected_elements=expected_users,
             false_positive_rate=0.01
         )
     
-    def get_daily_key(self, date: datetime) -> str:
-        """Get Redis key for specific date."""
-        return f"user_activity:{date.strftime('%Y-%m-%d')}"
-    
-    def record_activity(self, user_id: str, activity_type: str):
-        """Record user activity for today."""
-        key = self.get_daily_key(datetime.now())
-        activity_signature = f"{user_id}:{activity_type}"
-        self.bloom.add(key, activity_signature)
-    
-    def has_activity_today(self, user_id: str, activity_type: str) -> bool:
-        """Check if user has performed activity today."""
-        key = self.get_daily_key(datetime.now())
-        activity_signature = f"{user_id}:{activity_type}"
-        return self.bloom.contains(key, activity_signature)
-    
-    def cleanup_old_data(self, days_to_keep: int = 30):
+    def record_activity(self, user_id: str, activity: str) -> None:
+        """Record user activity."""
+        self.bloom.add(f"{user_id}:{activity}")
+
+    def has_activity(self, user_id: str, activity: str) -> bool:
+        """Check if user has performed activity."""
+        return self.bloom.contains(f"{user_id}:{activity}")
+
+    def cleanup_old_data(self, days_to_keep: int = 30) -> None:
         """Clean up activity data older than specified days."""
         cutoff_date = datetime.now() - timedelta(days=days_to_keep)
         current = cutoff_date
@@ -200,10 +191,10 @@ from typing import List, Set
 class ContentFilter:
     def __init__(self, expected_patterns: int = 10000):
         self.bloom = BloomFilter(
+            key="content_patterns",
             expected_elements=expected_patterns,
             false_positive_rate=0.0001  # Very low false positive rate for content filtering
         )
-        self.filter_key = "content_patterns"
     
     def generate_patterns(self, content: str, pattern_length: int = 4) -> Set[str]:
         """Generate n-gram patterns from content."""
@@ -217,7 +208,7 @@ class ContentFilter:
         """Add inappropriate content patterns to filter."""
         patterns = self.generate_patterns(content)
         for pattern in patterns:
-            self.bloom.add(self.filter_key, pattern)
+            self.bloom.add(pattern)
     
     def is_inappropriate(self, content: str, threshold: float = 0.1) -> bool:
         """Check if content might be inappropriate."""
@@ -225,7 +216,7 @@ class ContentFilter:
         if not patterns:
             return False
             
-        matches = sum(1 for p in patterns if self.bloom.contains(self.filter_key, p))
+        matches = sum(1 for p in patterns if self.bloom.contains(p))
         return (matches / len(patterns)) > threshold
     
     def add_batch_content(self, content_list: List[str]):

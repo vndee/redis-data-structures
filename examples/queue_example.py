@@ -7,11 +7,10 @@ from redis_data_structures import Queue
 def demonstrate_queue():
     """Demonstrate queue functionality with a task processing system."""
     # Initialize queue
-    queue = Queue()
-    queue_key = "task_queue"
+    queue = Queue("task_queue")
 
     # Clear any existing data
-    queue.clear(queue_key)
+    queue.clear()
 
     print("=== Queue Example (FIFO) ===")
 
@@ -24,16 +23,16 @@ def demonstrate_queue():
     ]
 
     for task in tasks:
-        if queue.push(queue_key, task):
+        if queue.push(task):
             print(f"Added task: {task['type']}_{task['action']}")
         else:
             print(f"Failed to add task: {task['type']}_{task['action']}")
 
-    print(f"\nQueue size: {queue.size(queue_key)}")
+    print(f"\nQueue size: {queue.size()}")
 
     # Peek at next task
     print("\nPeeking at next task...")
-    next_task = queue.peek(queue_key)
+    next_task = queue.peek()
     if next_task:
         print(f"Next task to process: {next_task['type']}_{next_task['action']}")
     else:
@@ -41,8 +40,8 @@ def demonstrate_queue():
 
     # Processing tasks
     print("\nProcessing tasks...")
-    while queue.size(queue_key) > 0:
-        task = queue.pop(queue_key)
+    while queue.size() > 0:
+        task = queue.pop()
         if task:
             print(f"Processing: {task['type']}_{task['action']}")
             process_task(task)

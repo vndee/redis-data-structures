@@ -8,6 +8,8 @@ import redis
 from redis.connection import ConnectionPool
 from redis.exceptions import RedisError
 
+from .exceptions import CircuitBreakerError
+
 logger = logging.getLogger(__name__)
 
 
@@ -94,7 +96,7 @@ class ConnectionManager:
 
     @backoff.on_exception(
         backoff.expo,
-        (RedisError, ConnectionError),
+        (RedisError, ConnectionError, CircuitBreakerError),
         max_tries=3,
         jitter=None,
         on_backoff=lambda details: logger.warning(
@@ -124,10 +126,10 @@ class ConnectionManager:
             result = func(*args, **kwargs)
             self._failure_count = 0  # Reset on success
             return result
-        except (RedisError, ConnectionError):
+        except (RedisError, ConnectionError, CircuitBreakerError):
             self._failure_count += 1
             logger.exception(f"Redis command failed: {func_name}")
-            raise
+            raise CircuitBreakerError("Circuit breaker is open")
 
     def pipeline(self) -> redis.client.Pipeline:
         """Get a Redis pipeline for batch operations."""

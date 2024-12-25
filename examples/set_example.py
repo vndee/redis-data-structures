@@ -6,11 +6,10 @@ from redis_data_structures import Set
 def demonstrate_user_sessions():
     """Demonstrate set functionality with user session tracking."""
     # Initialize set
-    set_ds = Set()
-    set_key = "example:active_users"
+    set_ds = Set("example:active_users")
 
     # Clear any existing data
-    set_ds.clear(set_key)
+    set_ds.clear()
 
     print("=== User Session Tracking Example ===")
 
@@ -19,41 +18,40 @@ def demonstrate_user_sessions():
     users = ["user123", "user456", "user789", "user123", "user001"]  # Note: user123 is duplicate
 
     for user in users:
-        if set_ds.add(set_key, user):
+        if set_ds.add(user):
             print(f"Added new user session: {user}")
         else:
             print(f"User {user} already active")
 
-    print(f"\nTotal unique active users: {set_ds.size(set_key)}")
+    print(f"\nTotal unique active users: {set_ds.size()}")
 
     # Check specific user
     test_user = "user123"
-    is_active = set_ds.contains(set_key, test_user)
+    is_active = set_ds.contains(test_user)
     print(f"\nIs {test_user} active? {is_active}")
 
     # Get all active users
-    active_users = set_ds.members(set_key)
+    active_users = set_ds.members()
     print("\nAll active users:")
     for user in sorted(active_users):  # Sort for consistent output
         print(f"- {user}")
 
     # Remove a user
     remove_user = "user456"
-    if set_ds.remove(set_key, remove_user):
+    if set_ds.remove(remove_user):
         print(f"\nRemoved user: {remove_user}")
     else:
         print(f"\nUser {remove_user} was not active")
-    print(f"Updated active users count: {set_ds.size(set_key)}")
+    print(f"Updated active users count: {set_ds.size()}")
 
 
 def demonstrate_complex_data():
     """Demonstrate set functionality with complex data types."""
     # Initialize set
-    set_ds = Set()
-    set_key = "example:user_profiles"
+    set_ds = Set("example:user_profiles")
 
     # Clear any existing data
-    set_ds.clear(set_key)
+    set_ds.clear()
 
     print("\n=== Complex Data Example ===")
 
@@ -67,13 +65,13 @@ def demonstrate_complex_data():
 
     print("\nAdding user profiles...")
     for profile in profiles:
-        if set_ds.add(set_key, profile):
+        if set_ds.add(profile):
             print(f"Added profile: {profile['name']} (ID: {profile['id']})")
         else:
             print(f"Profile already exists: {profile['name']} (ID: {profile['id']})")
 
     # Get all profiles
-    all_profiles = set_ds.members(set_key)
+    all_profiles = set_ds.members()
     print("\nAll user profiles:")
     for profile in sorted(all_profiles, key=lambda x: x["id"]):  # Sort by ID
         print(f"- {profile['name']} (ID: {profile['id']}, Roles: {', '.join(profile['roles'])})")
@@ -87,8 +85,8 @@ def demonstrate_complex_data():
     }
 
     # The object will be automatically serialized/deserialized
-    set_ds.add("users", user)
-    stored_user = set_ds.members("users")[0]
+    set_ds.add(user)
+    stored_user = set_ds.members()[0]
     print("\nStored user:")
     print(stored_user)
 
@@ -96,13 +94,11 @@ def demonstrate_complex_data():
 def demonstrate_set_operations():
     """Demonstrate set functionality with tag management."""
     # Initialize set
-    set_ds = Set()
-    post1_tags_key = "example:post1:tags"
+    set_ds = Set("example:post1:tags")
     post2_tags_key = "example:post2:tags"
 
     # Clear any existing data
-    set_ds.clear(post1_tags_key)
-    set_ds.clear(post2_tags_key)
+    set_ds.clear()
 
     print("\n=== Tag Management Example ===")
 
@@ -112,26 +108,26 @@ def demonstrate_set_operations():
 
     print("\nAdding tags for Post 1...")
     for tag in post1_tags:
-        if set_ds.add(post1_tags_key, tag):
+        if set_ds.add(tag):
             print(f"Added tag: {tag}")
 
     print("\nAdding tags for Post 2...")
     for tag in post2_tags:
-        if set_ds.add(post2_tags_key, tag):
+        if set_ds.add(tag):
             print(f"Added tag: {tag}")
 
     # Get all tags for each post
     print("\nPost 1 tags:")
-    for tag in sorted(set_ds.members(post1_tags_key)):
+    for tag in sorted(set_ds.members()):
         print(f"- {tag}")
 
     print("\nPost 2 tags:")
-    for tag in sorted(set_ds.members(post2_tags_key)):
+    for tag in sorted(set_ds.members()):
         print(f"- {tag}")
 
     # Convert Redis sets to Python sets for set operations
-    post1_set = set(set_ds.members(post1_tags_key))
-    post2_set = set(set_ds.members(post2_tags_key))
+    post1_set = set(set_ds.members())
+    post2_set = set(set_ds.members())
 
     # Find common tags
     common_tags = post1_set & post2_set

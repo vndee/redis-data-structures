@@ -36,7 +36,7 @@ class TestRedisDataStructure:
         self.config = Config.from_env()
         mock_connection = Mock(spec=ConnectionManager)
         mock_connection.execute.return_value = True
-        self.rds = RedisDataStructure(config=self.config, connection_manager=mock_connection)
+        self.rds = RedisDataStructure(key="test_key", config=self.config, connection_manager=mock_connection)
 
     def test_serialize_custom_type(self):
         """Test serialization of a custom type."""
@@ -94,7 +94,7 @@ class TestRedisDataStructure:
         config.data_structures.compression_enabled = True
         config.data_structures.compression_threshold = 10
         mock_connection = Mock(spec=ConnectionManager)
-        rds = RedisDataStructure(config=config, connection_manager=mock_connection)
+        rds = RedisDataStructure("test_key", config=config, connection_manager=mock_connection)
 
         # Create a large string that will trigger compression
         large_data = "x" * 1000
@@ -215,10 +215,10 @@ class TestRedisDataStructure:
     def test_clear_operation(self):
         """Test clear operation."""
         self.rds.connection_manager.execute.return_value = 1
-        assert self.rds.clear("test_key") is True
+        assert self.rds.clear() is True
         self.rds.connection_manager.execute.assert_called_with(
             "delete",
-            self.rds._get_key("test_key"),
+            self.rds.key,
         )
 
     def test_connection_close(self):
@@ -233,4 +233,4 @@ class TestRedisDataStructure:
         assert self.rds.set_ttl("key", 100) is False
         assert self.rds.get_ttl("key") is None
         assert self.rds.persist("key") is False
-        assert self.rds.clear("key") is False
+        assert self.rds.clear() is False

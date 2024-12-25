@@ -18,24 +18,23 @@ A Redis-backed LIFO (Last-In-First-Out) stack implementation. Perfect for managi
 from redis_data_structures import Stack
 
 # Initialize stack
-stack = Stack()
-stack_key = "undo_stack"
+stack = Stack(key="undo_stack")
 
 # Add items
-stack.push(stack_key, "operation1")
-stack.push(stack_key, "operation2")
+stack.push("operation1")
+stack.push("operation2")
 
 # Get items (LIFO order)
-operation = stack.pop(stack_key)  # Returns "operation2"
+operation = stack.pop()  # Returns "operation2"
 
 # Check size
-size = stack.size(stack_key)  # Returns 1
+size = stack.size()  # Returns 1
 
 # Peek at top item without removing
-next_operation = stack.peek(stack_key)  # Returns "operation1" without removing it
+next_operation = stack.peek()  # Returns "operation1" without removing it
 
 # Clear the stack
-stack.clear(stack_key)
+stack.clear()
 ```
 
 ## Advanced Usage
@@ -44,8 +43,7 @@ stack.clear(stack_key)
 from redis_data_structures import Stack
 
 # Initialize stack
-stack = Stack()
-stack_key = "operations"
+stack = Stack(key="operations")
 
 # Store complex data types
 operation = {
@@ -56,11 +54,11 @@ operation = {
         "content": "Hello World"
     }
 }
-stack.push(stack_key, operation)
+stack.push(operation)
 
 # Process operations with error handling
-while stack.size(stack_key) > 0:
-    operation = stack.pop(stack_key)
+while stack.size() > 0:
+    operation = stack.pop()
     if operation:
         print(f"Undoing: {operation['type']}_{operation['action']}")
     else:
@@ -77,8 +75,7 @@ from typing import Dict, Any
 
 class UndoSystem:
     def __init__(self):
-        self.stack = Stack()
-        self.stack_key = "undo_operations"
+        self.stack = Stack(key="undo_operations")
     
     def add_operation(self, operation_type: str, data: Dict[str, Any]):
         """Add an operation to the undo stack."""
@@ -86,15 +83,15 @@ class UndoSystem:
             "type": operation_type,
             "data": data
         }
-        return self.stack.push(self.stack_key, operation)
+        return self.stack.push(operation)
     
     def undo(self) -> Dict[str, Any]:
         """Undo the last operation."""
-        return self.stack.pop(self.stack_key)
+        return self.stack.pop()
     
     def peek_last_operation(self) -> Dict[str, Any]:
         """Preview the last operation without undoing."""
-        return self.stack.peek(self.stack_key)
+        return self.stack.peek()
 
 # Usage
 undo_system = UndoSystem()
@@ -111,8 +108,7 @@ from typing import Dict, Any
 
 class NavigationHistory:
     def __init__(self):
-        self.stack = Stack()
-        self.stack_key = "navigation"
+        self.stack = Stack(key="navigation")
     
     def visit_page(self, url: str, title: str):
         """Record a page visit."""
@@ -120,15 +116,15 @@ class NavigationHistory:
             "url": url,
             "title": title
         }
-        return self.stack.push(self.stack_key, page)
+        return self.stack.push(page)
     
     def go_back(self) -> Dict[str, Any]:
         """Navigate to previous page."""
-        return self.stack.pop(self.stack_key)
+        return self.stack.pop()
     
     def current_page(self) -> Dict[str, Any]:
         """Get current page without navigating away."""
-        return self.stack.peek(self.stack_key)
+        return self.stack.peek()
 
 # Usage
 history = NavigationHistory()

@@ -22,25 +22,24 @@ where:
 from redis_data_structures import PriorityQueue
 
 # Initialize priority queue
-pq = PriorityQueue()
-queue_key = "tasks"
+pq = PriorityQueue("tasks")
 
 # Add items with priorities (lower number = higher priority)
-pq.push(queue_key, "critical_task", priority=1)
-pq.push(queue_key, "normal_task", priority=2)
-pq.push(queue_key, "low_priority_task", priority=3)
+pq.push("critical_task", priority=1)
+pq.push("normal_task", priority=2)
+pq.push("low_priority_task", priority=3)
 
 # Get highest priority item
-task, priority = pq.pop(queue_key)  # Returns ("critical_task", 1)
+task, priority = pq.pop()  # Returns ("critical_task", 1)
 
 # Check size
-size = pq.size(queue_key)  # Returns 2
+size = pq.size()  # Returns 2
 
 # Peek at highest priority item without removing
-next_task, next_priority = pq.peek(queue_key)  # Returns ("normal_task", 2)
+next_task, next_priority = pq.peek()  # Returns ("normal_task", 2)
 
 # Clear the queue
-pq.clear(queue_key)
+pq.clear()
 ```
 
 ## Advanced Usage
@@ -57,8 +56,7 @@ class Priority(IntEnum):
     LOW = 4
 
 # Initialize priority queue
-pq = PriorityQueue()
-queue_key = "tasks"
+pq = PriorityQueue("tasks")
 
 # Store complex data types with priorities
 task = {
@@ -69,11 +67,11 @@ task = {
         "patch_id": "CVE-2024-001"
     }
 }
-pq.push(queue_key, task, priority=Priority.CRITICAL)
+pq.push(task, priority=Priority.CRITICAL)
 
 # Process tasks by priority with error handling
-while pq.size(queue_key) > 0:
-    result = pq.pop(queue_key)
+while pq.size() > 0:
+    result = pq.pop()
     if result:
         task, priority = result
         print(f"Processing: {task['type']} (Priority: {Priority(priority).name})")
@@ -81,7 +79,7 @@ while pq.size(queue_key) > 0:
         print("Error retrieving task")
 
 # Get all tasks in priority order
-all_tasks = pq.get_all(queue_key)
+all_tasks = pq.get_all()
 for task, priority in all_tasks:
     print(f"Task: {task}, Priority: {Priority(priority).name}")
 ```
@@ -98,8 +96,7 @@ import time
 
 class TimeBasedScheduler:
     def __init__(self):
-        self.pq = PriorityQueue()
-        self.queue_key = "scheduled_tasks"
+        self.pq = PriorityQueue("scheduled_tasks")
     
     def schedule_task(self, task_type: str, data: Dict[str, Any], execute_at: datetime):
         """Schedule a task for execution at a specific time."""
@@ -110,7 +107,7 @@ class TimeBasedScheduler:
         }
         # Use timestamp as priority (earlier time = higher priority)
         priority = execute_at.timestamp()
-        return self.pq.push(self.queue_key, task, priority=priority)
+        return self.pq.push(task, priority=priority)
     
     def schedule_recurring(self, task_type: str, data: Dict[str, Any], 
                          interval: timedelta, start_time: Optional[datetime] = None):
@@ -129,11 +126,11 @@ class TimeBasedScheduler:
             "interval": interval.total_seconds(),
             "is_recurring": True
         }
-        return self.pq.push(self.queue_key, task, priority=next_time.timestamp())
+        return self.pq.push(task, priority=next_time.timestamp())
     
     def get_due_task(self) -> Optional[tuple[Dict[str, Any], float]]:
         """Get task if it's due for execution."""
-        result = self.pq.peek(self.queue_key)
+        result = self.pq.peek()
         if not result:
             return None
         
@@ -143,7 +140,7 @@ class TimeBasedScheduler:
         # Check if task is due
         if priority <= now:
             # Remove and return the task
-            return self.pq.pop(self.queue_key)
+            return self.pq.pop()
         return None
     
     def process_tasks(self, stop_time: Optional[datetime] = None):
@@ -210,8 +207,7 @@ class TaskPriority(IntEnum):
 
 class TaskScheduler:
     def __init__(self):
-        self.pq = PriorityQueue()
-        self.queue_key = "scheduled_tasks"
+        self.pq = PriorityQueue("scheduled_tasks")
     
     def add_task(self, task_type: str, data: Dict[str, Any], priority: TaskPriority):
         """Add a task with priority."""
@@ -219,19 +215,19 @@ class TaskScheduler:
             "type": task_type,
             "data": data
         }
-        return self.pq.push(self.queue_key, task, priority=priority)
+        return self.pq.push(task, priority=priority)
     
     def get_next_task(self) -> tuple[Dict[str, Any], int]:
         """Get highest priority task."""
-        return self.pq.pop(self.queue_key)
+        return self.pq.pop()
     
     def peek_next_task(self) -> tuple[Dict[str, Any], int]:
         """Preview next task without removing."""
-        return self.pq.peek(self.queue_key)
+        return self.pq.peek()
     
     def get_all_tasks(self) -> list[tuple[Dict[str, Any], int]]:
         """Get all tasks in priority order."""
-        return self.pq.get_all(self.queue_key)
+        return self.pq.get_all()
 
 # Usage
 scheduler = TaskScheduler()
@@ -262,8 +258,7 @@ class RequestPriority(IntEnum):
 
 class ServiceRequestHandler:
     def __init__(self):
-        self.pq = PriorityQueue()
-        self.queue_key = "service_requests"
+        self.pq = PriorityQueue("service_requests")
     
     def add_request(self, user_id: str, request_type: str, data: Dict[str, Any], user_tier: str):
         """Add a service request with priority based on user tier."""
@@ -273,15 +268,15 @@ class ServiceRequestHandler:
             "data": data
         }
         priority = RequestPriority[user_tier.upper()]
-        return self.pq.push(self.queue_key, request, priority=priority)
+        return self.pq.push(request, priority=priority)
     
     def process_next_request(self) -> tuple[Dict[str, Any], int]:
         """Process highest priority request."""
-        return self.pq.pop(self.queue_key)
+        return self.pq.pop()
     
     def get_pending_requests(self) -> list[tuple[Dict[str, Any], int]]:
         """Get all pending requests in priority order."""
-        return self.pq.get_all(self.queue_key)
+        return self.pq.get_all()
 
 # Usage
 handler = ServiceRequestHandler()

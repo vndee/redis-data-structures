@@ -15,11 +15,10 @@ class Deque(RedisDataStructure):
     and other scenarios requiring bidirectional access to the data structure.
     """
 
-    def push_front(self, key: str, data: Any) -> bool:
+    def push_front(self, data: Any) -> bool:
         """Push an item to the front of the deque.
 
         Args:
-            key (str): The Redis key for this deque
             data (Any): Data to be stored
 
         Returns:
@@ -27,16 +26,15 @@ class Deque(RedisDataStructure):
         """
         try:
             serialized = self.serialize(data)
-            return bool(self.connection_manager.execute("lpush", self._get_key(key), serialized))
+            return bool(self.connection_manager.execute("lpush", self.key, serialized))
         except Exception:
             logger.exception("Error pushing to front of deque")
             return False
-
-    def push_back(self, key: str, data: Any) -> bool:
+    
+    def push_back(self, data: Any) -> bool:
         """Push an item to the back of the deque.
 
         Args:
-            key (str): The Redis key for this deque
             data (Any): Data to be stored
 
         Returns:
@@ -44,22 +42,19 @@ class Deque(RedisDataStructure):
         """
         try:
             serialized = self.serialize(data)
-            return bool(self.connection_manager.execute("rpush", self._get_key(key), serialized))
+            return bool(self.connection_manager.execute("rpush", self.key, serialized))
         except Exception:
             logger.exception("Error pushing to back of deque")
             return False
 
-    def pop_front(self, key: str) -> Optional[Any]:
+    def pop_front(self) -> Optional[Any]:
         """Pop an item from the front of the deque.
-
-        Args:
-            key (str): The Redis key for this deque
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
         try:
-            data = self.connection_manager.execute("lpop", self._get_key(key))
+            data = self.connection_manager.execute("lpop", self.key)
             if data:
                 # Handle bytes response from Redis
                 if isinstance(data, bytes):
@@ -70,17 +65,14 @@ class Deque(RedisDataStructure):
             logger.exception("Error popping from front of deque")
             return None
 
-    def pop_back(self, key: str) -> Optional[Any]:
+    def pop_back(self) -> Optional[Any]:
         """Pop an item from the back of the deque.
-
-        Args:
-            key (str): The Redis key for this deque
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
         try:
-            data = self.connection_manager.execute("rpop", self._get_key(key))
+            data = self.connection_manager.execute("rpop", self.key)
             if data:
                 # Handle bytes response from Redis
                 if isinstance(data, bytes):
@@ -91,17 +83,14 @@ class Deque(RedisDataStructure):
             logger.exception("Error popping from back of deque")
             return None
 
-    def peek_front(self, key: str) -> Optional[Any]:
+    def peek_front(self) -> Optional[Any]:
         """Peek at the front item without removing it.
-
-        Args:
-            key (str): The Redis key for this deque
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
         try:
-            data = self.connection_manager.execute("lindex", self._get_key(key), 0)
+            data = self.connection_manager.execute("lindex", self.key, 0)
             if data:
                 # Handle bytes response from Redis
                 if isinstance(data, bytes):
@@ -112,17 +101,14 @@ class Deque(RedisDataStructure):
             logger.exception("Error peeking front of deque")
             return None
 
-    def peek_back(self, key: str) -> Optional[Any]:
+    def peek_back(self) -> Optional[Any]:
         """Peek at the back item without removing it.
-
-        Args:
-            key (str): The Redis key for this deque
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
         try:
-            data = self.connection_manager.execute("lindex", self._get_key(key), -1)
+            data = self.connection_manager.execute("lindex", self.key, -1)
             if data:
                 # Handle bytes response from Redis
                 if isinstance(data, bytes):
@@ -133,17 +119,14 @@ class Deque(RedisDataStructure):
             logger.exception("Error peeking back of deque")
             return None
 
-    def size(self, key: str) -> int:
+    def size(self) -> int:
         """Get the size of the deque.
-
-        Args:
-            key (str): The Redis key for this deque
 
         Returns:
             int: Number of elements in the deque
         """
         try:
-            return self.connection_manager.execute("llen", self._get_key(key)) or 0
+            return self.connection_manager.execute("llen", self.key) or 0
         except Exception:
             logger.exception("Error getting deque size")
             return 0

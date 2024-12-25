@@ -5,7 +5,7 @@ import pytest
 from redis.exceptions import RedisError
 
 from redis_data_structures.connection import ConnectionManager
-
+from redis_data_structures.exceptions import CircuitBreakerError
 
 @pytest.fixture
 def connection_manager():
@@ -50,7 +50,7 @@ def test_execute_success(connection_manager):
 def test_execute_failure(connection_manager):
     """Test command execution failure."""
     connection_manager.client.get.side_effect = RedisError("Test error")
-    with pytest.raises(RedisError):
+    with pytest.raises(CircuitBreakerError):
         connection_manager.execute("get", "test_key")
     assert connection_manager._failure_count > 0
 

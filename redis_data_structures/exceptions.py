@@ -39,3 +39,7 @@ class CapacityError(RedisDataStructureError):
 
 class TimeoutError(RedisDataStructureError):
     """Raised when an operation times out."""
+
+
+class CircuitBreakerError(RedisDataStructureError):
+    """Raised when the circuit breaker is open."""

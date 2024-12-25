@@ -3,11 +3,10 @@ from redis_data_structures import Deque
 
 def demonstrate_deque():
     # Initialize deque
-    deque = Deque(host="localhost", port=6379, db=0)
-    deque_key = "browser_history"
+    deque = Deque("browser_history", host="localhost", port=6379, db=0)
 
     # Clear any existing data
-    deque.clear(deque_key)
+    deque.clear()
 
     print("=== Deque Example (Double-ended Queue) ===")
 
@@ -17,10 +16,10 @@ def demonstrate_deque():
 
     # Adding pages to history (at the back)
     for page in pages:
-        deque.push_back(deque_key, page)
+        deque.push_back(page)
         print(f"Visited: {page}")
 
-    print(f"\nHistory size: {deque.size(deque_key)}")
+    print(f"\nHistory size: {deque.size()}")
 
     # Simulating forward/backward navigation
     print("\nNavigating through history...")
@@ -28,22 +27,22 @@ def demonstrate_deque():
     # Go back two pages
     print("\nGoing back two pages:")
     for _ in range(2):
-        page = deque.pop_back(deque_key)
-        deque.push_front(deque_key, page)
+        page = deque.pop_back()
+        deque.push_front(page)
         print(f"Moved back to: {page}")
 
     # Go forward one page
     print("\nGoing forward one page:")
-    page = deque.pop_front(deque_key)
-    deque.push_back(deque_key, page)
+    page = deque.pop_front()
+    deque.push_back(page)
     print(f"Moved forward to: {page}")
 
     # Add a new page (will clear forward history)
     new_page = "newsite.com"
     print(f"\nVisiting new page: {new_page}")
-    deque.push_back(deque_key, new_page)
+    deque.push_back(new_page)
 
-    print(f"\nFinal history size: {deque.size(deque_key)}")
+    print(f"\nFinal history size: {deque.size()}")
 
 
 if __name__ == "__main__":

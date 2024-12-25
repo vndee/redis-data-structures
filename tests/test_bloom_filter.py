@@ -16,6 +16,7 @@ from redis_data_structures.bloom_filter import BloomFilter
 def bloom_filter(connection_manager) -> 'BloomFilter':
     """Create a BloomFilter instance for testing."""
     return BloomFilter(
+        key="test_bloom_filter",
         expected_elements=1000,
         false_positive_rate=0.01,
         connection_manager=connection_manager,
@@ -63,71 +64,68 @@ class TestBloomFilter:
             
         monkeypatch.setattr('builtins.__import__', mock_import)
         
-        # Attempting to instantiate the class should fail
         with pytest.raises(ImportError, match="mmh3 is required for BloomFilter"):
-            BloomFilter(expected_elements=1000, false_positive_rate=0.01)
+            BloomFilter("test_bloom_filter", expected_elements=1000, false_positive_rate=0.01)
 
-    def test_add_and_contains(self, bloom_filter: BloomFilter, test_key: str):
+    def test_add_and_contains(self, bloom_filter: BloomFilter):
         """Test adding items and checking membership."""
-        # Test adding single item
-        assert bloom_filter.add(test_key, "test1")
-        assert bloom_filter.contains(test_key, "test1")
+        assert bloom_filter.add("test1")
+        assert bloom_filter.contains("test1")
 
-        # Test item that wasn't added
-        assert not bloom_filter.contains(test_key, "test2")
+        assert not bloom_filter.contains("test2")
 
-    def test_multiple_items(self, bloom_filter: BloomFilter, test_key: str):
+    def test_multiple_items(self, bloom_filter: BloomFilter):
         """Test adding and checking multiple items."""
         items = ["test1", "test2", "test3", "test4", "test5"]
 
         # Add all items
         for item in items:
-            assert bloom_filter.add(test_key, item)
+            assert bloom_filter.add(item)
 
         # Check all items exist
         for item in items:
-            assert bloom_filter.contains(test_key, item)
+            assert bloom_filter.contains(item)
 
-    def test_different_types(self, bloom_filter: BloomFilter, test_key: str, sample_items: List):
+    def test_different_types(self, bloom_filter: BloomFilter, sample_items: List):
         """Test adding items of different types."""
         # Add all items
         for item in sample_items:
-            assert bloom_filter.add(test_key, item)
+            assert bloom_filter.add(item)
 
         # Check all items exist
         for item in sample_items:
-            assert bloom_filter.contains(test_key, item)
+            assert bloom_filter.contains(item)
 
-    def test_clear(self, bloom_filter: BloomFilter, test_key: str):
+    def test_clear(self, bloom_filter: BloomFilter):
         """Test clearing the Bloom filter."""
         # Add some items
         items = ["test1", "test2", "test3"]
         for item in items:
-            bloom_filter.add(test_key, item)
+            bloom_filter.add(item)
 
         # Clear the filter
-        assert bloom_filter.clear(test_key)
+        assert bloom_filter.clear()
 
         # Check items no longer exist
         for item in items:
-            assert not bloom_filter.contains(test_key, item)
+            assert not bloom_filter.contains(item)
 
     @pytest.mark.slow
-    def test_false_positive_rate(self, bloom_filter: BloomFilter, test_key: str):
+    def test_false_positive_rate(self, bloom_filter: BloomFilter):
         """Test false positive rate is within expected bounds."""
         n = 1000  # number of elements
         p = 0.01  # false positive rate
 
         # Add n elements
         for i in range(n):
-            bloom_filter.add(test_key, f"element_{i}")
+            bloom_filter.add(f"element_{i}")
 
         # Test false positives with elements we didn't add
         false_positives = 0
         test_size = 1000
 
         for i in range(test_size):
-            if bloom_filter.contains(test_key, f"not_added_{i}"):
+            if bloom_filter.contains(f"not_added_{i}"):
                 false_positives += 1
 
         actual_rate = false_positives / test_size
@@ -154,14 +152,14 @@ class TestBloomFilter:
         """Test error handling during add operation."""
         # Simulate an error in getting hash values
         with patch.object(bloom_filter, "get_hash_values", side_effect=Exception("Hashing error")):
-            assert not bloom_filter.add("test_bloom_filter", "test1")
+            assert not bloom_filter.add("test1")
 
         # Simulate an error in the pipeline execution
         with patch.object(bloom_filter.connection_manager, "pipeline") as mock_pipeline:
             mock_pipeline.return_value.execute.side_effect = Exception("Pipeline execution error")
-            assert not bloom_filter.add("test_bloom_filter", "test1")
+            assert not bloom_filter.add("test1")
 
     def test_contains_error_handling(self, bloom_filter):
         """Test error handling during contains operation."""
         with patch.object(bloom_filter.connection_manager, "execute", side_effect=RedisError):
-            assert not bloom_filter.contains("test_bloom_filter", "test1")
+            assert not bloom_filter.contains("test1")

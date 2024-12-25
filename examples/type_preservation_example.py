@@ -59,12 +59,12 @@ class UserModel(BaseModel):
 def demonstrate_type_preservation():
     """Demonstrate type preservation across different Redis data structures."""
     # Initialize data structures
-    cache = LRUCache(capacity=1000)  # Using default connection settings
-    hash_map = HashMap()  # Using default connection settings
+    cache = LRUCache("test_cache", capacity=1000)  # Using default connection settings
+    hash_map = HashMap("test_hash")  # Using default connection settings
 
     # Clear any existing data
-    cache.clear("type_demo_cache")
-    hash_map.clear("type_demo_hash")
+    cache.clear()
+    hash_map.clear()
 
     print("=== Type Preservation Example ===")
 
@@ -78,8 +78,8 @@ def demonstrate_type_preservation():
         "none": None,
     }
     for key, value in data.items():
-        hash_map.set("type_demo_hash", key, value)
-        result = hash_map.get("type_demo_hash", key)
+        hash_map.set(key, value)
+        result = hash_map.get(key)
         print(f"{key}: {result} ({type(result).__name__})")
 
     # Example 2: Collections
@@ -91,23 +91,23 @@ def demonstrate_type_preservation():
         "dict": {"a": 1, "b": 2},
     }
     for key, value in collections.items():
-        hash_map.set("type_demo_hash", key, value)
-        result = hash_map.get("type_demo_hash", key)
+        hash_map.set(key, value)
+        result = hash_map.get(key)
         print(f"{key}: {result} ({type(result).__name__})")
 
     # Example 3: DateTime Types
     print("\nDateTime Type Preservation:")
     now = datetime.now(timezone.utc)
-    hash_map.set("type_demo_hash", "datetime", now)
-    result = hash_map.get("type_demo_hash", "datetime")
+    hash_map.set("datetime", now)
+    result = hash_map.get("datetime")
     print(f"Original: {now} ({type(now).__name__})")
     print(f"Retrieved: {result} ({type(result).__name__})")
 
     # Example 4: Custom Type
     print("\nCustom Type Preservation:")
     user = User("John Doe", datetime.now(timezone.utc))
-    hash_map.set("type_demo_hash", "custom_user", user)
-    result = hash_map.get("type_demo_hash", "custom_user")
+    hash_map.set("custom_user", user)
+    result = hash_map.get("custom_user")
     print(f"Original: {user}")
     print(f"Retrieved: {result}")
 
@@ -128,12 +128,12 @@ def demonstrate_type_preservation():
     )
 
     # Store in different data structures
-    cache.put("type_demo_cache", "pydantic_user", user_model)
-    hash_map.set("type_demo_hash", "pydantic_user", user_model)
+    cache.put("pydantic_user", user_model)
+    hash_map.set("pydantic_user", user_model)
 
     # Retrieve and verify
-    cache_result = cache.get("type_demo_cache", "pydantic_user")
-    hash_result = hash_map.get("type_demo_hash", "pydantic_user")
+    cache_result = cache.get("pydantic_user")
+    hash_result = hash_map.get("pydantic_user")
 
     print("\nOriginal Pydantic Model:")
     print_model_details(user_model)
@@ -155,8 +155,8 @@ def demonstrate_type_preservation():
             "date": now,
         },
     }
-    hash_map.set("type_demo_hash", "nested", nested_data)
-    result = hash_map.get("type_demo_hash", "nested")
+    hash_map.set("nested", nested_data)
+    result = hash_map.get("nested")
     print("Original structure types:")
     print_nested_structure(nested_data)
     print("\nRetrieved structure types:")
@@ -202,7 +202,7 @@ def set_examples():
     from datetime import datetime
     from redis_data_structures import Set
 
-    set_ds = Set()
+    set_ds = Set("users")
 
     # Any JSON-serializable object
     user = {
@@ -212,7 +212,7 @@ def set_examples():
         'metadata': {'role': 'admin'}
     }
 
-    set_ds.add('users', user)
+    set_ds.add(user)
 
     # Custom types
     from redis_data_structures import CustomRedisDataType
@@ -241,8 +241,8 @@ def set_examples():
             }
 
     user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
-    set_ds.add('users', user)
-    print(set_ds.contains('users', user))
+    set_ds.add(user)
+    print(set_ds.contains(user))
 
     # Pydantic models
     from pydantic import BaseModel
@@ -254,8 +254,8 @@ def set_examples():
         metadata: dict
 
     user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
-    set_ds.add('users', user)
-    print(set_ds.contains('users', user))
+    set_ds.add(user)
+    print(set_ds.contains(user))
 
 
 if __name__ == "__main__":

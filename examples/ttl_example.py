@@ -14,12 +14,12 @@ def demonstrate_ttl():
     print("=== TTL (Time To Live) Example ===\n")
 
     # Initialize Redis structure
-    redis_ds = RedisDataStructure()
+    redis_ds = RedisDataStructure(key="test_ttl")
 
     # Example 1: Basic TTL with seconds
     print("1. Setting key with 5-second TTL...")
     key = "temp_key"
-    redis_ds.redis_client.set(key, "temporary value")
+    redis_ds.connection_manager.execute("set", key, "temporary value")
     redis_ds.set_ttl(key, 5)
 
     # Check TTL
@@ -29,13 +29,13 @@ def demonstrate_ttl():
     # Wait and check if key exists
     print("Waiting 6 seconds...")
     time.sleep(6)
-    exists = redis_ds.redis_client.exists(key)
+    exists = redis_ds.connection_manager.execute("exists", key)
     print(f"Key exists after TTL: {exists}\n")
 
     # Example 2: Using timedelta
     print("2. Setting key with timedelta TTL...")
     key = "delta_key"
-    redis_ds.redis_client.set(key, "delta value")
+    redis_ds.connection_manager.execute("set", key, "delta value")
     redis_ds.set_ttl(key, timedelta(seconds=10))
 
     ttl = redis_ds.get_ttl(key)
@@ -45,11 +45,11 @@ def demonstrate_ttl():
     # Example 3: Setting expiration at specific time
     print("3. Setting key with future timestamp...")
     key = "future_key"
-    redis_ds.redis_client.set(key, "future value")
+    redis_ds.connection_manager.execute("set", key, "future value")
 
     # Set to expire in 15 seconds from now
     future_time = datetime.now() + timedelta(seconds=15)
-    redis_ds.set_expire_at(key, future_time)
+    redis_ds.set_ttl(key, future_time)
 
     ttl = redis_ds.get_ttl(key)
     print(f"TTL remaining: {ttl} seconds")
@@ -58,7 +58,7 @@ def demonstrate_ttl():
     # Example 4: Making a temporary key persistent
     print("4. Making temporary key persistent...")
     key = "persist_key"
-    redis_ds.redis_client.set(key, "temporary value")
+    redis_ds.connection_manager.execute("set", key, "temporary value")
     redis_ds.set_ttl(key, 30)
 
     print("Before persist:")
@@ -82,25 +82,25 @@ def demonstrate_ttl():
 def demonstrate_ttl_with_data_structures():
     print("\n=== TTL with Different Data Structures ===\n")
 
-    redis_ds = RedisDataStructure()
+    redis_ds = RedisDataStructure(key="test_ttl")
 
     # Example with Hash
     print("1. Hash with TTL...")
     hash_key = "user:123"
-    redis_ds.redis_client.hset(hash_key, mapping={"name": "John Doe", "email": "john@example.com"})
-    redis_ds.set_ttl(hash_key, timedelta(seconds=5))
+    redis_ds.connection_manager.execute("hset", hash_key, mapping={"name": "John Doe", "email": "john@example.com"})
+    redis_ds.set_ttl(hash_key, 5)
 
     print("Hash TTL:", redis_ds.get_ttl(hash_key))
     print("Waiting for expiration...")
     time.sleep(6)
-    print(f"Hash exists: {redis_ds.redis_client.exists(hash_key)}\n")
+    print(f"Hash exists: {redis_ds.connection_manager.execute('exists', hash_key)}\n")
 
     # Example with Set
     print("2. Set with TTL...")
     set_key = "active_users"
-    redis_ds.redis_client.sadd(set_key, "user1", "user2", "user3")
+    redis_ds.connection_manager.execute("sadd", set_key, "user1", "user2", "user3")
     future_time = datetime.now() + timedelta(seconds=8)
-    redis_ds.set_expire_at(set_key, future_time)
+    redis_ds.set_ttl(set_key, 8)
 
     print("Set TTL:", redis_ds.get_ttl(set_key))
     print(f"Set will expire at: {future_time}")

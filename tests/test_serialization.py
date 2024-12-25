@@ -9,7 +9,7 @@ class TestSerialization:
     @pytest.fixture(autouse=True)
     def setup(self):
         """Setup a RedisDataStructure instance for testing."""
-        self.rds = RedisDataStructure()
+        self.rds = RedisDataStructure(key="test_key")
 
     def test_basic_tuple_serialization(self):
         """Test basic tuple serialization."""

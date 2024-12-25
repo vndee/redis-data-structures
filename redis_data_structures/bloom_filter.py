@@ -27,7 +27,7 @@ class BloomFilter(RedisDataStructure):
                 raise ImportError("mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.")
         return cls._mmh3
 
-    def __init__(self, expected_elements: int = 10000, false_positive_rate: float = 0.01, **kwargs):
+    def __init__(self, key: str, expected_elements: int = 10000, false_positive_rate: float = 0.01, **kwargs):
         """Initialize Bloom Filter.
 
         Args:
@@ -38,7 +38,7 @@ class BloomFilter(RedisDataStructure):
         # Check for mmh3 availability on initialization
         self._get_mmh3()
         
-        super().__init__(**kwargs)
+        super().__init__(key, **kwargs)
 
         # Calculate optimal filter size and number of hash functions
         self.bit_size = self.get_optimal_size(expected_elements, false_positive_rate)
@@ -88,11 +88,10 @@ class BloomFilter(RedisDataStructure):
             hash_values.append(abs(hash_val))
         return hash_values
 
-    def add(self, key: str, item: Any) -> bool:
+    def add(self, item: Any) -> bool:
         """Add an item to the Bloom filter.
 
         Args:
-            key: The Redis key for this Bloom filter
             item: Item to add
 
         Returns:
@@ -101,10 +100,9 @@ class BloomFilter(RedisDataStructure):
         try:
             hash_values = self.get_hash_values(item)
             pipeline = self.connection_manager.pipeline()
-            bloom_key = self._get_key(key)
 
             for hash_val in hash_values:
-                pipeline.setbit(bloom_key, hash_val, 1)
+                pipeline.setbit(self.key, hash_val, 1)
 
             pipeline.execute()
             return True
@@ -112,11 +110,10 @@ class BloomFilter(RedisDataStructure):
             logger.exception("Error adding item to Bloom filter")
             return False
 
-    def contains(self, key: str, item: Any) -> bool:
+    def contains(self, item: Any) -> bool:
         """Check if an item might exist in the Bloom filter.
 
         Args:
-            key: The Redis key for this Bloom filter
             item: Item to check
 
         Returns:
@@ -124,27 +121,23 @@ class BloomFilter(RedisDataStructure):
         """
         try:
             hash_values = self.get_hash_values(item)
-            bloom_key = self._get_key(key)
 
             # Check if all bits are set
             for hash_val in hash_values:
-                if not self.connection_manager.execute("getbit", bloom_key, hash_val):
+                if not self.connection_manager.execute("getbit", self.key, hash_val):
                     return False
             return True
         except Exception:
             logger.exception("Error checking item in Bloom filter")
             return False
 
-    def clear(self, key: str) -> bool:
+    def clear(self) -> bool:
         """Clear the Bloom filter.
-
-        Args:
-            key: The Redis key for this Bloom filter
 
         Returns:
             bool: True if successful
         """
-        return super().clear(key)
+        return super().clear()
 
     def size(self) -> int:
         """Get the size of the Bloom filter in bits.

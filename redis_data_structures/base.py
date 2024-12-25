@@ -69,6 +69,7 @@ class RedisDataStructure:
 
     def __init__(
         self,
+        key: str,
         config: Optional[Config] = None,
         connection_manager: Optional[ConnectionManager] = None,
         **kwargs,
@@ -115,9 +116,7 @@ class RedisDataStructure:
             },
         }
 
-    def _get_key(self, key: str) -> str:
-        """Get prefixed key name."""
-        return f"{self.config.data_structures.prefix}:{key}"
+        self.key = f"{self.config.data_structures.prefix}:{key}"
 
     def serialize_value(self, val: Any) -> Any:
         """Helper method to serialize a single value."""
@@ -276,7 +275,15 @@ class RedisDataStructure:
         try:
             if isinstance(ttl, timedelta):
                 ttl = int(ttl.total_seconds())
-            return bool(self.connection_manager.execute("expire", self._get_key(key), ttl))
+            elif isinstance(ttl, datetime):
+                # Ensure ttl is timezone-aware
+                if ttl.tzinfo is None:
+                    ttl = ttl.replace(tzinfo=timezone.utc)  # Make it timezone-aware
+                ttl = int((ttl - datetime.now(timezone.utc)).total_seconds())
+            else:
+                ttl = int(ttl)
+
+            return bool(self.connection_manager.execute("expire", key, ttl))
         except Exception:
             logger.exception("Error setting TTL")
             return False
@@ -284,7 +291,7 @@ class RedisDataStructure:
     def get_ttl(self, key: str) -> Optional[int]:
         """Get remaining Time To Live (TTL) for a key."""
         try:
-            return self.connection_manager.execute("ttl", self._get_key(key))
+            return self.connection_manager.execute("ttl", key)
         except Exception:
             logger.exception("Error getting TTL")
             return None
@@ -292,15 +299,15 @@ class RedisDataStructure:
     def persist(self, key: str) -> bool:
         """Remove TTL from a key."""
         try:
-            return bool(self.connection_manager.execute("persist", self._get_key(key)))
+            return bool(self.connection_manager.execute("persist", key))
         except Exception:
             logger.exception("Error removing TTL")
             return False
 
-    def clear(self, key: str) -> bool:
+    def clear(self) -> bool:
         """Clear all elements from the data structure."""
         try:
-            return bool(self.connection_manager.execute("delete", self._get_key(key)))
+            return bool(self.connection_manager.execute("delete", self.key))
         except Exception:
             logger.exception("Error clearing data structure")
             return False

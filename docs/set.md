@@ -23,30 +23,29 @@ where:
 from redis_data_structures import Set
 
 # Initialize set
-set_ds = Set()
-set_key = "my_set"
+set_ds = Set(key="my_set")
 
 # Add items
-set_ds.add(set_key, "item1")
-set_ds.add(set_key, "item2")
+set_ds.add("item1")
+set_ds.add("item2")
 
 # Check membership
-exists = set_ds.contains(set_key, "item1")  # Returns True
+exists = set_ds.contains("item1")  # Returns True
 
 # Get all members
-items = set_ds.members(set_key)  # Returns {"item1", "item2"}
+items = set_ds.members()  # Returns {"item1", "item2"}
 
 # Remove items
-set_ds.remove(set_key, "item1")
+set_ds.remove("item1")
 
 # Get size
-size = set_ds.size(set_key)  # Returns 1
+size = set_ds.size()  # Returns 1
 
 # Get random item
-item = set_ds.pop(set_key)
+item = set_ds.pop()
 
 # Clear set
-set_ds.clear(set_key)
+set_ds.clear()
 ```
 
 ## Advanced Usage
@@ -59,9 +58,8 @@ import json
 
 class UserSessionManager:
     def __init__(self):
-        self.set_ds = Set()
-        self.active_key = "active_sessions"
-        self.premium_key = "premium_sessions"
+        self.premium_set = Set(key="premium_sessions")
+        self.active_set = Set(key="active_sessions")
     
     def start_session(self, user_id: str, metadata: Dict[str, Any] = None):
         """Start a new user session."""
@@ -70,33 +68,33 @@ class UserSessionManager:
             "started_at": datetime.now().isoformat(),
             "metadata": metadata or {}
         }
-        return self.set_ds.add(self.active_key, session_data)
+        return self.active_set.add(session_data)
     
     def end_session(self, user_id: str):
         """End a user session."""
-        sessions = self.set_ds.members(self.active_key)
+        sessions = self.active_set.members()
         for session in sessions:
             if session["user_id"] == user_id:
-                return self.set_ds.remove(self.active_key, session)
+                return self.active_set.remove(session)
         return False
     
     def upgrade_to_premium(self, user_id: str):
         """Upgrade user to premium."""
-        sessions = self.set_ds.members(self.active_key)
+        sessions = self.active_set.members()
         for session in sessions:
             if session["user_id"] == user_id:
                 session["metadata"]["account_type"] = "premium"
-                self.set_ds.add(self.premium_key, session)
+                self.premium_set.add(session)
                 return True
         return False
     
     def get_active_sessions(self) -> PySet[Dict[str, Any]]:
         """Get all active sessions."""
-        return self.set_ds.members(self.active_key)
+        return self.active_set.members()
     
     def get_premium_sessions(self) -> PySet[Dict[str, Any]]:
         """Get premium sessions."""
-        return self.set_ds.members(self.premium_key)
+        return self.premium_set.members()
 
 # Usage
 session_manager = UserSessionManager()
@@ -125,7 +123,7 @@ import json
 
 class ActivityTracker:
     def __init__(self):
-        self.set_ds = Set()
+        self.set_ds = Set(key="activity_tracker")
     
     def get_daily_key(self, date: datetime) -> str:
         """Get Redis key for specific date."""
@@ -140,7 +138,7 @@ class ActivityTracker:
             "metadata": metadata or {}
         }
         key = self.get_daily_key(datetime.now())
-        return self.set_ds.add(key, activity)
+        return self.set_ds.add(activity)
     
     def get_user_activities(self, user_id: str, days: int = 7) -> PySet[Dict[str, Any]]:
         """Get user activities for the past n days."""
@@ -151,7 +149,7 @@ class ActivityTracker:
         current = start_date
         while current <= end_date:
             key = self.get_daily_key(current)
-            daily_activities = self.set_ds.members(key)
+            daily_activities = self.set_ds.members()
             user_activities = {
                 activity for activity in daily_activities 
                 if activity["user_id"] == user_id
@@ -164,7 +162,7 @@ class ActivityTracker:
     def get_activity_summary(self, activity_type: str, date: datetime) -> PySet[Dict[str, Any]]:
         """Get all activities of a specific type for a date."""
         key = self.get_daily_key(date)
-        activities = self.set_ds.members(key)
+        activities = self.set_ds.members()
         return {
             activity for activity in activities 
             if activity["type"] == activity_type
@@ -202,7 +200,7 @@ from datetime import datetime
 
 class TagManager:
     def __init__(self):
-        self.set_ds = Set()
+        self.set_ds = Set(key="tag_manager")
     
     def get_entity_key(self, entity_type: str, entity_id: str) -> str:
         """Get Redis key for entity tags."""
@@ -216,7 +214,7 @@ class TagManager:
                 "name": tag.lower(),
                 "added_at": datetime.now().isoformat()
             }
-            self.set_ds.add(key, tag_data)
+            self.set_ds.add(tag_data)
     
     def remove_tags(self, entity_type: str, entity_id: str, tags: PySet[str]):
         """Remove tags from an entity."""
@@ -225,12 +223,12 @@ class TagManager:
         
         for current in current_tags:
             if current["name"] in tags:
-                self.set_ds.remove(key, current)
+                self.set_ds.remove(current)
     
     def get_tags(self, entity_type: str, entity_id: str) -> PySet[dict]:
         """Get all tags for an entity."""
         key = self.get_entity_key(entity_type, entity_id)
-        return self.set_ds.members(key)
+        return self.set_ds.members()
     
     def find_common_tags(self, entity_type: str, id1: str, id2: str) -> PySet[str]:
         """Find common tags between two entities."""
@@ -262,7 +260,8 @@ import json
 
 class AnalyticsTracker:
     def __init__(self):
-        self.set_ds = Set()
+        self.daily_set = Set(key="daily_events")
+        self.hourly_set = Set(key="hourly_events")
     
     def track_event(self, event_type: str, user_id: str, metadata: Dict[str, Any] = None):
         """Track an analytics event."""
@@ -277,8 +276,8 @@ class AnalyticsTracker:
         }
         
         # Store in both hourly and daily sets
-        self.set_ds.add(hourly_key, event_data)
-        self.set_ds.add(daily_key, event_data)
+        self.hourly_set.add(event_data)
+        self.daily_set.add(event_data)
     
     def get_unique_users(self, event_type: str, hours: int = 24) -> int:
         """Get unique users for an event type in the last n hours."""
@@ -290,7 +289,7 @@ class AnalyticsTracker:
         
         while current <= end_time:
             key = f"events:{event_type}:{current.strftime('%Y-%m-%d-%H')}"
-            events = self.set_ds.members(key)
+            events = self.hourly_set.members()
             users = {event["user_id"] for event in events}
             unique_users.update(users)
             current += timedelta(hours=1)
@@ -300,7 +299,7 @@ class AnalyticsTracker:
     def get_event_data(self, event_type: str, date: datetime) -> PySet[Dict[str, Any]]:
         """Get all event data for a specific day."""
         key = f"events:{event_type}:{date.strftime('%Y-%m-%d')}"
-        return self.set_ds.members(key)
+        return self.daily_set.members()
     
     def get_user_events(
         self, 
@@ -315,7 +314,7 @@ class AnalyticsTracker:
         
         while current <= end_date:
             key = f"events:{event_type}:{current.strftime('%Y-%m-%d')}"
-            daily_events = self.set_ds.members(key)
+            daily_events = self.daily_set.members()
             user_events = {
                 event for event in daily_events 
                 if event["user_id"] == user_id

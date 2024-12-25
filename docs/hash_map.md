@@ -26,25 +26,24 @@ where:
 from redis_data_structures import HashMap
 
 # Initialize hash map
-hm = HashMap()
-map_key = "user_settings"
+hm = HashMap(key="user_settings")
 
 # Store values
-hm.set(map_key, "theme", "dark")
-hm.set(map_key, "language", "en")
-hm.set(map_key, "notifications", True)
+hm.set("theme", "dark")
+hm.set("language", "en")
+hm.set("notifications", True)
 
 # Retrieve values
-theme = hm.get(map_key, "theme")  # Returns "dark"
-exists = hm.exists(map_key, "language")  # Returns True
+theme = hm.get("theme")  # Returns "dark"
+exists = hm.exists("language")  # Returns True
 
 # Get multiple values
-all_settings = hm.get_all(map_key)  # Returns dict of all settings
-field_names = hm.get_fields(map_key)  # Returns list of field names
+all_settings = hm.get_all()  # Returns dict of all settings
+field_names = hm.get_fields()  # Returns list of field names
 
 # Remove values
-hm.delete(map_key, "notifications")
-hm.clear(map_key)  # Remove all fields
+hm.delete("notifications")
+hm.clear()  # Remove all fields
 ```
 
 ## Advanced Usage
@@ -57,12 +56,11 @@ import json
 
 class UserProfileManager:
     def __init__(self):
-        self.hash_map = HashMap()
-        self.profile_key = "user_profiles"
+        self.hash_map = HashMap(key="user_profiles")
     
     def create_profile(self, user_id: str, data: Dict[str, Any]) -> bool:
         """Create a new user profile."""
-        if self.hash_map.exists(self.profile_key, user_id):
+        if self.hash_map.exists(user_id):
             return False
             
         profile_data = {
@@ -70,7 +68,7 @@ class UserProfileManager:
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
         }
-        return self.hash_map.set(self.profile_key, user_id, profile_data)
+        return self.hash_map.set(user_id, profile_data)
     
     def update_profile(self, user_id: str, updates: Dict[str, Any]) -> bool:
         """Update an existing profile."""
@@ -83,19 +81,19 @@ class UserProfileManager:
             **updates,
             "updated_at": datetime.now().isoformat(),
         }
-        return self.hash_map.set(self.profile_key, user_id, updated_profile)
+        return self.hash_map.set(user_id, updated_profile)
     
     def get_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user profile."""
-        return self.hash_map.get(self.profile_key, user_id)
+        return self.hash_map.get(user_id)
     
     def delete_profile(self, user_id: str) -> bool:
         """Delete user profile."""
-        return self.hash_map.delete(self.profile_key, user_id)
+        return self.hash_map.delete(user_id)
     
     def list_profiles(self) -> Dict[str, Dict[str, Any]]:
         """Get all user profiles."""
-        return self.hash_map.get_all(self.profile_key)
+        return self.hash_map.get_all()
 
 # Usage
 manager = UserProfileManager()
@@ -135,8 +133,7 @@ import json
 
 class ConfigurationManager:
     def __init__(self):
-        self.hash_map = HashMap()
-        self.config_key = "app_config"
+        self.hash_map = HashMap(key="app_config")
         self.history_key = "config_history"
     
     def set_config(self, component: str, config: Dict[str, Any]) -> bool:
@@ -150,7 +147,7 @@ class ConfigurationManager:
                 "timestamp": timestamp,
                 "type": "update"
             }
-            self.hash_map.set(self.history_key, f"{component}_{timestamp}", history_entry)
+            self.hash_map.set(f"{component}_{timestamp}", history_entry)
         
         # Set new config
         config_data = {
@@ -158,19 +155,19 @@ class ConfigurationManager:
             "updated_at": datetime.now().isoformat(),
             "version": (current.get("version", 0) + 1) if current else 1
         }
-        return self.hash_map.set(self.config_key, component, config_data)
+        return self.hash_map.set(component, config_data)
     
     def get_config(self, component: str) -> Optional[Dict[str, Any]]:
         """Get configuration for a component."""
-        return self.hash_map.get(self.config_key, component)
+        return self.hash_map.get(component)
     
     def list_components(self) -> list[str]:
         """List all configured components."""
-        return self.hash_map.get_fields(self.config_key)
+        return self.hash_map.get_fields()
     
     def get_component_history(self, component: str) -> list[Dict[str, Any]]:
         """Get configuration history for a component."""
-        all_history = self.hash_map.get_all(self.history_key)
+        all_history = self.hash_map.get_all()
         return [
             entry for key, entry in all_history.items()
             if key.startswith(component)
@@ -210,15 +207,14 @@ import time
 
 class CacheManager:
     def __init__(self, default_ttl: int = 3600):
-        self.hash_map = HashMap()
-        self.cache_key = "cache_data"
+        self.hash_map = HashMap(key="cache_data")
         self.metadata_key = "cache_metadata"
         self.default_ttl = default_ttl
     
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
         """Set a cached value with optional TTL."""
         # Store the value
-        success = self.hash_map.set(self.cache_key, key, value)
+        success = self.hash_map.set(key, value)
         if not success:
             return False
         
@@ -229,12 +225,12 @@ class CacheManager:
                 datetime.now() + timedelta(seconds=ttl or self.default_ttl)
             ).isoformat()
         }
-        return self.hash_map.set(self.metadata_key, key, metadata)
+        return self.hash_map.set(key, metadata)
     
     def get(self, key: str) -> Optional[Any]:
         """Get a cached value if not expired."""
         # Check metadata first
-        metadata = self.hash_map.get(self.metadata_key, key)
+        metadata = self.hash_map.get(key)
         if not metadata:
             return None
         
@@ -242,23 +238,23 @@ class CacheManager:
         expires_at = datetime.fromisoformat(metadata["expires_at"])
         if expires_at < datetime.now():
             # Clean up expired data
-            self.hash_map.delete(self.cache_key, key)
-            self.hash_map.delete(self.metadata_key, key)
+            self.hash_map.delete(key)
+            self.hash_map.delete(key)
             return None
         
-        return self.hash_map.get(self.cache_key, key)
+        return self.hash_map.get(key)
     
     def delete(self, key: str) -> bool:
         """Delete a cached value and its metadata."""
         return all([
-            self.hash_map.delete(self.cache_key, key),
-            self.hash_map.delete(self.metadata_key, key)
+            self.hash_map.delete(key),
+            self.hash_map.delete(key)
         ])
     
     def clear_expired(self) -> int:
         """Clear all expired cache entries."""
         cleared = 0
-        metadata = self.hash_map.get_all(self.metadata_key)
+        metadata = self.hash_map.get_all()
         
         for key, data in metadata.items():
             expires_at = datetime.fromisoformat(data["expires_at"])
@@ -295,8 +291,7 @@ import json
 
 class SessionManager:
     def __init__(self, session_timeout: int = 3600):
-        self.hash_map = HashMap()
-        self.sessions_key = "active_sessions"
+        self.hash_map = HashMap(key="active_sessions")
         self.session_timeout = session_timeout
     
     def create_session(self, user_id: str, data: Dict[str, Any]) -> str:
@@ -310,13 +305,13 @@ class SessionManager:
             "expires_at": (datetime.now() + timedelta(seconds=self.session_timeout)).isoformat()
         }
         
-        if self.hash_map.set(self.sessions_key, session_id, session_data):
+        if self.hash_map.set(session_id, session_data):
             return session_id
         return ""
     
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get session data if valid."""
-        session = self.hash_map.get(self.sessions_key, session_id)
+        session = self.hash_map.get(session_id)
         if not session:
             return None
         
@@ -331,13 +326,13 @@ class SessionManager:
             "last_accessed": datetime.now().isoformat(),
             "expires_at": (datetime.now() + timedelta(seconds=self.session_timeout)).isoformat()
         })
-        self.hash_map.set(self.sessions_key, session_id, session)
+        self.hash_map.set(session_id, session)
         
         return session["data"]
     
     def update_session(self, session_id: str, data: Dict[str, Any]) -> bool:
         """Update session data."""
-        session = self.hash_map.get(self.sessions_key, session_id)
+        session = self.hash_map.get(session_id)
         if not session:
             return False
         
@@ -346,16 +341,16 @@ class SessionManager:
             "last_accessed": datetime.now().isoformat(),
             "expires_at": (datetime.now() + timedelta(seconds=self.session_timeout)).isoformat()
         })
-        return self.hash_map.set(self.sessions_key, session_id, session)
+        return self.hash_map.set(session_id, session)
     
     def end_session(self, session_id: str) -> bool:
         """End a session."""
-        return self.hash_map.delete(self.sessions_key, session_id)
+        return self.hash_map.delete(session_id)
     
     def cleanup_expired(self) -> int:
         """Remove expired sessions."""
         cleaned = 0
-        all_sessions = self.hash_map.get_all(self.sessions_key)
+        all_sessions = self.hash_map.get_all()
         
         for session_id, session in all_sessions.items():
             expires_at = datetime.fromisoformat(session["expires_at"])

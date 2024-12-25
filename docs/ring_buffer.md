@@ -21,25 +21,24 @@ where:
 from redis_data_structures import RingBuffer
 
 # Initialize ring buffer with capacity
-buffer = RingBuffer(capacity=5)
-buffer_key = "my_buffer"
+buffer = RingBuffer("my_buffer", capacity=5)
 
 # Add items
-buffer.push(buffer_key, "item1")
-buffer.push(buffer_key, "item2")
-buffer.push(buffer_key, "item3")
+buffer.push("item1")
+buffer.push("item2")
+buffer.push("item3")
 
 # Get all items in order
-items = buffer.get_all(buffer_key)  # Returns ["item1", "item2", "item3"]
+items = buffer.get_all()  # Returns ["item1", "item2", "item3"]
 
 # Get most recent items
-latest = buffer.get_latest(buffer_key, 2)  # Returns ["item3", "item2"]
+latest = buffer.get_latest(2)  # Returns ["item3", "item2"]
 
 # Get buffer size
-size = buffer.size(buffer_key)  # Returns 3
+size = buffer.size()  # Returns 3
 
 # Clear buffer
-buffer.clear(buffer_key)
+buffer.clear()
 ```
 
 ## Advanced Usage
@@ -52,21 +51,20 @@ from datetime import datetime, timedelta
 class MetricsCollector:
     def __init__(self, window_size: int = 60):
         """Initialize metrics collector with window size in seconds."""
-        self.buffer = RingBuffer(capacity=window_size)
-        self.metrics_key = "system_metrics"
-    
+        self.buffer = RingBuffer("my_metrics", capacity=window_size)
+
     def record_metrics(self, metrics: Dict[str, Any]) -> bool:
         """Record system metrics."""
         data = {
             "timestamp": datetime.now().isoformat(),
             **metrics
         }
-        return self.buffer.push(self.metrics_key, data)
+        return self.buffer.push(data)
     
     def get_metrics_window(self, seconds: int) -> List[Dict[str, Any]]:
         """Get metrics for the last n seconds."""
         count = min(seconds, self.buffer.capacity)
-        return self.buffer.get_latest(self.metrics_key, count)
+        return self.buffer.get_latest(count)
     
     def get_average_metrics(self, seconds: int) -> Dict[str, float]:
         """Calculate average metrics over the specified window."""
@@ -118,8 +116,7 @@ import json
 
 class LogRotator:
     def __init__(self, max_logs: int = 1000):
-        self.buffer = RingBuffer(capacity=max_logs)
-        self.logs_key = "application_logs"
+        self.buffer = RingBuffer("my_logs", capacity=max_logs)
     
     def log(self, level: str, message: str, metadata: Optional[Dict[str, Any]] = None):
         """Add a log entry."""
@@ -129,11 +126,11 @@ class LogRotator:
             "message": message,
             "metadata": metadata or {}
         }
-        return self.buffer.push(self.logs_key, entry)
+        return self.buffer.push(entry)
     
     def get_recent_logs(self, count: int = 100) -> List[Dict[str, Any]]:
         """Get most recent log entries."""
-        return self.buffer.get_latest(self.logs_key, count)
+        return self.buffer.get_latest(count)
     
     def get_logs_by_level(self, level: str, count: int = 100) -> List[Dict[str, Any]]:
         """Get recent logs of specific level."""
@@ -180,8 +177,7 @@ import statistics
 class TimeSeriesBuffer:
     def __init__(self, window_size: int):
         """Initialize with window size in data points."""
-        self.buffer = RingBuffer(capacity=window_size)
-        self.series_key = "time_series"
+        self.buffer = RingBuffer("my_time_series", capacity=window_size)
     
     def record_value(self, value: float, timestamp: Optional[datetime] = None):
         """Record a value with timestamp."""
@@ -189,11 +185,11 @@ class TimeSeriesBuffer:
             "timestamp": (timestamp or datetime.now()).isoformat(),
             "value": value
         }
-        return self.buffer.push(self.series_key, data)
+        return self.buffer.push(data)
     
     def get_window(self, points: int) -> List[Dict[str, Any]]:
         """Get latest n data points."""
-        return self.buffer.get_latest(self.series_key, points)
+        return self.buffer.get_latest(points)
     
     def calculate_statistics(self, window: int) -> Dict[str, float]:
         """Calculate statistics for the window."""
@@ -241,84 +237,3 @@ stats = ts_buffer.calculate_statistics(window=10)
 anomalies = ts_buffer.detect_anomalies(window=10, threshold=3)
 ```
 
-### 3. Rate Limiter with Sliding Window
-
-```python
-from redis_data_structures import RingBuffer
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
-
-class RateLimiter:
-    def __init__(self, window_size: int, max_requests: int):
-        """
-        Initialize rate limiter.
-        
-        Args:
-            window_size: Window size in seconds
-            max_requests: Maximum requests allowed in window
-        """
-        self.buffer = RingBuffer(capacity=max_requests)
-        self.window_size = window_size
-        self.max_requests = max_requests
-    
-    def _get_key(self, client_id: str) -> str:
-        """Get Redis key for client."""
-        return f"rate_limit:{client_id}"
-    
-    def record_request(self, client_id: str, metadata: Optional[Dict[str, Any]] = None):
-        """Record an API request."""
-        request_time = datetime.now()
-        
-        # Clean up old requests first
-        self.cleanup_old_requests(client_id)
-        
-        # Record new request
-        request_data = {
-            "timestamp": request_time.isoformat(),
-            "metadata": metadata or {}
-        }
-        return self.buffer.push(self._get_key(client_id), request_data)
-    
-    def cleanup_old_requests(self, client_id: str):
-        """Remove requests outside the window."""
-        cutoff_time = datetime.now() - timedelta(seconds=self.window_size)
-        
-        # Get all requests
-        requests = self.buffer.get_all(self._get_key(client_id))
-        
-        # Clear buffer if all requests are old
-        if all(datetime.fromisoformat(r["timestamp"]) < cutoff_time for r in requests):
-            self.buffer.clear(self._get_key(client_id))
-    
-    def can_make_request(self, client_id: str) -> bool:
-        """Check if client can make a request."""
-        self.cleanup_old_requests(client_id)
-        return self.buffer.size(self._get_key(client_id)) < self.max_requests
-    
-    def get_request_count(self, client_id: str) -> int:
-        """Get number of requests in current window."""
-        self.cleanup_old_requests(client_id)
-        return self.buffer.size(self._get_key(client_id))
-    
-    def get_request_history(self, client_id: str) -> List[Dict[str, Any]]:
-        """Get request history in current window."""
-        self.cleanup_old_requests(client_id)
-        return self.buffer.get_all(self._get_key(client_id))
-
-# Usage
-limiter = RateLimiter(window_size=60, max_requests=100)
-
-# Check and record requests
-client_id = "user123"
-if limiter.can_make_request(client_id):
-    limiter.record_request(client_id, {
-        "endpoint": "/api/data",
-        "method": "GET"
-    })
-else:
-    print("Rate limit exceeded")
-
-# Get request statistics
-count = limiter.get_request_count(client_id)
-history = limiter.get_request_history(client_id)
-```

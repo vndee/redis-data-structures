@@ -24,30 +24,29 @@ where:
 from redis_data_structures import LRUCache
 
 # Initialize cache with capacity
-cache = LRUCache(capacity=1000)
-cache_key = "my_cache"
+cache = LRUCache(capacity=1000, key="my_cache")
 
 # Add items
-cache.put(cache_key, "user:1", {"name": "John", "age": 30})
-cache.put(cache_key, "user:2", {"name": "Jane", "age": 25})
+cache.put("user:1", {"name": "John", "age": 30})
+cache.put("user:2", {"name": "Jane", "age": 25})
 
 # Get items (updates access time)
-user = cache.get(cache_key, "user:1")
+user = cache.get("user:1")
 
 # Peek at items (doesn't update access time)
-user = cache.peek(cache_key, "user:1")
+user = cache.peek("user:1")
 
 # Get all items
-all_items = cache.get_all(cache_key)
+all_items = cache.get_all()
 
 # Get LRU order
-lru_order = cache.get_lru_order(cache_key)  # Least to most recently used
+lru_order = cache.get_lru_order()  # Least to most recently used
 
 # Remove items
-cache.remove(cache_key, "user:1")
+cache.remove("user:1")
 
 # Clear cache
-cache.clear(cache_key)
+cache.clear()
 ```
 
 ## Advanced Usage
@@ -58,20 +57,19 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 
 class QueryCache:
-    def __init__(self, capacity: int = 1000):
-        self.cache = LRUCache(capacity=capacity)
-        self.queries_key = "db_queries"
+    def __init__(self, capacity: int = 1000, key: str = "db_queries"):
+        self.cache = LRUCache(capacity=capacity, key=key)
     
     def get_result(self, query: str) -> Optional[Dict[str, Any]]:
         """Get cached query result."""
-        result = self.cache.get(self.queries_key, query)
+        result = self.cache.get(query)
         if result:
             # Check if result is still valid
             if datetime.fromisoformat(result["cached_at"]) + \
                timedelta(seconds=result["ttl"]) > datetime.now():
                 return result["data"]
             # Result expired, remove it
-            self.cache.remove(self.queries_key, query)
+            self.cache.remove(query)
         return None
     
     def cache_result(
@@ -86,23 +84,23 @@ class QueryCache:
             "cached_at": datetime.now().isoformat(),
             "ttl": ttl
         }
-        return self.cache.put(self.queries_key, query, cache_data)
+        return self.cache.put(query, cache_data)
     
     def invalidate(self, pattern: str = None):
         """Invalidate cache entries."""
         if pattern:
             # Get all entries and remove matching ones
-            entries = self.cache.get_all(self.queries_key)
+            entries = self.cache.get_all()
             for query in entries:
                 if pattern in query:
-                    self.cache.remove(self.queries_key, query)
+                    self.cache.remove(query)
         else:
             # Clear entire cache
-            self.cache.clear(self.queries_key)
+            self.cache.clear()
     
     def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
-        entries = self.cache.get_all(self.queries_key)
+        entries = self.cache.get_all()
         current_time = datetime.now()
         
         stats = {
@@ -130,7 +128,7 @@ class QueryCache:
         return stats
 
 # Usage
-query_cache = QueryCache(capacity=1000)
+query_cache = QueryCache(capacity=1000, key="db_queries")
 
 # Cache query result
 query_cache.cache_result(
@@ -157,9 +155,8 @@ from datetime import datetime, timedelta
 import json
 
 class SessionCache:
-    def __init__(self, max_sessions: int = 10000):
-        self.cache = LRUCache(capacity=max_sessions)
-        self.sessions_key = "user_sessions"
+    def __init__(self, max_sessions: int = 10000, key: str = "user_sessions"):
+        self.cache = LRUCache(capacity=max_sessions, key=key)
     
     def create_session(
         self, 
@@ -179,25 +176,25 @@ class SessionCache:
             "ttl": ttl
         }
         
-        if self.cache.put(self.sessions_key, session_id, session_data):
+        if self.cache.put(session_id, session_data):
             return session_id
         return ""
     
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get and validate session."""
-        session = self.cache.peek(self.sessions_key, session_id)
+        session = self.cache.peek(session_id)
         if not session:
             return None
             
         # Check if session is expired
         last_accessed = datetime.fromisoformat(session["last_accessed"])
         if last_accessed + timedelta(seconds=session["ttl"]) < datetime.now():
-            self.cache.remove(self.sessions_key, session_id)
+            self.cache.remove(session_id)
             return None
             
         # Update last accessed time
         session["last_accessed"] = datetime.now().isoformat()
-        self.cache.put(self.sessions_key, session_id, session)
+        self.cache.put(session_id, session)
         
         return session["data"]
     
@@ -207,33 +204,33 @@ class SessionCache:
         data: Dict[str, Any]
     ) -> bool:
         """Update session data."""
-        session = self.cache.peek(self.sessions_key, session_id)
+        session = self.cache.peek(session_id)
         if not session:
             return False
             
         session["data"] = data
         session["last_accessed"] = datetime.now().isoformat()
-        return self.cache.put(self.sessions_key, session_id, session)
+        return self.cache.put(session_id, session)
     
     def end_session(self, session_id: str) -> bool:
         """End a session."""
-        return self.cache.remove(self.sessions_key, session_id)
+        return self.cache.remove(session_id)
     
     def cleanup_expired(self) -> int:
         """Clean up expired sessions."""
-        sessions = self.cache.get_all(self.sessions_key)
+        sessions = self.cache.get_all()
         removed = 0
         
         for session_id, session in sessions.items():
             last_accessed = datetime.fromisoformat(session["last_accessed"])
             if last_accessed + timedelta(seconds=session["ttl"]) < datetime.now():
-                if self.cache.remove(self.sessions_key, session_id):
+                if self.cache.remove(session_id):
                     removed += 1
                     
         return removed
 
 # Usage
-session_cache = SessionCache(max_sessions=10000)
+session_cache = SessionCache(max_sessions=10000, key="user_sessions")
 
 # Create session
 session_id = session_cache.create_session(
@@ -266,8 +263,7 @@ import hashlib
 
 class APICache:
     def __init__(self, capacity: int = 10000):
-        self.cache = LRUCache(capacity=capacity)
-        self.responses_key = "api_responses"
+        self.cache = LRUCache(capacity=capacity, key="api_responses")
     
     def _generate_cache_key(
         self, 
@@ -289,7 +285,7 @@ class APICache:
     ) -> Optional[Dict[str, Any]]:
         """Get cached API response."""
         cache_key = self._generate_cache_key(endpoint, params)
-        cached = self.cache.peek(self.responses_key, cache_key)
+        cached = self.cache.peek(cache_key)
         
         if not cached:
             return None
@@ -297,7 +293,7 @@ class APICache:
         # Check if response is still valid
         cached_at = datetime.fromisoformat(cached["cached_at"])
         if cached_at + timedelta(seconds=cached["ttl"]) < datetime.now():
-            self.cache.remove(self.responses_key, cache_key)
+            self.cache.remove(cache_key)
             return None
             
         return cached["response"]
@@ -318,18 +314,18 @@ class APICache:
             "endpoint": endpoint,
             "params": params
         }
-        return self.cache.put(self.responses_key, cache_key, cache_data)
+        return self.cache.put(cache_key, cache_data)
     
     def invalidate_endpoint(self, endpoint: str):
         """Invalidate all cached responses for an endpoint."""
-        all_cached = self.cache.get_all(self.responses_key)
+        all_cached = self.cache.get_all()
         for cache_key, cached in all_cached.items():
             if cached["endpoint"] == endpoint:
-                self.cache.remove(self.responses_key, cache_key)
+                self.cache.remove(cache_key)
     
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
-        all_cached = self.cache.get_all(self.responses_key)
+        all_cached = self.cache.get_all()
         stats = {
             "total_cached": len(all_cached),
             "by_endpoint": {},
@@ -382,9 +378,8 @@ import json
 import hashlib
 
 class ComputationCache:
-    def __init__(self, capacity: int = 1000):
-        self.cache = LRUCache(capacity=capacity)
-        self.results_key = "computation_results"
+    def __init__(self, capacity: int = 1000, key: str = "computation_results"):
+        self.cache = LRUCache(capacity=capacity, key=key)
     
     def _generate_cache_key(self, func_name: str, args: tuple, kwargs: dict) -> str:
         """Generate a unique cache key for computation."""
@@ -410,7 +405,7 @@ class ComputationCache:
                 )
                 
                 # Try to get cached result
-                cached = self.cache.peek(self.results_key, cache_key)
+                cached = self.cache.peek(cache_key)
                 if cached:
                     cached_at = datetime.fromisoformat(cached["cached_at"])
                     if cached_at + timedelta(seconds=cached["ttl"]) > datetime.now():
@@ -428,7 +423,7 @@ class ComputationCache:
                     "args": args,
                     "kwargs": kwargs
                 }
-                self.cache.put(self.results_key, cache_key, cache_data)
+                self.cache.put(cache_key, cache_data)
                 
                 return result
             return wrapper
@@ -436,14 +431,14 @@ class ComputationCache:
     
     def invalidate_function(self, func_name: str):
         """Invalidate all cached results for a function."""
-        all_cached = self.cache.get_all(self.results_key)
+        all_cached = self.cache.get_all()
         for cache_key, cached in all_cached.items():
             if cached["func"] == func_name:
-                self.cache.remove(self.results_key, cache_key)
+                self.cache.remove(cache_key)
     
     def get_computation_stats(self) -> Dict[str, Any]:
         """Get statistics about cached computations."""
-        all_cached = self.cache.get_all(self.results_key)
+        all_cached = self.cache.get_all()
         stats = {
             "total_cached": len(all_cached),
             "by_function": {},
@@ -466,7 +461,7 @@ class ComputationCache:
         return stats
 
 # Usage
-computation_cache = ComputationCache(capacity=1000)
+computation_cache = ComputationCache(capacity=1000, key="computation_results")
 
 # Use as decorator
 @computation_cache.memoize(ttl=3600)

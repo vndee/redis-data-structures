@@ -21,26 +21,25 @@ A Redis-backed double-ended queue implementation that allows efficient insertion
 from redis_data_structures import Deque
 
 # Initialize deque
-deque = Deque()
-deque_key = "my_deque"
+deque = Deque(key="my_deque")
 
 # Add items at both ends
-deque.push_front(deque_key, "first")
-deque.push_back(deque_key, "last")
+deque.push_front("first")
+deque.push_back("last")
 
 # Remove items from both ends
-front_item = deque.pop_front(deque_key)  # Returns "first"
-back_item = deque.pop_back(deque_key)    # Returns "last"
+front_item = deque.pop_front()  # Returns "first"
+back_item = deque.pop_back()    # Returns "last"
 
 # Peek without removing
-front = deque.peek_front(deque_key)
-back = deque.peek_back(deque_key)
+front = deque.peek_front()
+back = deque.peek_back()
 
 # Get size
-size = deque.size(deque_key)
+size = deque.size()
 
 # Clear all items
-deque.clear(deque_key)
+deque.clear()
 ```
 
 ## Advanced Usage
@@ -59,8 +58,7 @@ class BrowserState:
 
 class BrowserHistory:
     def __init__(self):
-        self.deque = Deque()
-        self.history_key = "browser_history"
+        self.deque = Deque(key="browser_history")
         self.current_index = 0
     
     def _serialize_state(self, state: BrowserState) -> str:
@@ -83,22 +81,22 @@ class BrowserHistory:
     def visit_page(self, url: str, title: str):
         """Record new page visit."""
         state = BrowserState(url=url, title=title, scroll_position=0)
-        self.deque.push_back(self.history_key, self._serialize_state(state))
-        self.current_index = self.deque.size(self.history_key) - 1
+        self.deque.push_back(self._serialize_state(state))
+        self.current_index = self.deque.size() - 1
     
     def go_back(self) -> Optional[BrowserState]:
         """Navigate to previous page."""
         if self.current_index > 0:
             self.current_index -= 1
-            state_str = self.deque.peek_back(self.history_key)
+            state_str = self.deque.peek_back()
             return self._deserialize_state(state_str) if state_str else None
         return None
     
     def go_forward(self) -> Optional[BrowserState]:
         """Navigate to next page."""
-        if self.current_index < self.deque.size(self.history_key) - 1:
+        if self.current_index < self.deque.size() - 1:
             self.current_index += 1
-            state_str = self.deque.peek_front(self.history_key)
+            state_str = self.deque.peek_front()
             return self._deserialize_state(state_str) if state_str else None
         return None
 
@@ -123,13 +121,12 @@ from datetime import datetime
 
 class WorkStealingQueue:
     def __init__(self, worker_id: str):
-        self.deque = Deque()
+        self.deque = Deque(key=f"worker:{worker_id}:tasks")
         self.worker_id = worker_id
-        self.queue_key = f"worker:{worker_id}:tasks"
     
     def add_task(self, task: Any):
         """Add task to worker's queue."""
-        self.deque.push_back(self.queue_key, {
+        self.deque.push_back({
             "task": task,
             "timestamp": datetime.now().isoformat(),
             "worker": self.worker_id
@@ -137,18 +134,17 @@ class WorkStealingQueue:
     
     def get_own_task(self) -> Optional[Any]:
         """Get task from own queue (LIFO)."""
-        result = self.deque.pop_back(self.queue_key)
+        result = self.deque.pop_back()
         return result["task"] if result else None
     
     def steal_task(self, victim_id: str) -> Optional[Any]:
         """Steal task from another worker's queue (FIFO)."""
-        victim_key = f"worker:{victim_id}:tasks"
-        result = self.deque.pop_front(victim_key)
+        result = self.deque.pop_front()
         return result["task"] if result else None
     
     def get_size(self) -> int:
         """Get number of tasks in queue."""
-        return self.deque.size(self.queue_key)
+        return self.deque.size()
 
 class WorkerThread(threading.Thread):
     def __init__(self, worker_id: str, other_workers: list[str]):
@@ -209,9 +205,8 @@ class Action:
 
 class UndoRedoSystem:
     def __init__(self):
-        self.deque = Deque()
-        self.undo_key = "undo_stack"
-        self.redo_key = "redo_stack"
+        self.undo_deque = Deque(key="undo_stack")
+        self.redo_deque = Deque(key="redo_stack")
     
     def execute(self, action: Action):
         """Execute an action and add it to undo stack."""
@@ -219,20 +214,20 @@ class UndoRedoSystem:
         result = action.do()
         
         # Add to undo stack
-        self.deque.push_back(self.undo_key, {
+        self.undo_deque.push_back({
             "description": action.description,
             "do": action.do.__name__,
             "undo": action.undo.__name__
         })
         
         # Clear redo stack since we've taken a new action
-        self.deque.clear(self.redo_key)
+        self.redo_deque.clear()
         
         return result
     
     def undo(self) -> Optional[str]:
         """Undo last action."""
-        action_data = self.deque.pop_back(self.undo_key)
+        action_data = self.undo_deque.pop_back()
         if not action_data:
             return None
         
@@ -240,12 +235,12 @@ class UndoRedoSystem:
         getattr(self, action_data["undo"])()
         
         # Add to redo stack
-        self.deque.push_back(self.redo_key, action_data)
+        self.redo_deque.push_back(action_data)
         return action_data["description"]
     
     def redo(self) -> Optional[str]:
         """Redo previously undone action."""
-        action_data = self.deque.pop_back(self.redo_key)
+        action_data = self.redo_deque.pop_back()
         if not action_data:
             return None
         
@@ -253,16 +248,16 @@ class UndoRedoSystem:
         getattr(self, action_data["do"])()
         
         # Add back to undo stack
-        self.deque.push_back(self.undo_key, action_data)
+        self.undo_deque.push_back(action_data)
         return action_data["description"]
     
     def can_undo(self) -> bool:
         """Check if undo is available."""
-        return self.deque.size(self.undo_key) > 0
+        return self.undo_deque.size() > 0
     
     def can_redo(self) -> bool:
         """Check if redo is available."""
-        return self.deque.size(self.redo_key) > 0
+        return self.redo_deque.size() > 0
 
 # Usage
 class TextEditor:
@@ -302,8 +297,7 @@ import json
 
 class MessageBuffer:
     def __init__(self, max_size: int = 1000):
-        self.deque = Deque()
-        self.buffer_key = "message_buffer"
+        self.deque = Deque(key="message_buffer")
         self.max_size = max_size
     
     def add_message(self, message: Any):
@@ -313,22 +307,22 @@ class MessageBuffer:
             "content": message,
             "timestamp": datetime.now().isoformat()
         }
-        self.deque.push_back(self.buffer_key, msg_data)
+        self.deque.push_back(msg_data)
         
         # Remove oldest if buffer is full
-        while self.deque.size(self.buffer_key) > self.max_size:
-            self.deque.pop_front(self.buffer_key)
+        while self.deque.size() > self.max_size:
+            self.deque.pop_front()
     
     def get_latest_messages(self, count: int) -> list[dict]:
         """Get the most recent messages."""
         messages = []
-        size = min(count, self.deque.size(self.buffer_key))
+        size = min(count, self.deque.size())
         
         # Temporarily store messages while we retrieve them
         temp_key = f"temp_buffer_{datetime.now().timestamp()}"
         
         for _ in range(size):
-            msg = self.deque.pop_back(self.buffer_key)
+            msg = self.deque.pop_back()
             if msg:
                 messages.append(msg)
                 self.deque.push_front(temp_key, msg)
@@ -337,7 +331,7 @@ class MessageBuffer:
         for _ in range(len(messages)):
             msg = self.deque.pop_front(temp_key)
             if msg:
-                self.deque.push_back(self.buffer_key, msg)
+                self.deque.push_back(msg)
         
         return messages
     
@@ -346,7 +340,7 @@ class MessageBuffer:
         temp_key = f"temp_buffer_{datetime.now().timestamp()}"
         
         while True:
-            msg = self.deque.pop_front(self.buffer_key)
+            msg = self.deque.pop_front()
             if not msg:
                 break
                 
@@ -359,7 +353,7 @@ class MessageBuffer:
             msg = self.deque.pop_back(temp_key)
             if not msg:
                 break
-            self.deque.push_front(self.buffer_key, msg)
+            self.deque.push_front(msg)
 
 # Usage
 buffer = MessageBuffer(max_size=100)

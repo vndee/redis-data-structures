@@ -18,24 +18,23 @@ A Redis-backed FIFO (First-In-First-Out) queue implementation. Perfect for job q
 from redis_data_structures import Queue
 
 # Initialize queue
-queue = Queue()
-queue_key = "task_queue"
+queue = Queue("task_queue")
 
 # Add items
-queue.push(queue_key, "task1")
-queue.push(queue_key, "task2")
+queue.push("task1")
+queue.push("task2")
 
 # Get items (FIFO order)
-task = queue.pop(queue_key)  # Returns "task1"
+task = queue.pop()  # Returns "task1"
 
 # Check size
-size = queue.size(queue_key)  # Returns 1
+size = queue.size()  # Returns 1
 
 # Peek at next item without removing
-next_task = queue.peek(queue_key)  # Returns "task2" without removing it
+next_task = queue.peek()  # Returns "task2" without removing it
 
 # Clear the queue
-queue.clear(queue_key)
+queue.clear()
 ```
 
 ## Advanced Usage
@@ -44,8 +43,7 @@ queue.clear(queue_key)
 from redis_data_structures import Queue
 
 # Initialize queue
-queue = Queue()
-queue_key = "tasks"
+queue = Queue("tasks")
 
 # Store complex data types
 task = {
@@ -55,11 +53,11 @@ task = {
         "email": "user@example.com"
     }
 }
-queue.push(queue_key, task)
+queue.push(task)
 
 # Process tasks with error handling
-while queue.size(queue_key) > 0:
-    task = queue.pop(queue_key)
+while queue.size() > 0:
+    task = queue.pop()
     if task:
         print(f"Processing: {task['type']}_{task['action']}")
     else:
@@ -76,8 +74,7 @@ import time
 
 class TaskProcessor:
     def __init__(self):
-        self.queue = Queue()
-        self.queue_key = "task_queue"
+        self.queue = Queue("task_queue")
     
     def add_task(self, task_type: str, action: str, data: dict):
         """Add a task to the queue."""
@@ -86,12 +83,12 @@ class TaskProcessor:
             "action": action,
             "data": data
         }
-        return self.queue.push(self.queue_key, task)
+        return self.queue.push(task)
     
     def process_tasks(self):
         """Process all tasks in the queue."""
-        while self.queue.size(self.queue_key) > 0:
-            task = self.queue.pop(self.queue_key)
+        while self.queue.size() > 0:
+            task = self.queue.pop()
             if task:
                 print(f"Processing: {task['type']}_{task['action']}")
                 # Process task logic here
@@ -114,8 +111,7 @@ from typing import Dict, Any
 
 class MessageQueue:
     def __init__(self):
-        self.queue = Queue()
-        self.queue_key = "messages"
+        self.queue = Queue("messages")
     
     def send_message(self, message_type: str, data: Dict[str, Any]):
         """Send a message to the queue."""
@@ -123,15 +119,15 @@ class MessageQueue:
             "type": message_type,
             "data": data
         }
-        return self.queue.push(self.queue_key, message)
+        return self.queue.push(message)
     
     def get_next_message(self) -> Dict[str, Any]:
         """Get next message from queue."""
-        return self.queue.pop(self.queue_key)
+        return self.queue.pop()
     
     def preview_next_message(self) -> Dict[str, Any]:
         """Preview next message without removing."""
-        return self.queue.peek(self.queue_key)
+        return self.queue.peek()
 
 # Usage
 mq = MessageQueue()
