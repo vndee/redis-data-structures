@@ -49,14 +49,14 @@ from redis_data_structures import Queue, Stack, Set, ConnectionManager
 conn = ConnectionManager(host='localhost', port=6379, db=0)
 
 # Create and use data structures
-queue = Queue(connection_manager=conn)
-queue.push('tasks', {'id': 1, 'action': 'process'})
+queue = Queue("tasks", connection_manager=conn)
+queue.push({'id': 1, 'action': 'process'})
 
-stack = Stack(connection_manager=conn)
-stack.push('history', {'event': 'user_login'})
+stack = Stack("commands", connection_manager=conn)
+stack.push({'action': 'create'})
 
-set_ds = Set(connection_manager=conn)
-set_ds.add('users', {'id': 'user1', 'name': 'Alice'})
+set_ds = Set("users", connection_manager=conn)
+set_ds.add({'id': 'user1', 'name': 'Alice'})
 ```
 
 You can also skip using `ConnectionManager` if the following environment variables are set:
