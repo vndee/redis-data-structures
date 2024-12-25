@@ -1,11 +1,11 @@
 # 🌟 Redis Data Structures
 
 [![PyPI version](https://badge.fury.io/py/redis-data-structures.svg)](https://badge.fury.io/py/redis-data-structures)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![codecov](https://codecov.io/gh/vndee/redis-data-structures/graph/badge.svg?token=O9DSUSEJCI)](https://codecov.io/gh/vndee/redis-data-structures)
 [![code linting](https://github.com/vndee/redis-data-structures/actions/workflows/pylint.yaml/badge.svg)](https://github.com/vndee/redis-data-structures/actions/workflows/pylint.yaml)
 [![tests](https://github.com/vndee/redis-data-structures/actions/workflows/pytest.yaml/badge.svg)](https://github.com/vndee/redis-data-structures/actions/workflows/pytest.yaml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 A Python library providing high-level, Redis-backed data structures with a clean, Pythonic interface. Perfect for distributed systems, microservices, and any application requiring persistent, thread-safe data structures, especially in environments where multiple workers share the same data structure.
 
