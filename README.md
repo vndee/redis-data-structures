@@ -9,7 +9,6 @@ A Python library providing high-level, Redis-backed data structures with a clean
 
 📚 **[Detailed Usage Guide](docs/usage.md)** | 💡 **[Examples](examples/)**
 
----
 
 ### 📋 Table of Contents
 - [✨ Features](#✨-features)
@@ -23,7 +22,6 @@ A Python library providing high-level, Redis-backed data structures with a clean
 - [🤝 Contributing](#🤝-contributing)
 - [📝 License](#📝-license)
 
----
 
 ### ✨ Features
 
@@ -34,7 +32,6 @@ A Python library providing high-level, Redis-backed data structures with a clean
 - JSON serialization and **type preservation** for complex types
 - **Async support** (coming soon)
 
----
 
 ### 📦 Installation
 
@@ -42,7 +39,6 @@ A Python library providing high-level, Redis-backed data structures with a clean
 pip install redis-data-structures
 ```
 
----
 
 ### 🚀 Quick Start
 
@@ -79,7 +75,6 @@ stack = Stack()
 set_ds = Set()
 ```
 
----
 
 ### 📊 Data Structures
 
@@ -96,7 +91,6 @@ set_ds = Set()
 | BloomFilter      | Probabilistic set          | Membership testing                  |
 | Deque            | Double-ended queue         | Sliding windows                    |
 
----
 
 ### 💻 Usage Examples
 
@@ -134,7 +128,6 @@ peek = priority_queue.peek('tasks')
 ```
 For more examples, see **[usage](docs/usage.md)** and **[examples](examples/)**.
 
----
 
 ### 🔗 Connection Management
 
@@ -159,8 +152,6 @@ pq2 = PriorityQueue(connection_manager=connection_manager)
 stack = Stack(connection_manager=connection_manager)
 set_ds = Set(connection_manager=connection_manager)
 ```
-
----
 
 ### 🔍 Complex Types
 
@@ -220,8 +211,6 @@ set_ds.add('users', user)
 ```
 See **[type preservation](docs/type_preservation.md)** for more information.
 
----
-
 ### 📖 Documentation
 
 For detailed usage instructions and advanced features, please refer to:
@@ -229,7 +218,6 @@ For detailed usage instructions and advanced features, please refer to:
 - 📖 **[Usage Guide](docs/usage.md)** - Comprehensive documentation covering all features
 - 🎯 **[Examples](examples/)** - Real-world examples and use cases
 
----
 
 ### 🤝 Contributing
 
@@ -239,7 +227,6 @@ For detailed usage instructions and advanced features, please refer to:
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
----
 
 ### 📝 License
 
