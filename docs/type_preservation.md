@@ -102,11 +102,10 @@ class User(CustomRedisDataType):
 
 ### Pydantic Integration
 
-For complex types with validation requirements, you can use Pydantic models:
+For complex types with validation requirements, you can use Pydantic models directly:
 
 ```python
 from pydantic import BaseModel, Field
-from redis_data_structures.base import CustomRedisDataType
 
 # Nested Pydantic model
 class Address(BaseModel):
@@ -116,7 +115,7 @@ class Address(BaseModel):
     postal_code: Optional[str] = None
 
 # Main model with validation
-class UserModel(CustomRedisDataType, BaseModel):
+class UserModel(BaseModel):
     name: str
     email: str
     age: int = Field(gt=0, lt=150)  # with validation
@@ -125,7 +124,7 @@ class UserModel(CustomRedisDataType, BaseModel):
     tags: Set[str] = set()  # complex types
 ```
 
-Pydantic models automatically get:
+Pydantic models are automatically supported without needing to inherit from `CustomRedisDataType`. They get:
 - Type validation
 - Schema validation
 - Nested model support
@@ -165,37 +164,93 @@ retrieved_user = hash_map.get("users", "pydantic")
 
 ### Type Registration
 
-The `CustomRedisDataType` base class handles type registration:
+The serialization system handles type registration automatically through the `RedisDataStructure` class:
 
 ```python
-class CustomRedisDataType:
-    _registered_types: ClassVar[Dict[str, Type]] = {}
+class RedisDataStructure:
+    def serialize_value(self, val: Any) -> Any:
+        # Handle None and primitive types
+        if val is None or isinstance(val, (int, float, str, bool)):
+            return {
+                "value": val,
+                "_type": type(val).__name__ if val is not None else "NoneType",
+            }
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        
+        # Handle custom types
+        if isinstance(val, CustomRedisDataType):
+            return {
+                "_type": val.__class__.__name__,
+                "module": val.__class__.__module__,
+                "value": val.to_dict(),
+            }
+
         # Handle Pydantic models
-        if PYDANTIC_AVAILABLE and issubclass(cls, BaseModel):
-            cls._registered_types[cls.__name__] = cls
-            if not hasattr(cls, "to_dict"):
-                cls.to_dict = lambda self: self.model_dump()
-            if not hasattr(cls, "from_dict"):
-                cls.from_dict = classmethod(lambda cls, data: cls.model_validate(data))
-        # Handle standard classes
-        elif hasattr(cls, "to_dict") and hasattr(cls, "from_dict"):
-            cls._registered_types[cls.__name__] = cls
+        if PYDANTIC_AVAILABLE and isinstance(val, BaseModel):
+            return {
+                "_type": val.__class__.__name__,
+                "module": val.__class__.__module__,
+                "value": val.model_dump(mode="json"),
+            }
 ```
+
+The system automatically detects and handles:
+- Primitive types (int, float, str, bool, None)
+- Collections (list, dict, set, tuple)
+- Custom types inheriting from `CustomRedisDataType`
+- Pydantic models
+- Built-in types with registered handlers (datetime, timedelta, bytes)
 
 ### Serialization Format
 
-Data is serialized with type information:
+Data is serialized with type information in the following format:
 
 ```python
 {
-    "_type": "type_name",
-    "value": serialized_data,
-    "timestamp": "2024-01-20T12:34:56.789Z"  # Optional
+    "_type": "type_name",  # The Python type name
+    "module": "module.path",  # For custom types and Pydantic models
+    "value": serialized_data,  # The actual data
+    "timestamp": "2024-01-20T12:34:56.789Z"  # Optional, when include_timestamp=True
 }
+```
+
+Examples:
+```python
+# Primitive type
+{"_type": "int", "value": 42}
+
+# Custom type
+{
+    "_type": "User",
+    "module": "myapp.models",
+    "value": {"name": "John", "age": 30}
+}
+
+# Collection
+{
+    "_type": "list",
+    "value": [
+        {"_type": "int", "value": 1},
+        {"_type": "str", "value": "two"}
+    ]
+}
+
+# Pydantic model
+{
+    "_type": "UserModel",
+    "module": "myapp.models",
+    "value": {
+        "name": "Jane",
+        "email": "jane@example.com",
+        "age": 25
+    }
+}
+```
+
+The serialization system also supports compression for large data when configured:
+```python
+config = Config.from_env()
+config.data_structures.compression_enabled = True
+config.data_structures.compression_threshold = 1000  # bytes
 ```
 
 ## Best Practices
@@ -249,21 +304,30 @@ Data is serialized with type information:
 
 ## Future Enhancements
 
-1. **Planned Type Support**
+1. **Additional Type Support**
    - `frozenset`
    - `decimal.Decimal`
    - `uuid.UUID`
-   - More datetime types
+   - Custom type handlers for more third-party types
 
-2. **Performance Improvements**
-   - Caching of type information
-   - Batch serialization
-   - Compression for large objects
+2. **Performance Optimizations**
+   - Lazy deserialization for large collections
+   - Improved compression algorithms
+   - Bulk operation support
+   - Connection pooling optimizations
 
-3. **Pydantic Features**
-   - Custom serialization formats
-   - Validation caching
-   - Schema evolution support
+3. **Advanced Features**
+   - Schema versioning and migration
+   - Type-safe Redis operations
+   - Async/await support
+   - Distributed locking mechanisms
+   - Event-driven updates
+
+4. **Developer Experience**
+   - Type hints improvements
+   - Better error messages
+   - Debug logging options
+   - Integration with popular frameworks
 
 ## Contributing
 
