@@ -76,6 +76,8 @@ stack = Stack()
 set_ds = Set()
 ```
 
+Refer to **[initialization](docs/initialization.md)** for more information.
+
 
 ### 📊 Data Structures
 
