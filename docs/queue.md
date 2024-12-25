@@ -6,11 +6,11 @@ A Redis-backed FIFO (First-In-First-Out) queue implementation. Perfect for job q
 
 | Feature | Cost | Description | Implementation |
 | --- | --- | --- | --- |
-| `push` | O(1) | Add an item to the back of the queue | Redis `rpush` |
-| `pop` | O(1) | Remove and return the oldest item | Redis `lpop` |
-| `peek` | O(1) | Return the oldest item without removing it | Redis `lindex` |
-| `size` | O(1) | Return the number of items in the queue | Redis `llen` |
-| `clear` | O(1) | Remove all items from the queue | Redis `delete` |
+| `push` | $O(1)$ | Add an item to the back of the queue | Redis `rpush` |
+| `pop` | $O(1)$ | Remove and return the oldest item | Redis `lpop` |
+| `peek` | $O(1)$ | Return the oldest item without removing it | Redis `lindex` |
+| `size` | $O(1)$ | Return the number of items in the queue | Redis `llen` |
+| `clear` | $O(1)$ | Remove all items from the queue | Redis `delete` |
 
 
 ## Basic Usage
