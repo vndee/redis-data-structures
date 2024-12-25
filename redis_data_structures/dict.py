@@ -95,15 +95,37 @@ class Dict(RedisDataStructure):
         return self.exists(key)
     
     def __getitem__(self, key: str) -> Any:
-        """Get a value from the dictionary using the subscript operator."""
-        return self.get(key)
+        """Get a value from the dictionary using the subscript operator.
+        
+        Args:
+            key: The key to get.
+            
+        Returns:
+            Any: The value associated with the key.
+            
+        Raises:
+            KeyError: If the key does not exist.
+        """
+        value = self.get(key)
+        if value is None:
+            raise KeyError(key)
+        return value
     
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a value in the dictionary using the subscript operator."""
         self.set(key, value)
 
     def __delitem__(self, key: str) -> None:
-        """Delete a key-value pair from the dictionary using the subscript operator."""
+        """Delete a key-value pair from the dictionary using the subscript operator.
+        
+        Args:
+            key: The key to delete.
+            
+        Raises:
+            KeyError: If the key does not exist.
+        """
+        if not self.exists(key):
+            raise KeyError(key)
         self.delete(key)
 
     def __iter__(self) -> Iterator[str]:
@@ -126,4 +148,8 @@ class Dict(RedisDataStructure):
     def __eq__(self, other: "Dict") -> bool:
         """Check if the dictionary is equal to another dictionary."""
         return self.to_dict() == other.to_dict()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a dictionary representation of the dictionary."""
+        return {key: self.get(key) for key in self.keys()}
 

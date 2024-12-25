@@ -120,4 +120,134 @@ def test_concurrent_access(dict_instance):
         thread.join()
 
     for i in range(5):
-        assert dict_instance.get(f"key_{i}") == f"value_{i}" 
+        assert dict_instance.get(f"key_{i}") == f"value_{i}"
+
+# Tests for Python special methods
+def test_getitem(dict_instance):
+    """Test dictionary-style access using []."""
+    dict_instance.set("key1", "value1")
+    assert dict_instance["key1"] == "value1"
+    
+    # Test accessing non-existent key
+    with pytest.raises(KeyError):
+        _ = dict_instance["nonexistent"]
+
+def test_setitem(dict_instance):
+    """Test dictionary-style assignment using []."""
+    dict_instance["key1"] = "value1"
+    assert dict_instance.get("key1") == "value1"
+    
+    # Test updating existing key
+    dict_instance["key1"] = "new_value"
+    assert dict_instance.get("key1") == "new_value"
+
+def test_delitem(dict_instance):
+    """Test dictionary-style deletion using del."""
+    dict_instance["key1"] = "value1"
+    del dict_instance["key1"]
+    assert dict_instance.get("key1") is None
+    
+    # Test deleting non-existent key
+    with pytest.raises(KeyError):
+        del dict_instance["nonexistent"]
+
+def test_iter(dict_instance):
+    """Test dictionary iteration."""
+    test_data = {"key1": "value1", "key2": "value2", "key3": "value3"}
+    for key, value in test_data.items():
+        dict_instance[key] = value
+    
+    # Test that iteration yields all keys
+    assert set(iter(dict_instance)) == set(test_data.keys())
+    
+    # Test that iteration order matches keys()
+    assert list(iter(dict_instance)) == dict_instance.keys()
+
+def test_len(dict_instance):
+    """Test len() function on dictionary."""
+    assert len(dict_instance) == 0
+    
+    dict_instance["key1"] = "value1"
+    assert len(dict_instance) == 1
+    
+    dict_instance["key2"] = "value2"
+    assert len(dict_instance) == 2
+    
+    del dict_instance["key1"]
+    assert len(dict_instance) == 1
+    
+    dict_instance.clear()
+    assert len(dict_instance) == 0
+
+def test_repr(dict_instance):
+    """Test string representation of dictionary."""
+    # Test empty dict
+    assert repr(dict_instance) == "Dict(key=test_dict, items=[])"
+    
+    # Test with items
+    dict_instance["key1"] = "value1"
+    dict_instance["key2"] = "value2"
+    
+    # Since items() might return items in any order, we need to check both possibilities
+    expected_items = {("key1", "value1"), ("key2", "value2")}
+    actual_repr = repr(dict_instance)
+    assert actual_repr.startswith("Dict(key=test_dict, items=")
+    assert all(str(item) in actual_repr for item in expected_items)
+
+def test_str(dict_instance):
+    """Test string conversion of dictionary."""
+    # Test empty dict
+    assert str(dict_instance) == "{}"
+    
+    # Test with items
+    dict_instance["key1"] = "value1"
+    dict_instance["key2"] = "value2"
+    
+    # Convert string representation to dict and compare
+    result = eval(str(dict_instance))
+    assert isinstance(result, dict)
+    assert result == {"key1": "value1", "key2": "value2"}
+
+def test_contains(dict_instance):
+    """Test 'in' operator."""
+    dict_instance["key1"] = "value1"
+    
+    assert "key1" in dict_instance
+    assert "nonexistent" not in dict_instance
+    
+    del dict_instance["key1"]
+    assert "key1" not in dict_instance
+
+def test_bool(dict_instance):
+    """Test boolean evaluation."""
+    # Empty dict should be False
+    assert not bool(dict_instance)
+    
+    # Dict with items should be True
+    dict_instance["key1"] = "value1"
+    assert bool(dict_instance)
+    
+    # Dict should be False again after clearing
+    dict_instance.clear()
+    assert not bool(dict_instance)
+
+def test_eq(dict_instance):
+    """Test equality comparison."""
+    # Create another Dict instance
+    other_dict = Dict("test_dict_2")
+    other_dict.clear()
+    
+    # Empty dicts should be equal
+    assert dict_instance == other_dict
+    
+    # Dicts with same items should be equal
+    dict_instance["key1"] = "value1"
+    other_dict["key1"] = "value1"
+    assert dict_instance == other_dict
+    
+    # Dicts with different items should not be equal
+    other_dict["key2"] = "value2"
+    assert dict_instance != other_dict
+    
+    # Clean up
+    other_dict.clear() 
