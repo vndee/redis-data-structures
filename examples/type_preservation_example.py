@@ -197,5 +197,67 @@ def print_nested_structure(obj: Any, indent: int = 2) -> None:
             print(f"{prefix}{type_name}: {obj}")
 
 
+def set_examples():
+    """Demonstrate the usage of the Set data structure."""
+    from datetime import datetime
+    from redis_data_structures import Set
+
+    set_ds = Set()
+
+    # Any JSON-serializable object
+    user = {
+        'id': 'user1',
+        'name': 'Alice',
+        'joined': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'metadata': {'role': 'admin'}
+    }
+
+    set_ds.add('users', user)
+
+    # Custom types
+    from redis_data_structures import CustomRedisDataType
+
+    class User(CustomRedisDataType):
+        id: str
+        name: str
+        joined: datetime
+        metadata: dict
+
+        def __init__(self, id: str, name: str, joined: datetime, metadata: dict):
+            self.id = id
+            self.name = name
+            self.joined = joined
+            self.metadata = metadata
+
+        def from_dict(cls, data: dict):
+            return cls(id=data['id'], name=data['name'], joined=data['joined'], metadata=data['metadata'])
+
+        def to_dict(self):
+            return {
+                'id': self.id,
+                'name': self.name,
+                'joined': self.joined.strftime('%Y-%m-%d %H:%M:%S'),
+                'metadata': self.metadata
+            }
+
+    user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
+    set_ds.add('users', user)
+    print(set_ds.contains('users', user))
+
+    # Pydantic models
+    from pydantic import BaseModel
+
+    class User(BaseModel):
+        id: str
+        name: str
+        joined: datetime
+        metadata: dict
+
+    user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
+    set_ds.add('users', user)
+    print(set_ds.contains('users', user))
+
+
 if __name__ == "__main__":
     demonstrate_type_preservation()
+    set_examples()

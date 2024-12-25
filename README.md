@@ -18,7 +18,6 @@ A Python library providing high-level, Redis-backed data structures with a clean
 - [💻 Usage Examples](#-usage-examples)
 - [🔗 Connection Management](#-connection-management)
 - [🔍 Complex Types](#-complex-types)
-- [📖 Documentation](#-documentation)
 - [🤝 Contributing](#-contributing)
 - [📝 License](#-license)
 
@@ -160,58 +159,99 @@ set_ds = Set(connection_manager=connection_manager)
 ### 🔍 Complex Types
 
 ```python
-from datetime import datetime
-
-# Any JSON-serializable object
-user = {
-    'id': 'user1',
-    'name': 'Alice',
-    'joined': datetime.now().isoformat(),
-    'metadata': {'role': 'admin'}
-}
-
-set_ds.add('users', user)
-
-# Custom types
-from redis_data_structures import CustomRedisDataType
-
-class User(CustomRedisDataType):
-    id: str
-    name: str
-    joined: datetime
-    metadata: dict
-
-    def __init__(self, id: str, name: str, joined: datetime, metadata: dict):
-        self.id = id
-        self.name = name
-        self.joined = joined
-        self.metadata = metadata
-
-    def from_dict(cls, data: dict):
-        return cls(id=data['id'], name=data['name'], joined=data['joined'], metadata=data['metadata'])
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'joined': self.joined,
-            'metadata': self.metadata
-        }
-
-user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
-set_ds.add('users', user)
-
-# Pydantic models
+from redis_data_structures import LRUCache, HashMap
+from datetime import datetime, timezone
 from pydantic import BaseModel
 
-class User(BaseModel):
-    id: str
-    name: str
-    joined: datetime
-    metadata: dict
+# Initialize data structures
+cache = LRUCache(capacity=1000)  # Using default connection settings
+hash_map = HashMap()  # Using default connection settings
 
-user = User(id='user1', name='Alice', joined=datetime.now(), metadata={'role': 'admin'})
-set_ds.add('users', user)
+# Example 1: Basic Python Types
+data = {
+    "string": "hello",
+    "integer": 42,
+    "float": 3.14,
+    "boolean": True,
+    "none": None,
+}
+for key, value in data.items():
+    hash_map.set("type_demo_hash", key, value)
+    result = hash_map.get("type_demo_hash", key)
+
+# Example 2: Collections
+collections = {
+    "tuple": (1, "two", 3.0),
+    "list": [1, 2, 3, "four"],
+    "set": {1, 2, 3, 4},
+    "dict": {"a": 1, "b": 2},
+}
+for key, value in collections.items():
+    hash_map.set("type_demo_hash", key, value)
+    result = hash_map.get("type_demo_hash", key)
+
+# Example 3: DateTime Types
+now = datetime.now(timezone.utc)
+hash_map.set("type_demo_hash", "datetime", now)
+result = hash_map.get("type_demo_hash", "datetime")
+
+# Example 4: Custom Type
+user = User("John Doe", datetime.now(timezone.utc))
+hash_map.set("type_demo_hash", "custom_user", user)
+result = hash_map.get("type_demo_hash", "custom_user")
+
+# Example 5: Pydantic Models
+user_model = UserModel(
+    name="Jane Smith",
+    email="jane@example.com",
+    age=30,
+    joined=datetime.now(timezone.utc),
+    address=Address(
+        street="123 Main St",
+        city="New York",
+        country="USA",
+        postal_code="10001",
+    ),
+    tags={"developer", "python"},
+)
+
+# Store in different data structures
+cache.put("type_demo_cache", "pydantic_user", user_model)
+hash_map.set("type_demo_hash", "pydantic_user", user_model)
+
+# Retrieve and verify
+cache_result = cache.get("type_demo_cache", "pydantic_user")
+hash_result = hash_map.get("type_demo_hash", "pydantic_user")
+
+# Example 6: Nested Structures
+nested_data = {
+    "user": user,
+    "model": user_model,
+    "list": [1, user, user_model],
+    "tuple": (user, user_model),
+    "dict": {
+        "user": user,
+        "model": user_model,
+        "date": now,
+    },
+}
+hash_map.set("type_demo_hash", "nested", nested_data)
+result = hash_map.get("type_demo_hash", "nested")
+
+# Example 7: Custom types with base classes
+class User(CustomRedisDataType):
+    def __init__(self, name: str, age: int):
+        self.name = name
+        self.age = age
+
+    def to_dict(self) -> dict:
+        return {"name": self.name, "age": self.age}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'User':
+        return cls(data["name"], data["age"])
+
+hash_map.set("type_demo_hash", "custom_user", User("John Doe", 30))
 ```
 See **[type preservation](docs/type_preservation.md)** for more information.
 
