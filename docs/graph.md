@@ -1,235 +1,435 @@
-# Graph
+# Graph (Adjacency List)
 
-A Redis-backed directed graph implementation with support for weighted edges. Perfect for social networks, recommendation systems, and any application requiring graph-based data structures.
+A Redis-backed directed graph implementation using adjacency lists. Vertices can store arbitrary data and edges can have custom weights. Perfect for social networks, dependency graphs, routing systems, and any application requiring relationship modeling with weighted connections.
 
 ## Features
 
-- Directed graph with weighted edges
-- Vertex data storage with type preservation
-- Efficient edge traversal
-- Thread-safe operations
-- Persistent storage
-- Connection pooling and retries
-- Circuit breaker pattern
-- Health monitoring
+| Feature | Average Cost | Worst Case | Description | Implementation |
+| --- | --- | --- | --- | --- |
+| `add_vertex` | $O(1)$ | $O(1)$ | Add a vertex with optional data | `HSET` |
+| `add_edge` | $O(1)$ | $O(1)$ | Add a weighted edge between vertices | `HSET` |
+| `remove_vertex` | $O(n)$ | $O(n)$ | Remove vertex and all connected edges | `DELETE`, `HDEL` |
+| `remove_edge` | $O(1)$ | $O(1)$ | Remove an edge | `HDEL` |
+| `get_vertex_data` | $O(1)$ | $O(1)$ | Get vertex data | `HGET` |
+| `get_neighbors` | $O(1)$ | $O(1)$ | Get all neighbors with edge weights | `HGETALL` |
+| `get_vertices` | $O(n)$ | $O(n)$ | Get all vertices | `SCAN` |
+| `vertex_exists` | $O(1)$ | $O(1)$ | Check if vertex exists | `EXISTS` |
+| `get_edge_weight` | $O(1)$ | $O(1)$ | Get weight of an edge | `HGET` |
+| `clear` | $O(n)$ | $O(n)$ | Remove all vertices and edges | `DELETE` |
+
+where:
+- n is the number of vertices in the graph
 
 ## Basic Usage
 
 ```python
-from redis_data_structures import Graph, ConnectionManager
+from redis_data_structures import Graph
 
-# Initialize connection manager
-connection_manager = ConnectionManager(
-    host='localhost',
-    port=6379,
-    db=0
-)
-
-# Create graph with connection manager
-graph = Graph(connection_manager=connection_manager)
+# Initialize graph
+graph = Graph()
+graph_key = "my_graph"
 
 # Add vertices with data
-graph.add_vertex('my_graph', 'v1', {'name': 'Alice', 'age': 30})
-graph.add_vertex('my_graph', 'v2', {'name': 'Bob', 'age': 25})
+graph.add_vertex(graph_key, "v1", {"name": "Vertex 1", "value": 42})
+graph.add_vertex(graph_key, "v2", {"name": "Vertex 2", "value": 43})
 
-# Add edges with weights
-graph.add_edge('my_graph', 'v1', 'v2', weight=0.8)
+# Add weighted edges
+graph.add_edge(graph_key, "v1", "v2", weight=1.5)
 
 # Get vertex data
-alice = graph.get_vertex_data('my_graph', 'v1')
-print(f"Name: {alice['name']}, Age: {alice['age']}")
+data = graph.get_vertex_data(graph_key, "v1")
 
-# Get neighbors
-neighbors = graph.get_neighbors('my_graph', 'v1')
-for neighbor, weight in neighbors.items():
-    print(f"Neighbor: {neighbor}, Weight: {weight}")
+# Get neighbors with weights
+neighbors = graph.get_neighbors(graph_key, "v1")  # {"v2": 1.5}
+
+# Check edge weight
+weight = graph.get_edge_weight(graph_key, "v1", "v2")  # 1.5
 
 # Remove edges and vertices
-graph.remove_edge('my_graph', 'v1', 'v2')
-graph.remove_vertex('my_graph', 'v1')
+graph.remove_edge(graph_key, "v1", "v2")
+graph.remove_vertex(graph_key, "v1")
 
-# Clear the graph
-graph.clear('my_graph')
+# Clear graph
+graph.clear(graph_key)
 ```
 
 ## Advanced Usage
 
 ```python
-from redis_data_structures import Graph, ConnectionManager
-from datetime import datetime, timedelta
-
-# Create connection manager with advanced features
-connection_manager = ConnectionManager(
-    host='redis.example.com',
-    port=6380,
-    max_connections=20,
-    retry_max_attempts=5,
-    circuit_breaker_threshold=10,
-    circuit_breaker_timeout=timedelta(minutes=5),
-    ssl=True,
-    ssl_cert_reqs='required',
-    ssl_ca_certs='/path/to/ca.pem'
-)
-
-# Create graph with connection manager
-graph = Graph(connection_manager=connection_manager)
-
-# Store complex types
-user_data = {
-    'name': 'Charlie',
-    'joined': datetime.now(),
-    'metadata': {'role': 'admin', 'status': 'active'}
-}
-graph.add_vertex('social_network', 'user3', user_data)
-
-# Batch operations
-vertices = [
-    ('user4', {'name': 'David', 'age': 28}),
-    ('user5', {'name': 'Eve', 'age': 32})
-]
-for vertex_id, data in vertices:
-    graph.add_vertex('social_network', vertex_id, data)
-
-# Monitor health
-health = connection_manager.health_check()
-print(f"Status: {health['status']}")
-print(f"Latency: {health['latency_ms']}ms")
-```
-
-## Example Use Cases
-
-### 1. Social Network
-
-```python
-from redis_data_structures import Graph, ConnectionManager
+from redis_data_structures import Graph
+from typing import Dict, Any, Set, Optional
 from datetime import datetime
 
 class SocialNetwork:
     def __init__(self):
-        self.connection_manager = ConnectionManager(host='localhost', port=6379)
-        self.graph = Graph(connection_manager=self.connection_manager)
-        self.graph_key = 'social_network'
+        self.graph = Graph()
+        self.network_key = "social_network"
     
-    def add_user(self, user_id: str, data: dict):
+    def add_user(self, user_id: str, profile: Dict[str, Any]) -> bool:
         """Add a user to the network."""
-        data['joined'] = datetime.now()
-        self.graph.add_vertex(self.graph_key, user_id, data)
+        profile_data = {
+            **profile,
+            "joined_at": datetime.now().isoformat(),
+            "last_active": datetime.now().isoformat()
+        }
+        return self.graph.add_vertex(self.network_key, user_id, profile_data)
     
-    def add_friendship(self, user1: str, user2: str, strength: float = 1.0):
-        """Create a bidirectional friendship."""
-        self.graph.add_edge(self.graph_key, user1, user2, weight=strength)
-        self.graph.add_edge(self.graph_key, user2, user1, weight=strength)
+    def create_connection(self, user1: str, user2: str, strength: float) -> bool:
+        """Create a bidirectional connection between users."""
+        if not all([
+            self.graph.vertex_exists(self.network_key, user1),
+            self.graph.vertex_exists(self.network_key, user2)
+        ]):
+            return False
+            
+        return all([
+            self.graph.add_edge(self.network_key, user1, user2, strength),
+            self.graph.add_edge(self.network_key, user2, user1, strength)
+        ])
     
-    def get_friends(self, user_id: str) -> dict:
-        """Get user's friends with friendship strength."""
-        return self.graph.get_neighbors(self.graph_key, user_id)
+    def get_connections(self, user_id: str) -> Dict[str, Dict[str, Any]]:
+        """Get all connections for a user with their profiles."""
+        connections = {}
+        neighbors = self.graph.get_neighbors(self.network_key, user_id)
+        
+        for neighbor_id, strength in neighbors.items():
+            profile = self.graph.get_vertex_data(self.network_key, neighbor_id)
+            if profile:
+                connections[neighbor_id] = {
+                    **profile,
+                    "connection_strength": strength
+                }
+        
+        return connections
     
-    def get_user_info(self, user_id: str) -> dict:
-        """Get user information."""
-        return self.graph.get_vertex_data(self.graph_key, user_id)
+    def get_mutual_connections(self, user1: str, user2: str) -> Set[str]:
+        """Find mutual connections between two users."""
+        user1_connections = set(self.graph.get_neighbors(self.network_key, user1).keys())
+        user2_connections = set(self.graph.get_neighbors(self.network_key, user2).keys())
+        return user1_connections & user2_connections
+    
+    def remove_user(self, user_id: str) -> bool:
+        """Remove a user and all their connections."""
+        return self.graph.remove_vertex(self.network_key, user_id)
 
 # Usage
 network = SocialNetwork()
-network.add_user('alice', {'name': 'Alice', 'age': 30})
-network.add_user('bob', {'name': 'Bob', 'age': 25})
-network.add_friendship('alice', 'bob', 0.9)
+
+# Add users
+network.add_user("alice", {
+    "name": "Alice Smith",
+    "age": 28,
+    "interests": ["tech", "music"]
+})
+network.add_user("bob", {
+    "name": "Bob Johnson",
+    "age": 32,
+    "interests": ["sports", "books"]
+})
+
+# Create connections
+network.create_connection("alice", "bob", 0.8)
+
+# Get connections
+alice_connections = network.get_connections("alice")
 ```
 
-### 2. Recommendation System
+## Example Use Cases
+
+### 1. Dependency Graph Manager
 
 ```python
-from redis_data_structures import Graph, ConnectionManager
+from redis_data_structures import Graph
+from typing import Dict, Any, Set, Optional
+from datetime import datetime
+import json
 
-class RecommendationSystem:
+class DependencyManager:
     def __init__(self):
-        self.connection_manager = ConnectionManager(host='localhost', port=6379)
-        self.graph = Graph(connection_manager=self.connection_manager)
-        self.graph_key = 'recommendations'
+        self.graph = Graph()
+        self.deps_key = "dependency_graph"
     
-    def add_item(self, item_id: str, data: dict):
-        """Add an item to the system."""
-        self.graph.add_vertex(self.graph_key, item_id, data)
+    def add_package(self, package_id: str, metadata: Dict[str, Any]) -> bool:
+        """Add a package to the dependency graph."""
+        package_data = {
+            **metadata,
+            "added_at": datetime.now().isoformat(),
+            "last_updated": datetime.now().isoformat()
+        }
+        return self.graph.add_vertex(self.deps_key, package_id, package_data)
     
-    def add_similarity(self, item1: str, item2: str, score: float):
-        """Add similarity score between items."""
-        self.graph.add_edge(self.graph_key, item1, item2, weight=score)
+    def add_dependency(self, package: str, depends_on: str, version_spec: str = "*") -> bool:
+        """Add a dependency relationship."""
+        return self.graph.add_edge(self.deps_key, package, depends_on, 1.0)
     
-    def get_recommendations(self, item_id: str, limit: int = 5) -> list:
-        """Get similar items sorted by similarity score."""
-        neighbors = self.graph.get_neighbors(self.graph_key, item_id)
-        sorted_items = sorted(neighbors.items(), key=lambda x: x[1], reverse=True)
-        return sorted_items[:limit]
+    def get_direct_dependencies(self, package: str) -> Dict[str, Dict[str, Any]]:
+        """Get direct dependencies of a package."""
+        deps = {}
+        for dep_id in self.graph.get_neighbors(self.deps_key, package):
+            metadata = self.graph.get_vertex_data(self.deps_key, dep_id)
+            if metadata:
+                deps[dep_id] = metadata
+        return deps
+    
+    def get_all_dependencies(self, package: str, visited: Optional[Set[str]] = None) -> Set[str]:
+        """Get all dependencies recursively."""
+        if visited is None:
+            visited = set()
+            
+        if package in visited:
+            return visited
+            
+        visited.add(package)
+        for dep in self.graph.get_neighbors(self.deps_key, package):
+            self.get_all_dependencies(dep, visited)
+            
+        return visited
+    
+    def find_cycles(self) -> list[list[str]]:
+        """Find dependency cycles."""
+        cycles = []
+        visited = set()
+        path = []
+        
+        def dfs(vertex: str):
+            if vertex in path:
+                cycle_start = path.index(vertex)
+                cycles.append(path[cycle_start:])
+                return
+            
+            if vertex in visited:
+                return
+                
+            visited.add(vertex)
+            path.append(vertex)
+            
+            for neighbor in self.graph.get_neighbors(self.deps_key, vertex):
+                dfs(neighbor)
+                
+            path.pop()
+        
+        for vertex in self.graph.get_vertices(self.deps_key):
+            dfs(vertex)
+            
+        return cycles
 
 # Usage
-recommender = RecommendationSystem()
-recommender.add_item('book1', {'title': 'Python Programming'})
-recommender.add_item('book2', {'title': 'Data Science'})
-recommender.add_similarity('book1', 'book2', 0.8)
+deps = DependencyManager()
+
+# Add packages
+deps.add_package("app", {
+    "name": "MyApp",
+    "version": "1.0.0"
+})
+deps.add_package("db", {
+    "name": "Database",
+    "version": "2.1.0"
+})
+
+# Add dependencies
+deps.add_dependency("app", "db")
+
+# Check dependencies
+direct_deps = deps.get_direct_dependencies("app")
+all_deps = deps.get_all_dependencies("app")
+cycles = deps.find_cycles()
 ```
 
-## Best Practices
+### 2. Service Mesh Router
 
-1. **Connection Management**
-   ```python
-   # Create a shared connection manager
-   connection_manager = ConnectionManager(
-       host='localhost',
-       max_connections=20,
-       retry_max_attempts=5
-   )
-   
-   # Reuse for multiple graphs
-   graph1 = Graph(connection_manager=connection_manager)
-   graph2 = Graph(connection_manager=connection_manager)
-   ```
+```python
+from redis_data_structures import Graph
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+import heapq
 
-2. **Error Handling**
-   ```python
-   try:
-       graph.add_vertex('my_graph', vertex_id, data)
-   except Exception as e:
-       logger.error(f"Error adding vertex: {e}")
-       # Handle error...
-   ```
+class ServiceRouter:
+    def __init__(self):
+        self.graph = Graph()
+        self.router_key = "service_mesh"
+    
+    def register_service(self, service_id: str, metadata: Dict[str, Any]) -> bool:
+        """Register a service in the mesh."""
+        service_data = {
+            **metadata,
+            "registered_at": datetime.now().isoformat(),
+            "health_check": "healthy",
+            "last_ping": datetime.now().isoformat()
+        }
+        return self.graph.add_vertex(self.router_key, service_id, service_data)
+    
+    def add_route(self, from_service: str, to_service: str, latency: float) -> bool:
+        """Add a route between services with measured latency."""
+        return self.graph.add_edge(
+            self.router_key, 
+            from_service, 
+            to_service, 
+            weight=latency
+        )
+    
+    def update_latency(self, from_service: str, to_service: str, latency: float) -> bool:
+        """Update route latency."""
+        return self.graph.add_edge(
+            self.router_key,
+            from_service,
+            to_service,
+            weight=latency
+        )
+    
+    def find_fastest_path(self, start: str, end: str) -> tuple[List[str], float]:
+        """Find fastest path between services using Dijkstra's algorithm."""
+        distances = {v: float('infinity') for v in self.graph.get_vertices(self.router_key)}
+        distances[start] = 0
+        previous = {v: None for v in self.graph.get_vertices(self.router_key)}
+        pq = [(0, start)]
+        
+        while pq:
+            current_distance, current = heapq.heappop(pq)
+            
+            if current == end:
+                break
+                
+            if current_distance > distances[current]:
+                continue
+                
+            for neighbor, latency in self.graph.get_neighbors(self.router_key, current).items():
+                distance = current_distance + latency
+                
+                if distance < distances[neighbor]:
+                    distances[neighbor] = distance
+                    previous[neighbor] = current
+                    heapq.heappush(pq, (distance, neighbor))
+        
+        # Reconstruct path
+        path = []
+        current = end
+        while current:
+            path.append(current)
+            current = previous[current]
+        
+        return list(reversed(path)), distances[end]
+    
+    def get_service_health(self, service_id: str) -> Optional[Dict[str, Any]]:
+        """Get service health information."""
+        return self.graph.get_vertex_data(self.router_key, service_id)
 
-3. **Health Monitoring**
-   ```python
-   # Regular health checks
-   health = connection_manager.health_check()
-   if health['status'] != 'healthy':
-       logger.warning(f"Connection issues: {health}")
-   ```
+# Usage
+router = ServiceRouter()
 
-## Implementation Details
+# Register services
+router.register_service("auth", {
+    "name": "Authentication Service",
+    "version": "1.0.0",
+    "endpoint": "http://auth:8080"
+})
+router.register_service("users", {
+    "name": "User Service",
+    "version": "1.0.0",
+    "endpoint": "http://users:8080"
+})
 
-- Uses Redis hashes for vertex data
-- Uses Redis sorted sets for edges
-- Atomic operations for thread safety
-- Connection pooling for performance
-- Automatic reconnection with backoff
-- Circuit breaker for fault tolerance
-- JSON serialization for complex types
+# Add routes with latencies
+router.add_route("auth", "users", 10.5)  # 10.5ms latency
+router.add_route("users", "auth", 10.5)
 
-## Troubleshooting
+# Find fastest path
+path, latency = router.find_fastest_path("auth", "users")
+```
 
-1. **Connection Issues**
-   ```python
-   # Check connection health
-   health = connection_manager.health_check()
-   print(f"Status: {health['status']}")
-   print(f"Latency: {health['latency_ms']}ms")
-   ```
+### 3. Knowledge Graph
 
-2. **Performance Issues**
-   ```python
-   # Monitor connection pool
-   health = connection_manager.health_check()
-   print(f"Pool Status: {health['connection_pool']}")
-   ```
+```python
+from redis_data_structures import Graph
+from typing import Dict, Any, Set, List
+from datetime import datetime
+import json
 
-3. **Memory Usage**
-   ```python
-   # Monitor vertex count
-   vertices = graph.get_vertices('my_graph')
-   print(f"Number of vertices: {len(vertices)}")
-   ``` 
+class KnowledgeGraph:
+    def __init__(self):
+        self.graph = Graph()
+        self.kg_key = "knowledge_graph"
+    
+    def add_entity(self, entity_id: str, metadata: Dict[str, Any]) -> bool:
+        """Add an entity to the knowledge graph."""
+        entity_data = {
+            **metadata,
+            "added_at": datetime.now().isoformat(),
+            "type": metadata.get("type", "unknown")
+        }
+        return self.graph.add_vertex(self.kg_key, entity_id, entity_data)
+    
+    def add_relationship(
+        self, 
+        from_entity: str, 
+        to_entity: str, 
+        relationship_type: str,
+        confidence: float = 1.0
+    ) -> bool:
+        """Add a relationship between entities."""
+        relationship = {
+            "type": relationship_type,
+            "confidence": confidence,
+            "created_at": datetime.now().isoformat()
+        }
+        return self.graph.add_edge(self.kg_key, from_entity, to_entity, confidence)
+    
+    def get_entity_relationships(self, entity_id: str) -> Dict[str, Dict[str, Any]]:
+        """Get all relationships for an entity."""
+        relationships = {}
+        neighbors = self.graph.get_neighbors(self.kg_key, entity_id)
+        
+        for neighbor_id, confidence in neighbors.items():
+            target = self.graph.get_vertex_data(self.kg_key, neighbor_id)
+            if target:
+                relationships[neighbor_id] = {
+                    "entity": target,
+                    "confidence": confidence
+                }
+        
+        return relationships
+    
+    def find_path_between_entities(
+        self, 
+        start: str, 
+        end: str, 
+        max_depth: int = 5
+    ) -> List[tuple[str, float]]:
+        """Find a path between entities with confidence scores."""
+        def dfs(
+            current: str,
+            target: str,
+            depth: int,
+            path: List[tuple[str, float]],
+            visited: Set[str]
+        ) -> Optional[List[tuple[str, float]]]:
+            if depth > max_depth:
+                return None
+                
+            if current == target:
+                return path
+                
+            visited.add(current)
+            
+            for neighbor, confidence in self.graph.get_neighbors(self.kg_key, current).items():
+                if neighbor not in visited:
+                    result = dfs(
+                        neighbor,
+                        target,
+                        depth + 1,
+                        path + [(neighbor, confidence)],
+                        visited
+                    )
+                    if result:
+                        return result
+            
+            visited.remove(current)
+            return None
+        
+        result = dfs(start, end, 0, [], set())
+        return result if result else []
+
+# Usage
+kg = KnowledgeGraph()
+
+# Add entities
+kg.add_entity("person:john",

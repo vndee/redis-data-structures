@@ -1,242 +1,396 @@
-# Hash Map
+# HashMap
 
-A Redis-backed hash map implementation that provides persistent key-value storage with type preservation. Perfect for caching, metadata storage, and managing structured data.
+A Redis-backed hash map implementation that provides persistent key-value storage with type preservation. Perfect for storing structured data, managing user profiles, caching complex objects, and maintaining configuration settings.
 
 ## Features
 
-- Key-value storage with type preservation
-- O(1) operations for get/set
-- Thread-safe operations
-- Persistent storage
-- Connection pooling and retries
-- Circuit breaker pattern
-- Health monitoring
+| Feature | Average Cost | Worst Case | Description | Implementation |
+| --- | --- | --- | --- | --- |
+| `set` | $O(1)$ | $O(n)$ | Set a field's value | `HSET` |
+| `get` | $O(1)$ | $O(n)$ | Get a field's value | `HGET` |
+| `delete` | $O(1)$ | $O(n)$ | Delete a field | `HDEL` |
+| `exists` | $O(1)$ | $O(n)$ | Check if a field exists | `HEXISTS` |
+| `get_all` | $O(n)$ | $O(n)$ | Get all field-value pairs | `HGETALL` |
+| `get_fields` | $O(n)$ | $O(n)$ | Get all field names | `HKEYS` |
+| `size` | $O(1)$ | $O(1)$ | Get number of fields | `HLEN` |
+| `clear` | $O(1)$ | $O(1)$ | Remove all fields | `DELETE` |
+
+where:
+- n is the number of fields in the hash map
+
+Note: The O(n) worst case for operations like `set`, `get`, `delete`, and `exists` occurs due to potential hash collisions in Redis's internal hash table implementation and the size of the serialized values being stored/retrieved.
 
 ## Basic Usage
 
 ```python
-from redis_data_structures import HashMap, ConnectionManager
+from redis_data_structures import HashMap
 
-# Initialize connection manager
-connection_manager = ConnectionManager(
-    host='localhost',
-    port=6379,
-    db=0
-)
+# Initialize hash map
+hm = HashMap()
+map_key = "user_settings"
 
-# Create hash map with connection manager
-hm = HashMap(connection_manager=connection_manager)
+# Store values
+hm.set(map_key, "theme", "dark")
+hm.set(map_key, "language", "en")
+hm.set(map_key, "notifications", True)
 
-# Store key-value pairs
-hm.set('users', 'user1', {'name': 'Alice', 'age': 30})
-hm.set('users', 'user2', {'name': 'Bob', 'age': 25})
+# Retrieve values
+theme = hm.get(map_key, "theme")  # Returns "dark"
+exists = hm.exists(map_key, "language")  # Returns True
 
-# Get values
-user = hm.get('users', 'user1')
-print(f"Name: {user['name']}, Age: {user['age']}")
+# Get multiple values
+all_settings = hm.get_all(map_key)  # Returns dict of all settings
+field_names = hm.get_fields(map_key)  # Returns list of field names
 
-# Check existence
-exists = hm.exists('users', 'user1')  # Returns True
-
-# Delete key-value pairs
-hm.delete('users', 'user1')
-
-# Get all keys and values
-all_users = hm.get_all('users')
-user_ids = hm.get_fields('users')
-
-# Clear the hash map
-hm.clear('users')
+# Remove values
+hm.delete(map_key, "notifications")
+hm.clear(map_key)  # Remove all fields
 ```
 
 ## Advanced Usage
 
 ```python
-from redis_data_structures import HashMap, ConnectionManager
-from datetime import datetime, timedelta
+from redis_data_structures import HashMap
+from typing import Dict, Any, Optional
+from datetime import datetime
+import json
 
-# Create connection manager with advanced features
-connection_manager = ConnectionManager(
-    host='redis.example.com',
-    port=6380,
-    max_connections=20,
-    retry_max_attempts=5,
-    circuit_breaker_threshold=10,
-    circuit_breaker_timeout=timedelta(minutes=5),
-    ssl=True,
-    ssl_cert_reqs='required',
-    ssl_ca_certs='/path/to/ca.pem'
+class UserProfileManager:
+    def __init__(self):
+        self.hash_map = HashMap()
+        self.profile_key = "user_profiles"
+    
+    def create_profile(self, user_id: str, data: Dict[str, Any]) -> bool:
+        """Create a new user profile."""
+        if self.hash_map.exists(self.profile_key, user_id):
+            return False
+            
+        profile_data = {
+            **data,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+        }
+        return self.hash_map.set(self.profile_key, user_id, profile_data)
+    
+    def update_profile(self, user_id: str, updates: Dict[str, Any]) -> bool:
+        """Update an existing profile."""
+        current_profile = self.get_profile(user_id)
+        if not current_profile:
+            return False
+        
+        updated_profile = {
+            **current_profile,
+            **updates,
+            "updated_at": datetime.now().isoformat(),
+        }
+        return self.hash_map.set(self.profile_key, user_id, updated_profile)
+    
+    def get_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get user profile."""
+        return self.hash_map.get(self.profile_key, user_id)
+    
+    def delete_profile(self, user_id: str) -> bool:
+        """Delete user profile."""
+        return self.hash_map.delete(self.profile_key, user_id)
+    
+    def list_profiles(self) -> Dict[str, Dict[str, Any]]:
+        """Get all user profiles."""
+        return self.hash_map.get_all(self.profile_key)
+
+# Usage
+manager = UserProfileManager()
+
+# Create profile
+manager.create_profile(
+    "user123",
+    {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "preferences": {
+            "theme": "dark",
+            "notifications": True
+        }
+    }
 )
 
-# Create hash map with connection manager
-hm = HashMap(connection_manager=connection_manager)
+# Update profile
+manager.update_profile(
+    "user123",
+    {"preferences": {"theme": "light"}}
+)
 
-# Store complex types
-data = {
-    'name': 'Charlie',
-    'joined': datetime.now(),
-    'metadata': {
-        'role': 'admin',
-        'status': 'active',
-        'permissions': ['read', 'write', 'delete']
-    }
-}
-hm.set('users', 'user3', data)
-
-# Batch operations
-users = {
-    'user4': {'name': 'David', 'age': 28},
-    'user5': {'name': 'Eve', 'age': 32}
-}
-for user_id, user_data in users.items():
-    hm.set('users', user_id, user_data)
-
-# Monitor health
-health = connection_manager.health_check()
-print(f"Status: {health['status']}")
-print(f"Latency: {health['latency_ms']}ms")
+# Get profile
+profile = manager.get_profile("user123")
 ```
 
 ## Example Use Cases
 
-### 1. User Session Store
+### 1. Configuration Management System
 
 ```python
-from redis_data_structures import HashMap, ConnectionManager
-from datetime import datetime, timedelta
-
-class SessionStore:
-    def __init__(self):
-        self.connection_manager = ConnectionManager(host='localhost', port=6379)
-        self.hm = HashMap(connection_manager=self.connection_manager)
-        self.store_key = 'sessions'
-    
-    def create_session(self, session_id: str, user_data: dict):
-        """Create a new session."""
-        session = {
-            'user_data': user_data,
-            'created_at': datetime.now(),
-            'last_accessed': datetime.now()
-        }
-        self.hm.set(self.store_key, session_id, session)
-    
-    def get_session(self, session_id: str) -> dict:
-        """Get session data and update last accessed time."""
-        session = self.hm.get(self.store_key, session_id)
-        if session:
-            session['last_accessed'] = datetime.now()
-            self.hm.set(self.store_key, session_id, session)
-        return session
-    
-    def delete_session(self, session_id: str):
-        """Delete a session."""
-        self.hm.delete(self.store_key, session_id)
-
-# Usage
-store = SessionStore()
-store.create_session('sess123', {'user_id': 'user1', 'name': 'Alice'})
-session = store.get_session('sess123')
-```
-
-### 2. Configuration Store
-
-```python
-from redis_data_structures import HashMap, ConnectionManager
+from redis_data_structures import HashMap
+from typing import Any, Dict, Optional
+from datetime import datetime
 import json
 
-class ConfigStore:
+class ConfigurationManager:
     def __init__(self):
-        self.connection_manager = ConnectionManager(host='localhost', port=6379)
-        self.hm = HashMap(connection_manager=self.connection_manager)
-        self.store_key = 'config'
+        self.hash_map = HashMap()
+        self.config_key = "app_config"
+        self.history_key = "config_history"
     
-    def set_config(self, app_id: str, config: dict):
-        """Set configuration for an app."""
-        config['updated_at'] = datetime.now().isoformat()
-        self.hm.set(self.store_key, app_id, config)
+    def set_config(self, component: str, config: Dict[str, Any]) -> bool:
+        """Set configuration for a component."""
+        # Store current config in history
+        current = self.get_config(component)
+        if current:
+            timestamp = datetime.now().isoformat()
+            history_entry = {
+                "config": current,
+                "timestamp": timestamp,
+                "type": "update"
+            }
+            self.hash_map.set(self.history_key, f"{component}_{timestamp}", history_entry)
+        
+        # Set new config
+        config_data = {
+            "data": config,
+            "updated_at": datetime.now().isoformat(),
+            "version": (current.get("version", 0) + 1) if current else 1
+        }
+        return self.hash_map.set(self.config_key, component, config_data)
     
-    def get_config(self, app_id: str) -> dict:
-        """Get app configuration."""
-        return self.hm.get(self.store_key, app_id)
+    def get_config(self, component: str) -> Optional[Dict[str, Any]]:
+        """Get configuration for a component."""
+        return self.hash_map.get(self.config_key, component)
     
-    def update_config(self, app_id: str, updates: dict):
-        """Update specific config values."""
-        config = self.get_config(app_id) or {}
-        config.update(updates)
-        self.set_config(app_id, config)
+    def list_components(self) -> list[str]:
+        """List all configured components."""
+        return self.hash_map.get_fields(self.config_key)
+    
+    def get_component_history(self, component: str) -> list[Dict[str, Any]]:
+        """Get configuration history for a component."""
+        all_history = self.hash_map.get_all(self.history_key)
+        return [
+            entry for key, entry in all_history.items()
+            if key.startswith(component)
+        ]
 
 # Usage
-config_store = ConfigStore()
-config_store.set_config('app1', {
-    'debug': True,
-    'api_key': 'secret',
-    'max_connections': 100
+config_manager = ConfigurationManager()
+
+# Set database configuration
+config_manager.set_config("database", {
+    "host": "localhost",
+    "port": 5432,
+    "max_connections": 100
 })
+
+# Update configuration
+config_manager.set_config("database", {
+    "host": "localhost",
+    "port": 5432,
+    "max_connections": 200  # Increased
+})
+
+# Get current config
+db_config = config_manager.get_config("database")
+
+# View history
+history = config_manager.get_component_history("database")
 ```
 
-## Best Practices
+### 2. Cache Management System
 
-1. **Connection Management**
-   ```python
-   # Create a shared connection manager
-   connection_manager = ConnectionManager(
-       host='localhost',
-       max_connections=20,
-       retry_max_attempts=5
-   )
-   
-   # Reuse for multiple hash maps
-   hm1 = HashMap(connection_manager=connection_manager)
-   hm2 = HashMap(connection_manager=connection_manager)
-   ```
+```python
+from redis_data_structures import HashMap
+from typing import Any, Optional
+from datetime import datetime, timedelta
+import time
 
-2. **Error Handling**
-   ```python
-   try:
-       hm.set('users', user_id, user_data)
-   except Exception as e:
-       logger.error(f"Error storing user data: {e}")
-       # Handle error...
-   ```
+class CacheManager:
+    def __init__(self, default_ttl: int = 3600):
+        self.hash_map = HashMap()
+        self.cache_key = "cache_data"
+        self.metadata_key = "cache_metadata"
+        self.default_ttl = default_ttl
+    
+    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+        """Set a cached value with optional TTL."""
+        # Store the value
+        success = self.hash_map.set(self.cache_key, key, value)
+        if not success:
+            return False
+        
+        # Store metadata
+        metadata = {
+            "created_at": datetime.now().isoformat(),
+            "expires_at": (
+                datetime.now() + timedelta(seconds=ttl or self.default_ttl)
+            ).isoformat()
+        }
+        return self.hash_map.set(self.metadata_key, key, metadata)
+    
+    def get(self, key: str) -> Optional[Any]:
+        """Get a cached value if not expired."""
+        # Check metadata first
+        metadata = self.hash_map.get(self.metadata_key, key)
+        if not metadata:
+            return None
+        
+        # Check expiration
+        expires_at = datetime.fromisoformat(metadata["expires_at"])
+        if expires_at < datetime.now():
+            # Clean up expired data
+            self.hash_map.delete(self.cache_key, key)
+            self.hash_map.delete(self.metadata_key, key)
+            return None
+        
+        return self.hash_map.get(self.cache_key, key)
+    
+    def delete(self, key: str) -> bool:
+        """Delete a cached value and its metadata."""
+        return all([
+            self.hash_map.delete(self.cache_key, key),
+            self.hash_map.delete(self.metadata_key, key)
+        ])
+    
+    def clear_expired(self) -> int:
+        """Clear all expired cache entries."""
+        cleared = 0
+        metadata = self.hash_map.get_all(self.metadata_key)
+        
+        for key, data in metadata.items():
+            expires_at = datetime.fromisoformat(data["expires_at"])
+            if expires_at < datetime.now():
+                self.delete(key)
+                cleared += 1
+        
+        return cleared
 
-3. **Health Monitoring**
-   ```python
-   # Regular health checks
-   health = connection_manager.health_check()
-   if health['status'] != 'healthy':
-       logger.warning(f"Connection issues: {health}")
-   ```
+# Usage
+cache = CacheManager(default_ttl=60)  # 1 minute default TTL
 
-## Implementation Details
+# Cache some data
+cache.set("user_123", {"name": "John", "age": 30})
+cache.set("temp_data", [1, 2, 3], ttl=10)  # Short TTL
 
-- Uses Redis hashes for storage
-- Automatic type preservation
-- JSON serialization for complex types
-- Atomic operations for thread safety
-- Connection pooling for performance
-- Automatic reconnection with backoff
-- Circuit breaker for fault tolerance
+# Get cached data
+user_data = cache.get("user_123")
+time.sleep(11)
+temp_data = cache.get("temp_data")  # Returns None (expired)
 
-## Troubleshooting
+# Clear expired entries
+cleared = cache.clear_expired()
+```
 
-1. **Connection Issues**
-   ```python
-   # Check connection health
-   health = connection_manager.health_check()
-   print(f"Status: {health['status']}")
-   print(f"Latency: {health['latency_ms']}ms")
-   ```
+### 3. Session Management System
 
-2. **Performance Issues**
-   ```python
-   # Monitor connection pool
-   health = connection_manager.health_check()
-   print(f"Pool Status: {health['connection_pool']}")
-   ```
+```python
+from redis_data_structures import HashMap
+from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
+import secrets
+import json
 
-3. **Memory Usage**
-   ```python
-   # Monitor hash size
-   fields = hm.get_fields('users')
-   print(f"Number of fields: {len(fields)}")
-   ```
+class SessionManager:
+    def __init__(self, session_timeout: int = 3600):
+        self.hash_map = HashMap()
+        self.sessions_key = "active_sessions"
+        self.session_timeout = session_timeout
+    
+    def create_session(self, user_id: str, data: Dict[str, Any]) -> str:
+        """Create a new session."""
+        session_id = secrets.token_urlsafe(32)
+        session_data = {
+            "user_id": user_id,
+            "data": data,
+            "created_at": datetime.now().isoformat(),
+            "last_accessed": datetime.now().isoformat(),
+            "expires_at": (datetime.now() + timedelta(seconds=self.session_timeout)).isoformat()
+        }
+        
+        if self.hash_map.set(self.sessions_key, session_id, session_data):
+            return session_id
+        return ""
+    
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get session data if valid."""
+        session = self.hash_map.get(self.sessions_key, session_id)
+        if not session:
+            return None
+        
+        # Check expiration
+        expires_at = datetime.fromisoformat(session["expires_at"])
+        if expires_at < datetime.now():
+            self.end_session(session_id)
+            return None
+        
+        # Update last accessed time and expiration
+        session.update({
+            "last_accessed": datetime.now().isoformat(),
+            "expires_at": (datetime.now() + timedelta(seconds=self.session_timeout)).isoformat()
+        })
+        self.hash_map.set(self.sessions_key, session_id, session)
+        
+        return session["data"]
+    
+    def update_session(self, session_id: str, data: Dict[str, Any]) -> bool:
+        """Update session data."""
+        session = self.hash_map.get(self.sessions_key, session_id)
+        if not session:
+            return False
+        
+        session.update({
+            "data": data,
+            "last_accessed": datetime.now().isoformat(),
+            "expires_at": (datetime.now() + timedelta(seconds=self.session_timeout)).isoformat()
+        })
+        return self.hash_map.set(self.sessions_key, session_id, session)
+    
+    def end_session(self, session_id: str) -> bool:
+        """End a session."""
+        return self.hash_map.delete(self.sessions_key, session_id)
+    
+    def cleanup_expired(self) -> int:
+        """Remove expired sessions."""
+        cleaned = 0
+        all_sessions = self.hash_map.get_all(self.sessions_key)
+        
+        for session_id, session in all_sessions.items():
+            expires_at = datetime.fromisoformat(session["expires_at"])
+            if expires_at < datetime.now():
+                self.end_session(session_id)
+                cleaned += 1
+        
+        return cleaned
+
+# Usage
+session_manager = SessionManager(session_timeout=1800)  # 30 minute timeout
+
+# Create session
+session_id = session_manager.create_session(
+    "user123",
+    {
+        "username": "john_doe",
+        "role": "admin",
+        "preferences": {"theme": "dark"}
+    }
+)
+
+# Get session data
+session_data = session_manager.get_session(session_id)
+
+# Update session
+session_manager.update_session(session_id, {
+    "username": "john_doe",
+    "role": "admin",
+    "preferences": {"theme": "light"}  # Updated preference
+})
+
+# End session
+session_manager.end_session(session_id)
+
+# Cleanup expired sessions
+cleaned = session_manager.cleanup_expired()
+```

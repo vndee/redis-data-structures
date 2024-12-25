@@ -1,244 +1,353 @@
 # Set
 
-A Redis-backed set implementation that maintains a collection of unique elements. Perfect for managing unique items, tracking membership, and implementing set operations.
+A Redis-backed set implementation that maintains a collection of unique elements with automatic type preservation. Perfect for tracking unique items, implementing session management, handling member relationships, and performing set operations.
 
 ## Features
 
-- O(1) operations for add/remove/contains
-- Unique element storage
-- Thread-safe operations
-- Persistent storage
-- Connection pooling and retries
-- Circuit breaker pattern
-- Health monitoring
+| Feature | Average Cost | Worst Case | Description | Implementation |
+| --- | --- | --- | --- | --- |
+| `add` | $O(1)$ | $O(n)$ | Add an item to the set | `SADD` |
+| `remove` | $O(1)$ | $O(n)$ | Remove an item from the set | `SREM` |
+| `contains` | $O(1)$ | $O(n)$ | Check if an item exists in the set | `SISMEMBER` |
+| `members` | $O(n)$ | $O(n)$ | Get all items in the set | `SMEMBERS` |
+| `pop` | $O(1)$ | $O(n)$ | Remove and return a random item | `SPOP` |
+| `size` | $O(1)$ | $O(1)$ | Get the number of items | `SCARD` |
+| `clear` | $O(1)$ | $O(1)$ | Remove all items | `DELETE` |
+
+where:
+- n is the number of items in the set
 
 ## Basic Usage
 
 ```python
-from redis_data_structures import Set, ConnectionManager
+from redis_data_structures import Set
 
-# Initialize connection manager
-connection_manager = ConnectionManager(
-    host='localhost',
-    port=6379,
-    db=0
-)
+# Initialize set
+set_ds = Set()
+set_key = "my_set"
 
-# Create set with connection manager
-s = Set(connection_manager=connection_manager)
-
-# Add items (duplicates are ignored)
-s.add('users', 'user1')
-s.add('users', 'user2')
-s.add('users', 'user1')  # Ignored
+# Add items
+set_ds.add(set_key, "item1")
+set_ds.add(set_key, "item2")
 
 # Check membership
-exists = s.contains('users', 'user1')  # Returns True
+exists = set_ds.contains(set_key, "item1")  # Returns True
+
+# Get all members
+items = set_ds.members(set_key)  # Returns {"item1", "item2"}
 
 # Remove items
-s.remove('users', 'user1')
-
-# Get all items
-items = s.get_all('users')
+set_ds.remove(set_key, "item1")
 
 # Get size
-size = s.size('users')
+size = set_ds.size(set_key)  # Returns 1
 
-# Clear the set
-s.clear('users')
+# Get random item
+item = set_ds.pop(set_key)
+
+# Clear set
+set_ds.clear(set_key)
 ```
 
 ## Advanced Usage
 
 ```python
-from redis_data_structures import Set, ConnectionManager
-from datetime import datetime, timedelta
+from redis_data_structures import Set
+from typing import Any, Dict, Set as PySet
+from datetime import datetime
+import json
 
-# Create connection manager with advanced features
-connection_manager = ConnectionManager(
-    host='redis.example.com',
-    port=6380,
-    max_connections=20,
-    retry_max_attempts=5,
-    circuit_breaker_threshold=10,
-    circuit_breaker_timeout=timedelta(minutes=5),
-    ssl=True,
-    ssl_cert_reqs='required',
-    ssl_ca_certs='/path/to/ca.pem'
-)
+class UserSessionManager:
+    def __init__(self):
+        self.set_ds = Set()
+        self.active_key = "active_sessions"
+        self.premium_key = "premium_sessions"
+    
+    def start_session(self, user_id: str, metadata: Dict[str, Any] = None):
+        """Start a new user session."""
+        session_data = {
+            "user_id": user_id,
+            "started_at": datetime.now().isoformat(),
+            "metadata": metadata or {}
+        }
+        return self.set_ds.add(self.active_key, session_data)
+    
+    def end_session(self, user_id: str):
+        """End a user session."""
+        sessions = self.set_ds.members(self.active_key)
+        for session in sessions:
+            if session["user_id"] == user_id:
+                return self.set_ds.remove(self.active_key, session)
+        return False
+    
+    def upgrade_to_premium(self, user_id: str):
+        """Upgrade user to premium."""
+        sessions = self.set_ds.members(self.active_key)
+        for session in sessions:
+            if session["user_id"] == user_id:
+                session["metadata"]["account_type"] = "premium"
+                self.set_ds.add(self.premium_key, session)
+                return True
+        return False
+    
+    def get_active_sessions(self) -> PySet[Dict[str, Any]]:
+        """Get all active sessions."""
+        return self.set_ds.members(self.active_key)
+    
+    def get_premium_sessions(self) -> PySet[Dict[str, Any]]:
+        """Get premium sessions."""
+        return self.set_ds.members(self.premium_key)
 
-# Create set with connection manager
-s = Set(connection_manager=connection_manager)
+# Usage
+session_manager = UserSessionManager()
 
-# Store complex types
-user = {
-    'id': 'user1',
-    'name': 'Alice',
-    'joined': datetime.now(),
-    'metadata': {'role': 'admin'}
-}
-s.add('active_users', user)
+# Start sessions
+session_manager.start_session("user1", {"device": "mobile"})
+session_manager.start_session("user2", {"device": "desktop"})
 
-# Set operations
-s.add_many('set1', ['a', 'b', 'c'])
-s.add_many('set2', ['b', 'c', 'd'])
+# Upgrade user
+session_manager.upgrade_to_premium("user1")
 
-# Union
-union = s.union(['set1', 'set2'])  # {'a', 'b', 'c', 'd'}
-
-# Intersection
-intersection = s.intersection(['set1', 'set2'])  # {'b', 'c'}
-
-# Difference
-difference = s.difference('set1', 'set2')  # {'a'}
-
-# Monitor health
-health = connection_manager.health_check()
-print(f"Status: {health['status']}")
-print(f"Latency: {health['latency_ms']}ms")
+# Get sessions
+active = session_manager.get_active_sessions()
+premium = session_manager.get_premium_sessions()
 ```
 
 ## Example Use Cases
 
-### 1. User Session Manager
+### 1. Activity Tracking System
 
 ```python
-from redis_data_structures import Set, ConnectionManager
-from datetime import datetime
-
-class SessionManager:
-    def __init__(self):
-        self.connection_manager = ConnectionManager(host='localhost', port=6379)
-        self.active = Set(connection_manager=self.connection_manager)
-        self.active_key = 'active_sessions'
-    
-    def add_session(self, session_id: str, user_data: dict):
-        """Add an active session."""
-        session = {
-            'id': session_id,
-            'user_data': user_data,
-            'started': datetime.now().isoformat()
-        }
-        self.active.add(self.active_key, session)
-    
-    def remove_session(self, session_id: str):
-        """Remove a session."""
-        self.active.remove(self.active_key, session_id)
-    
-    def is_active(self, session_id: str) -> bool:
-        """Check if session is active."""
-        return self.active.contains(self.active_key, session_id)
-    
-    def get_active_sessions(self) -> list:
-        """Get all active sessions."""
-        return self.active.get_all(self.active_key)
-
-# Usage
-sessions = SessionManager()
-sessions.add_session('sess123', {'user_id': 'user1'})
-is_active = sessions.is_active('sess123')
-```
-
-### 2. Tag System
-
-```python
-from redis_data_structures import Set, ConnectionManager
+from redis_data_structures import Set
+from typing import Dict, Any, Set as PySet
+from datetime import datetime, timedelta
 import json
 
-class TagSystem:
+class ActivityTracker:
     def __init__(self):
-        self.connection_manager = ConnectionManager(host='localhost', port=6379)
-        self.tags = Set(connection_manager=self.connection_manager)
+        self.set_ds = Set()
     
-    def add_tags(self, item_id: str, tags: list):
-        """Add tags to an item."""
-        self.tags.add_many(f'item:{item_id}:tags', tags)
+    def get_daily_key(self, date: datetime) -> str:
+        """Get Redis key for specific date."""
+        return f"activity:{date.strftime('%Y-%m-%d')}"
     
-    def remove_tag(self, item_id: str, tag: str):
-        """Remove a tag from an item."""
-        self.tags.remove(f'item:{item_id}:tags', tag)
+    def track_activity(self, user_id: str, activity_type: str, metadata: Dict[str, Any] = None):
+        """Track user activity."""
+        activity = {
+            "user_id": user_id,
+            "type": activity_type,
+            "timestamp": datetime.now().isoformat(),
+            "metadata": metadata or {}
+        }
+        key = self.get_daily_key(datetime.now())
+        return self.set_ds.add(key, activity)
     
-    def get_tags(self, item_id: str) -> list:
-        """Get all tags for an item."""
-        return self.tags.get_all(f'item:{item_id}:tags')
+    def get_user_activities(self, user_id: str, days: int = 7) -> PySet[Dict[str, Any]]:
+        """Get user activities for the past n days."""
+        activities = set()
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        current = start_date
+        while current <= end_date:
+            key = self.get_daily_key(current)
+            daily_activities = self.set_ds.members(key)
+            user_activities = {
+                activity for activity in daily_activities 
+                if activity["user_id"] == user_id
+            }
+            activities.update(user_activities)
+            current += timedelta(days=1)
+        
+        return activities
     
-    def find_common_tags(self, item1: str, item2: str) -> list:
-        """Find common tags between items."""
-        return self.tags.intersection([
-            f'item:{item1}:tags',
-            f'item:{item2}:tags'
-        ])
+    def get_activity_summary(self, activity_type: str, date: datetime) -> PySet[Dict[str, Any]]:
+        """Get all activities of a specific type for a date."""
+        key = self.get_daily_key(date)
+        activities = self.set_ds.members(key)
+        return {
+            activity for activity in activities 
+            if activity["type"] == activity_type
+        }
 
 # Usage
-tag_system = TagSystem()
-tag_system.add_tags('post1', ['python', 'redis', 'database'])
-tag_system.add_tags('post2', ['python', 'async', 'database'])
-common = tag_system.find_common_tags('post1', 'post2')  # ['python', 'database']
+tracker = ActivityTracker()
+
+# Track activities
+tracker.track_activity(
+    "user1",
+    "login",
+    {"device": "mobile", "location": "New York"}
+)
+
+tracker.track_activity(
+    "user1",
+    "purchase",
+    {"product_id": "123", "amount": 49.99}
+)
+
+# Get user activities
+activities = tracker.get_user_activities("user1", days=7)
+
+# Get activity summary
+logins = tracker.get_activity_summary("login", datetime.now())
 ```
 
-## Best Practices
+### 2. Tag Management System
 
-1. **Connection Management**
-   ```python
-   # Create a shared connection manager
-   connection_manager = ConnectionManager(
-       host='localhost',
-       max_connections=20,
-       retry_max_attempts=5
-   )
-   
-   # Reuse for multiple sets
-   set1 = Set(connection_manager=connection_manager)
-   set2 = Set(connection_manager=connection_manager)
-   ```
+```python
+from redis_data_structures import Set
+from typing import Set as PySet
+from datetime import datetime
 
-2. **Error Handling**
-   ```python
-   try:
-       s.add('users', user_data)
-   except Exception as e:
-       logger.error(f"Error adding user: {e}")
-       # Handle error...
-   ```
+class TagManager:
+    def __init__(self):
+        self.set_ds = Set()
+    
+    def get_entity_key(self, entity_type: str, entity_id: str) -> str:
+        """Get Redis key for entity tags."""
+        return f"tags:{entity_type}:{entity_id}"
+    
+    def add_tags(self, entity_type: str, entity_id: str, tags: PySet[str]):
+        """Add tags to an entity."""
+        key = self.get_entity_key(entity_type, entity_id)
+        for tag in tags:
+            tag_data = {
+                "name": tag.lower(),
+                "added_at": datetime.now().isoformat()
+            }
+            self.set_ds.add(key, tag_data)
+    
+    def remove_tags(self, entity_type: str, entity_id: str, tags: PySet[str]):
+        """Remove tags from an entity."""
+        key = self.get_entity_key(entity_type, entity_id)
+        current_tags = self.get_tags(entity_type, entity_id)
+        
+        for current in current_tags:
+            if current["name"] in tags:
+                self.set_ds.remove(key, current)
+    
+    def get_tags(self, entity_type: str, entity_id: str) -> PySet[dict]:
+        """Get all tags for an entity."""
+        key = self.get_entity_key(entity_type, entity_id)
+        return self.set_ds.members(key)
+    
+    def find_common_tags(self, entity_type: str, id1: str, id2: str) -> PySet[str]:
+        """Find common tags between two entities."""
+        tags1 = {t["name"] for t in self.get_tags(entity_type, id1)}
+        tags2 = {t["name"] for t in self.get_tags(entity_type, id2)}
+        return tags1 & tags2
 
-3. **Health Monitoring**
-   ```python
-   # Regular health checks
-   health = connection_manager.health_check()
-   if health['status'] != 'healthy':
-       logger.warning(f"Connection issues: {health}")
-   ```
+# Usage
+tag_manager = TagManager()
 
-## Implementation Details
+# Add tags to posts
+tag_manager.add_tags("post", "post1", {"python", "redis", "database"})
+tag_manager.add_tags("post", "post2", {"redis", "database", "nosql"})
 
-- Uses Redis sets for storage
-- O(1) membership testing
-- Atomic operations for thread safety
-- Connection pooling for performance
-- Automatic reconnection with backoff
-- Circuit breaker for fault tolerance
-- JSON serialization for complex types
+# Get tags
+post1_tags = tag_manager.get_tags("post", "post1")
 
-## Troubleshooting
+# Find common tags
+common = tag_manager.find_common_tags("post", "post1", "post2")
+```
 
-1. **Connection Issues**
-   ```python
-   # Check connection health
-   health = connection_manager.health_check()
-   print(f"Status: {health['status']}")
-   print(f"Latency: {health['latency_ms']}ms")
-   ```
+### 3. Real-time Analytics Tracker
 
-2. **Performance Issues**
-   ```python
-   # Monitor connection pool
-   health = connection_manager.health_check()
-   print(f"Pool Status: {health['connection_pool']}")
-   ```
+```python
+from redis_data_structures import Set
+from typing import Dict, Any, Set as PySet
+from datetime import datetime, timedelta
+import json
 
-3. **Memory Usage**
-   ```python
-   # Monitor set size
-   size = s.size('users')
-   print(f"Current size: {size}")
-   ```
+class AnalyticsTracker:
+    def __init__(self):
+        self.set_ds = Set()
+    
+    def track_event(self, event_type: str, user_id: str, metadata: Dict[str, Any] = None):
+        """Track an analytics event."""
+        now = datetime.now()
+        hourly_key = f"events:{event_type}:{now.strftime('%Y-%m-%d-%H')}"
+        daily_key = f"events:{event_type}:{now.strftime('%Y-%m-%d')}"
+        
+        event_data = {
+            "user_id": user_id,
+            "timestamp": now.isoformat(),
+            "metadata": metadata or {}
+        }
+        
+        # Store in both hourly and daily sets
+        self.set_ds.add(hourly_key, event_data)
+        self.set_ds.add(daily_key, event_data)
+    
+    def get_unique_users(self, event_type: str, hours: int = 24) -> int:
+        """Get unique users for an event type in the last n hours."""
+        end_time = datetime.now()
+        start_time = end_time - timedelta(hours=hours)
+        
+        unique_users = set()
+        current = start_time
+        
+        while current <= end_time:
+            key = f"events:{event_type}:{current.strftime('%Y-%m-%d-%H')}"
+            events = self.set_ds.members(key)
+            users = {event["user_id"] for event in events}
+            unique_users.update(users)
+            current += timedelta(hours=1)
+        
+        return len(unique_users)
+    
+    def get_event_data(self, event_type: str, date: datetime) -> PySet[Dict[str, Any]]:
+        """Get all event data for a specific day."""
+        key = f"events:{event_type}:{date.strftime('%Y-%m-%d')}"
+        return self.set_ds.members(key)
+    
+    def get_user_events(
+        self, 
+        user_id: str, 
+        event_type: str, 
+        start_date: datetime, 
+        end_date: datetime
+    ) -> PySet[Dict[str, Any]]:
+        """Get all events for a user in a date range."""
+        events = set()
+        current = start_date
+        
+        while current <= end_date:
+            key = f"events:{event_type}:{current.strftime('%Y-%m-%d')}"
+            daily_events = self.set_ds.members(key)
+            user_events = {
+                event for event in daily_events 
+                if event["user_id"] == user_id
+            }
+            events.update(user_events)
+            current += timedelta(days=1)
+        
+        return events
+
+# Usage
+analytics = AnalyticsTracker()
+
+# Track events
+analytics.track_event(
+    "page_view",
+    "user1",
+    {"page": "/home", "source": "direct"}
+)
+
+analytics.track_event(
+    "click",
+    "user1",
+    {"element": "signup_button"}
+)
+
+# Get analytics
+unique_users = analytics.get_unique_users("page_view", hours=24)
+daily_views = analytics.get_event_data("page_view", datetime.now())
+user_clicks = analytics.get_user_events(
+    "user1",
+    "click",
+    datetime.now() - timedelta(days=7),
+    datetime.now()
+)
+```

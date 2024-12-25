@@ -1,208 +1,376 @@
 # Deque (Double-ended Queue)
 
-A Redis-backed double-ended queue implementation that allows efficient insertion and removal of elements from both ends. Perfect for implementing work queues, sliding windows, and other algorithms requiring double-ended operations.
+A Redis-backed double-ended queue implementation that allows efficient insertion and removal of elements at both ends. Perfect for implementing browser history navigation, work stealing queues, undo/redo functionality, and other scenarios requiring bidirectional access.
 
 ## Features
 
-- O(1) operations at both ends
-- Thread-safe operations
-- Persistent storage
-- Automatic type preservation
-- Connection pooling and retries
-- Circuit breaker pattern
-- Health monitoring
+| Feature | Average Cost | Worst Case | Description | Implementation |
+| --- | --- | --- | --- | --- |
+| `push_front` | $O(1)$ | $O(1)$ | Add an item to the front | `LPUSH` |
+| `push_back` | $O(1)$ | $O(1)$ | Add an item to the back | `RPUSH` |
+| `pop_front` | $O(1)$ | $O(1)$ | Remove and return the front item | `LPOP` |
+| `pop_back` | $O(1)$ | $O(1)$ | Remove and return the back item | `RPOP` |
+| `peek_front` | $O(1)$ | $O(1)$ | Return the front item without removing | `LINDEX 0` |
+| `peek_back` | $O(1)$ | $O(1)$ | Return the back item without removing | `LINDEX -1` |
+| `size` | $O(1)$ | $O(1)$ | Return the number of items | `LLEN` |
+| `clear` | $O(1)$ | $O(1)$ | Remove all items | `DELETE` |
 
 ## Basic Usage
 
 ```python
-from redis_data_structures import Deque, ConnectionManager
+from redis_data_structures import Deque
 
-# Initialize connection manager
-connection_manager = ConnectionManager(
-    host='localhost',
-    port=6379,
-    db=0
-)
+# Initialize deque
+deque = Deque()
+deque_key = "my_deque"
 
-# Create deque with connection manager
-deque = Deque(connection_manager=connection_manager)
+# Add items at both ends
+deque.push_front(deque_key, "first")
+deque.push_back(deque_key, "last")
 
-# Add elements at both ends
-deque.append_left('my_deque', 'first')
-deque.append('my_deque', 'last')
+# Remove items from both ends
+front_item = deque.pop_front(deque_key)  # Returns "first"
+back_item = deque.pop_back(deque_key)    # Returns "last"
 
-# Remove elements from both ends
-first = deque.pop_left('my_deque')  # Returns 'first'
-last = deque.pop('my_deque')        # Returns 'last'
+# Peek without removing
+front = deque.peek_front(deque_key)
+back = deque.peek_back(deque_key)
 
-# Check size
-size = deque.size('my_deque')
+# Get size
+size = deque.size(deque_key)
 
-# Clear the deque
-deque.clear('my_deque')
+# Clear all items
+deque.clear(deque_key)
 ```
 
 ## Advanced Usage
 
 ```python
-from redis_data_structures import Deque, ConnectionManager
-from datetime import datetime, timedelta
+from redis_data_structures import Deque
+from typing import Any, Optional
+from dataclasses import dataclass
+import json
 
-# Create connection manager with advanced features
-connection_manager = ConnectionManager(
-    host='redis.example.com',
-    port=6380,
-    max_connections=20,
-    retry_max_attempts=5,
-    circuit_breaker_threshold=10,
-    circuit_breaker_timeout=timedelta(minutes=5),
-    ssl=True,
-    ssl_cert_reqs='required',
-    ssl_ca_certs='/path/to/ca.pem'
-)
+@dataclass
+class BrowserState:
+    url: str
+    title: str
+    scroll_position: int
 
-# Create deque with connection manager
-deque = Deque(connection_manager=connection_manager)
+class BrowserHistory:
+    def __init__(self):
+        self.deque = Deque()
+        self.history_key = "browser_history"
+        self.current_index = 0
+    
+    def _serialize_state(self, state: BrowserState) -> str:
+        """Serialize browser state to string."""
+        return json.dumps({
+            "url": state.url,
+            "title": state.title,
+            "scroll_position": state.scroll_position
+        })
+    
+    def _deserialize_state(self, state_str: str) -> BrowserState:
+        """Deserialize string to browser state."""
+        data = json.loads(state_str)
+        return BrowserState(
+            url=data["url"],
+            title=data["title"],
+            scroll_position=data["scroll_position"]
+        )
+    
+    def visit_page(self, url: str, title: str):
+        """Record new page visit."""
+        state = BrowserState(url=url, title=title, scroll_position=0)
+        self.deque.push_back(self.history_key, self._serialize_state(state))
+        self.current_index = self.deque.size(self.history_key) - 1
+    
+    def go_back(self) -> Optional[BrowserState]:
+        """Navigate to previous page."""
+        if self.current_index > 0:
+            self.current_index -= 1
+            state_str = self.deque.peek_back(self.history_key)
+            return self._deserialize_state(state_str) if state_str else None
+        return None
+    
+    def go_forward(self) -> Optional[BrowserState]:
+        """Navigate to next page."""
+        if self.current_index < self.deque.size(self.history_key) - 1:
+            self.current_index += 1
+            state_str = self.deque.peek_front(self.history_key)
+            return self._deserialize_state(state_str) if state_str else None
+        return None
 
-# Store complex types
-data = {
-    'timestamp': datetime.now(),
-    'value': 42,
-    'metadata': {'type': 'sensor_reading'}
-}
-deque.append('my_deque', data)
-
-# Peek without removing
-left = deque.peek_left('my_deque')
-right = deque.peek('my_deque')
-
-# Monitor health
-health = connection_manager.health_check()
-print(f"Status: {health['status']}")
-print(f"Latency: {health['latency_ms']}ms")
+# Usage
+history = BrowserHistory()
+history.visit_page("https://example.com", "Home")
+history.visit_page("https://example.com/about", "About")
+previous_page = history.go_back()
+next_page = history.go_forward()
 ```
 
 ## Example Use Cases
 
-### 1. Sliding Window
+### 1. Work Stealing Queue
 
 ```python
-from redis_data_structures import Deque, ConnectionManager
-from datetime import datetime, timedelta
+from redis_data_structures import Deque
+from typing import Any, Optional
+import random
+import threading
+from datetime import datetime
 
-def process_sliding_window(window_size: int = 1000):
-    connection_manager = ConnectionManager(host='localhost', port=6379)
-    window = Deque(connection_manager=connection_manager)
+class WorkStealingQueue:
+    def __init__(self, worker_id: str):
+        self.deque = Deque()
+        self.worker_id = worker_id
+        self.queue_key = f"worker:{worker_id}:tasks"
     
-    # Add new data point
-    data = {'timestamp': datetime.now(), 'value': 42}
-    window.append('sliding_window', data)
+    def add_task(self, task: Any):
+        """Add task to worker's queue."""
+        self.deque.push_back(self.queue_key, {
+            "task": task,
+            "timestamp": datetime.now().isoformat(),
+            "worker": self.worker_id
+        })
     
-    # Remove old data points
-    while window.size('sliding_window') > window_size:
-        window.pop_left('sliding_window')
+    def get_own_task(self) -> Optional[Any]:
+        """Get task from own queue (LIFO)."""
+        result = self.deque.pop_back(self.queue_key)
+        return result["task"] if result else None
     
-    # Process window data
-    all_data = window.get_all('sliding_window')
-    return all_data
-```
+    def steal_task(self, victim_id: str) -> Optional[Any]:
+        """Steal task from another worker's queue (FIFO)."""
+        victim_key = f"worker:{victim_id}:tasks"
+        result = self.deque.pop_front(victim_key)
+        return result["task"] if result else None
+    
+    def get_size(self) -> int:
+        """Get number of tasks in queue."""
+        return self.deque.size(self.queue_key)
 
-### 2. Work Queue
-
-```python
-from redis_data_structures import Deque, ConnectionManager
-import json
-
-class WorkQueue:
-    def __init__(self):
-        self.connection_manager = ConnectionManager(host='localhost', port=6379)
-        self.deque = Deque(connection_manager=self.connection_manager)
-        self.queue_key = 'work_queue'
+class WorkerThread(threading.Thread):
+    def __init__(self, worker_id: str, other_workers: list[str]):
+        super().__init__()
+        self.queue = WorkStealingQueue(worker_id)
+        self.other_workers = other_workers
+        self.running = True
     
-    def add_task(self, task: dict):
-        """Add task to either end based on priority."""
-        if task.get('priority') == 'high':
-            self.deque.append_left(self.queue_key, task)
-        else:
-            self.deque.append(self.queue_key, task)
+    def run(self):
+        while self.running:
+            # Try to get own task
+            task = self.queue.get_own_task()
+            if task:
+                self.process_task(task)
+                continue
+            
+            # If no tasks, try to steal
+            victim_id = random.choice(self.other_workers)
+            stolen_task = self.queue.steal_task(victim_id)
+            if stolen_task:
+                self.process_task(stolen_task)
+                continue
+            
+            # No tasks found, sleep briefly
+            time.sleep(0.1)
     
-    def get_task(self) -> dict:
-        """Get next task from queue."""
-        return self.deque.pop_left(self.queue_key)
-    
-    def peek_next_task(self) -> dict:
-        """Preview next task without removing."""
-        return self.deque.peek_left(self.queue_key)
+    def process_task(self, task: Any):
+        """Process the task."""
+        print(f"Worker {self.worker_id} processing task: {task}")
 
 # Usage
-queue = WorkQueue()
-queue.add_task({'id': 1, 'priority': 'high'})
-queue.add_task({'id': 2, 'priority': 'low'})
-task = queue.get_task()  # Returns high priority task first
+workers = ["worker1", "worker2", "worker3"]
+threads = [WorkerThread(w_id, [wid for wid in workers if wid != w_id]) 
+          for w_id in workers]
+
+# Start workers
+for thread in threads:
+    thread.start()
+
+# Add tasks to workers
+queue1 = WorkStealingQueue("worker1")
+queue1.add_task("task1")
+queue1.add_task("task2")
 ```
 
-## Best Practices
+### 2. Undo/Redo System
 
-1. **Connection Management**
-   ```python
-   # Create a shared connection manager
-   connection_manager = ConnectionManager(
-       host='localhost',
-       max_connections=20,
-       retry_max_attempts=5
-   )
-   
-   # Reuse for multiple deques
-   deque1 = Deque(connection_manager=connection_manager)
-   deque2 = Deque(connection_manager=connection_manager)
-   ```
+```python
+from redis_data_structures import Deque
+from typing import Any, Callable, Optional
+from dataclasses import dataclass
 
-2. **Error Handling**
-   ```python
-   try:
-       deque.append('my_deque', item)
-   except Exception as e:
-       logger.error(f"Error adding item: {e}")
-       # Handle error...
-   ```
+@dataclass
+class Action:
+    do: Callable[[], Any]
+    undo: Callable[[], Any]
+    description: str
 
-3. **Health Monitoring**
-   ```python
-   # Regular health checks
-   health = connection_manager.health_check()
-   if health['status'] != 'healthy':
-       logger.warning(f"Connection issues: {health}")
-   ```
+class UndoRedoSystem:
+    def __init__(self):
+        self.deque = Deque()
+        self.undo_key = "undo_stack"
+        self.redo_key = "redo_stack"
+    
+    def execute(self, action: Action):
+        """Execute an action and add it to undo stack."""
+        # Execute the action
+        result = action.do()
+        
+        # Add to undo stack
+        self.deque.push_back(self.undo_key, {
+            "description": action.description,
+            "do": action.do.__name__,
+            "undo": action.undo.__name__
+        })
+        
+        # Clear redo stack since we've taken a new action
+        self.deque.clear(self.redo_key)
+        
+        return result
+    
+    def undo(self) -> Optional[str]:
+        """Undo last action."""
+        action_data = self.deque.pop_back(self.undo_key)
+        if not action_data:
+            return None
+        
+        # Execute undo
+        getattr(self, action_data["undo"])()
+        
+        # Add to redo stack
+        self.deque.push_back(self.redo_key, action_data)
+        return action_data["description"]
+    
+    def redo(self) -> Optional[str]:
+        """Redo previously undone action."""
+        action_data = self.deque.pop_back(self.redo_key)
+        if not action_data:
+            return None
+        
+        # Execute redo
+        getattr(self, action_data["do"])()
+        
+        # Add back to undo stack
+        self.deque.push_back(self.undo_key, action_data)
+        return action_data["description"]
+    
+    def can_undo(self) -> bool:
+        """Check if undo is available."""
+        return self.deque.size(self.undo_key) > 0
+    
+    def can_redo(self) -> bool:
+        """Check if redo is available."""
+        return self.deque.size(self.redo_key) > 0
 
-## Implementation Details
+# Usage
+class TextEditor:
+    def __init__(self):
+        self.text = ""
+        self.undo_redo = UndoRedoSystem()
+    
+    def insert_text(self, position: int, text: str):
+        self.undo_redo.execute(Action(
+            do=lambda: self._do_insert(position, text),
+            undo=lambda: self._do_delete(position, len(text)),
+            description=f"Insert '{text}' at position {position}"
+        ))
+    
+    def delete_text(self, position: int, length: int):
+        deleted_text = self.text[position:position+length]
+        self.undo_redo.execute(Action(
+            do=lambda: self._do_delete(position, length),
+            undo=lambda: self._do_insert(position, deleted_text),
+            description=f"Delete {length} characters at position {position}"
+        ))
+    
+    def undo(self):
+        return self.undo_redo.undo()
+    
+    def redo(self):
+        return self.undo_redo.redo()
+```
 
-- Uses Redis lists for storage
-- Atomic operations for thread safety
-- Connection pooling for performance
-- Automatic reconnection with backoff
-- Circuit breaker for fault tolerance
-- JSON serialization for complex types
+### 3. Message Buffer
 
-## Troubleshooting
+```python
+from redis_data_structures import Deque
+from typing import Any, Optional
+from datetime import datetime
+import json
 
-1. **Connection Issues**
-   ```python
-   # Check connection health
-   health = connection_manager.health_check()
-   print(f"Status: {health['status']}")
-   print(f"Latency: {health['latency_ms']}ms")
-   ```
+class MessageBuffer:
+    def __init__(self, max_size: int = 1000):
+        self.deque = Deque()
+        self.buffer_key = "message_buffer"
+        self.max_size = max_size
+    
+    def add_message(self, message: Any):
+        """Add message to buffer, removing oldest if full."""
+        # Add new message
+        msg_data = {
+            "content": message,
+            "timestamp": datetime.now().isoformat()
+        }
+        self.deque.push_back(self.buffer_key, msg_data)
+        
+        # Remove oldest if buffer is full
+        while self.deque.size(self.buffer_key) > self.max_size:
+            self.deque.pop_front(self.buffer_key)
+    
+    def get_latest_messages(self, count: int) -> list[dict]:
+        """Get the most recent messages."""
+        messages = []
+        size = min(count, self.deque.size(self.buffer_key))
+        
+        # Temporarily store messages while we retrieve them
+        temp_key = f"temp_buffer_{datetime.now().timestamp()}"
+        
+        for _ in range(size):
+            msg = self.deque.pop_back(self.buffer_key)
+            if msg:
+                messages.append(msg)
+                self.deque.push_front(temp_key, msg)
+        
+        # Restore messages
+        for _ in range(len(messages)):
+            msg = self.deque.pop_front(temp_key)
+            if msg:
+                self.deque.push_back(self.buffer_key, msg)
+        
+        return messages
+    
+    def clear_old_messages(self, before_timestamp: datetime):
+        """Remove messages older than specified timestamp."""
+        temp_key = f"temp_buffer_{datetime.now().timestamp()}"
+        
+        while True:
+            msg = self.deque.pop_front(self.buffer_key)
+            if not msg:
+                break
+                
+            msg_time = datetime.fromisoformat(msg["timestamp"])
+            if msg_time >= before_timestamp:
+                self.deque.push_back(temp_key, msg)
+        
+        # Restore remaining messages
+        while True:
+            msg = self.deque.pop_back(temp_key)
+            if not msg:
+                break
+            self.deque.push_front(self.buffer_key, msg)
 
-2. **Performance Issues**
-   ```python
-   # Monitor connection pool
-   health = connection_manager.health_check()
-   print(f"Pool Status: {health['connection_pool']}")
-   ```
+# Usage
+buffer = MessageBuffer(max_size=100)
 
-3. **Memory Usage**
-   ```python
-   # Monitor deque size
-   size = deque.size('my_deque')
-   print(f"Current size: {size}")
-   ``` 
+# Add messages
+buffer.add_message("Hello")
+buffer.add_message("World")
+
+# Get recent messages
+latest = buffer.get_latest_messages(10)
+
+# Clear old messages
+buffer.clear_old_messages(datetime.now())
+```
