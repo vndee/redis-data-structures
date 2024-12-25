@@ -47,15 +47,15 @@ class TestBloomFilter:
     """Test cases for BloomFilter implementation."""
 
     def test_bloom_filter_import_error(self, monkeypatch):
-        """Test that BloomFilter raises an ImportError if mmh3 is not installed."""
+        """Test that BloomFilter raises an ImportError when used without mmh3."""
         
-        # Remove the module if it's already imported
+        from redis_data_structures.bloom_filter import BloomFilter
+        
         if 'mmh3' in sys.modules:
             del sys.modules['mmh3']
-        if 'redis_data_structures.bloom_filter' in sys.modules:
-            del sys.modules['redis_data_structures.bloom_filter']
-            
-        # Patch __import__ to raise ImportError for mmh3
+        
+        BloomFilter._mmh3 = None
+        
         def mock_import(name, *args, **kwargs):
             if name == 'mmh3':
                 raise ImportError("No module named 'mmh3'")
@@ -63,8 +63,9 @@ class TestBloomFilter:
             
         monkeypatch.setattr('builtins.__import__', mock_import)
         
+        # Attempting to instantiate the class should fail
         with pytest.raises(ImportError, match="mmh3 is required for BloomFilter"):
-            from redis_data_structures.bloom_filter import BloomFilter
+            BloomFilter(expected_elements=1000, false_positive_rate=0.01)
 
     def test_add_and_contains(self, bloom_filter: BloomFilter, test_key: str):
         """Test adding items and checking membership."""

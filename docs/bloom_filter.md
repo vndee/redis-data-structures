@@ -16,6 +16,8 @@ where:
 
 ## Basic Usage
 
+> **Note:** This implementation requires the `mmh3` library to be installed. If you encounter an `ImportError` when using `BloomFilter`, ensure that `mmh3` is installed.
+
 ```python
 from redis_data_structures import BloomFilter
 

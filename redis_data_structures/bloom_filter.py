@@ -1,17 +1,10 @@
 import logging
 import math
-from typing import Any
-
-# Try to import mmh3, raise ImportError if not available
-try:
-    import mmh3
-except ImportError:
-    raise ImportError("mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.")
+from typing import Any, Optional
 
 from .base import RedisDataStructure
 
 logger = logging.getLogger(__name__)
-
 
 class BloomFilter(RedisDataStructure):
     """Redis-backed Bloom Filter implementation.
@@ -20,6 +13,19 @@ class BloomFilter(RedisDataStructure):
     to test whether an element is a member of a set. False positives are
     possible, but false negatives are not.
     """
+    
+    _mmh3: Optional[Any] = None  # Cache for mmh3 module
+
+    @classmethod
+    def _get_mmh3(cls):
+        """Lazily import mmh3 module when needed."""
+        if cls._mmh3 is None:
+            try:
+                import mmh3
+                cls._mmh3 = mmh3
+            except ImportError:
+                raise ImportError("mmh3 is required for BloomFilter. Please install it using `pip install mmh3`.")
+        return cls._mmh3
 
     def __init__(self, expected_elements: int = 10000, false_positive_rate: float = 0.01, **kwargs):
         """Initialize Bloom Filter.
@@ -29,6 +35,9 @@ class BloomFilter(RedisDataStructure):
             false_positive_rate: Desired false positive probability
             **kwargs: Additional Redis connection parameters
         """
+        # Check for mmh3 availability on initialization
+        self._get_mmh3()
+        
         super().__init__(**kwargs)
 
         # Calculate optimal filter size and number of hash functions
@@ -70,6 +79,7 @@ class BloomFilter(RedisDataStructure):
         """
         # Convert item to string for hashing
         value = str(item).encode("utf-8")
+        mmh3 = self._get_mmh3()
 
         # Generate hash values using MurmurHash3
         hash_values = []
