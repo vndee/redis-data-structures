@@ -1,6 +1,7 @@
 # 🌟 Redis Data Structures
 
 [![PyPI version](https://badge.fury.io/py/redis-data-structures.svg)](https://badge.fury.io/py/redis-data-structures)
+![PyPI Downloads](https://static.pepy.tech/badge/redis-data-structures)
 [![codecov](https://codecov.io/gh/vndee/redis-data-structures/graph/badge.svg?token=O9DSUSEJCI)](https://codecov.io/gh/vndee/redis-data-structures)
 [![code linting](https://github.com/vndee/redis-data-structures/actions/workflows/pylint.yaml/badge.svg)](https://github.com/vndee/redis-data-structures/actions/workflows/pylint.yaml)
 [![tests](https://github.com/vndee/redis-data-structures/actions/workflows/pytest.yaml/badge.svg)](https://github.com/vndee/redis-data-structures/actions/workflows/pytest.yaml)
@@ -223,7 +224,7 @@ class UserModel(BaseModel):
     def __str__(self) -> str:
         """Return a string representation of the UserModel instance."""
         return f"UserModel(name='{self.name}', email='{self.email}', age={self.age})"
-        
+
 
 # Initialize data structures
 cache = LRUCache("test_cache", capacity=1000)  # Using default connection settings
