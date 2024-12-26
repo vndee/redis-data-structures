@@ -7,10 +7,16 @@ A Redis-backed LIFO (Last-In-First-Out) stack implementation. Perfect for managi
 | Feature | Average Cost | Worst Case | Description | Implementation |
 | --- | :---: | :---: | --- | --- |
 | `push` | $O(1)$ | $O(1)$ | Add an item to the top of the stack | `LPUSH` |
-| `pop` | $O(1)$ | $O(1)$ | Remove and return the top item | `LPOP` |
+| `pop` | $O(n)$ | $O(n)$ | Remove and return the top item | `LPOP` |
 | `peek` | $O(1)$ | $O(1)$ | Return the top item without removing it | `LINDEX` |
 | `size` | $O(1)$ | $O(1)$ | Return the number of items in the stack | `LLEN` |
 | `clear` | $O(1)$ | $O(1)$ | Remove all items from the stack | `DELETE` |
+
+where:
+
+- $n$ is the number of items in the stack.
+
+> **Note:** `pop` is $O(n)$ because we use `LPOP` of Redis List which is $O(n)$ operation.
 
 ## Basic Usage
 

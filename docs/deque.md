@@ -8,12 +8,17 @@ A Redis-backed double-ended queue implementation that allows efficient insertion
 | --- | :---: | :---: | --- | --- |
 | `push_front` | $O(1)$ | $O(1)$ | Add an item to the front | `LPUSH` |
 | `push_back` | $O(1)$ | $O(1)$ | Add an item to the back | `RPUSH` |
-| `pop_front` | $O(1)$ | $O(1)$ | Remove and return the front item | `LPOP` |
-| `pop_back` | $O(1)$ | $O(1)$ | Remove and return the back item | `RPOP` |
+| `pop_front` | $O(n)$ | $O(n)$ | Remove and return the front item | `LPOP` |
+| `pop_back` | $O(n)$ | $O(n)$ | Remove and return the back item | `RPOP` |
 | `peek_front` | $O(1)$ | $O(1)$ | Return the front item without removing | `LINDEX 0` |
 | `peek_back` | $O(1)$ | $O(1)$ | Return the back item without removing | `LINDEX -1` |
 | `size` | $O(1)$ | $O(1)$ | Return the number of items | `LLEN` |
 | `clear` | $O(1)$ | $O(1)$ | Remove all items | `DELETE` |
+
+where:
+- $n$ is the number of items in the deque.
+
+> **Note:** `pop_front` and `pop_back` are $O(n)$ because we use `LPOP` and `RPOP` of Redis List which are $O(n)$ operations.
 
 ## Basic Usage
 

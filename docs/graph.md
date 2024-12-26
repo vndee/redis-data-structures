@@ -372,7 +372,7 @@ class KnowledgeGraph:
         neighbors = self.graph.get_neighbors(entity_id)
         
         for neighbor_id, confidence in neighbors.items():
-            target = self.graph.get_vertex_data(neighbor_id)
+            target = self.graph.get_vertex_data(self.kg_key, neighbor_id)
             if target:
                 relationships[neighbor_id] = {
                     "entity": target,
@@ -403,7 +403,7 @@ class KnowledgeGraph:
                 
             visited.add(current)
             
-            for neighbor, confidence in self.graph.get_neighbors(current).items():
+            for neighbor, confidence in self.graph.get_neighbors(self.kg_key, current).items():
                 if neighbor not in visited:
                     result = dfs(
                         neighbor,
