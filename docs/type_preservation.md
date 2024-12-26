@@ -160,6 +160,8 @@ hash_map.set("pydantic", pydantic_user)
 retrieved_user = hash_map.get("pydantic")
 ```
 
+> **Note:** Please ensure that your custom classes or pydantic models are globally importable from the module where you are using them. This is necessary for the deserialization system to work correctly.
+
 ## Implementation Details
 
 ### Type Registration
