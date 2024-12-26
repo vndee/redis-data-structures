@@ -14,6 +14,7 @@ from .ring_buffer import RingBuffer
 from .set import Set
 from .stack import Stack
 from .trie import Trie
+from .types import ModelRegistry, RDSSerializer
 
 __all__ = [
     "BloomFilter",
