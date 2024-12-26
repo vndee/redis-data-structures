@@ -173,6 +173,58 @@ from redis_data_structures import LRUCache, HashMap
 from datetime import datetime, timezone
 from pydantic import BaseModel
 
+class User(CustomRedisDataType):
+    """Example of a custom Redis data type using standard class."""
+
+    def __init__(self, name: str, joined: datetime):
+        """Initialize the User object."""
+        self.name = name
+        self.joined = joined
+
+    def to_dict(self) -> dict:
+        """Convert the User object to a dictionary."""
+        return {
+            "name": self.name,
+            "joined": self.joined.isoformat(),  # Convert datetime to string
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "User":
+        """Create a User object from a dictionary."""
+        return cls(
+            name=data["name"],
+            joined=datetime.fromisoformat(data["joined"]),  # Convert string back to datetime
+        )
+
+    def __str__(self) -> str:
+        """Return a string representation of the User object."""
+        return f"User(name='{self.name}', joined={self.joined.isoformat()})"
+
+
+class Address(BaseModel):
+    """Nested Pydantic model for demonstration."""
+
+    street: str
+    city: str
+    country: str
+    postal_code: Optional[str] = None
+
+
+class UserModel(BaseModel):
+    """Example of a Pydantic model - works automatically with Redis structures."""
+
+    name: str
+    email: str
+    age: int = Field(gt=0, lt=150)
+    joined: datetime
+    address: Optional[Address] = None
+    tags: Set[str] = set()
+
+    def __str__(self) -> str:
+        """Return a string representation of the UserModel instance."""
+        return f"UserModel(name='{self.name}', email='{self.email}', age={self.age})"
+        
+
 # Initialize data structures
 cache = LRUCache("test_cache", capacity=1000)  # Using default connection settings
 hash_map = HashMap("type_demo_hash")  # Using default connection settings
@@ -248,20 +300,6 @@ nested_data = {
 hash_map.set("nested", nested_data)
 result = hash_map.get("nested")
 
-# Example 7: Custom types with base classes
-class User(CustomRedisDataType):
-    def __init__(self, name: str, age: int):
-        self.name = name
-        self.age = age
-
-    def to_dict(self) -> dict:
-        return {"name": self.name, "age": self.age}
-
-    @classmethod
-    def from_dict(cls, data: dict) -> 'User':
-        return cls(data["name"], data["age"])
-
-hash_map.set("custom_user", User("John Doe", 30))
 ```
 See **[type preservation](docs/type_preservation.md)** for more information.
 
