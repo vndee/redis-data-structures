@@ -189,23 +189,6 @@ graph TD
     K -- No --> M[Return raw_str_data]
     
     M --> N[End Serialization]
-
-    %% Deserialization Process
-    N --> O[Start Deserialization]
-    O --> P{Is data empty?}
-    P -- Yes --> Q[Return None]
-    P -- No --> R[Decode data]
-    R --> S{Is data compressed?}
-    S -- Yes --> T[Decompress data]
-    S -- No --> U[Load JSON data]
-    U --> V{Is _registry present?}
-    V -- Yes --> W{Is it Pydantic?}
-    W -- Yes --> X[Validate using Pydantic model]
-    W -- No --> Y[Use Custom type to create instance]
-    V -- No --> Z[Call _deserialize_recursive]
-    Z --> AA[Return deserialized data]
-
-    AA --> AB[End Deserialization]
 ```
 
 The serialization process follows these steps:
@@ -226,6 +209,24 @@ The serialization process follows these steps:
    - Compressed data is marked with a special prefix
 
 ### Deserialization Process
+
+```mermaid
+graph TD
+    N[Start Deserialization] --> O{Is data empty?}
+    O -- Yes --> Q[Return None]
+    O -- No --> R[Decode data]
+    R --> S{Is data compressed?}
+    S -- Yes --> T[Decompress data]
+    S -- No --> U[Load JSON data]
+    U --> V{Is _registry present?}
+    V -- Yes --> W{Is it Pydantic?}
+    W -- Yes --> X[Validate using Pydantic model]
+    W -- No --> Y[Use Custom type to create instance]
+    V -- No --> Z[Call _deserialize_recursive]
+    Z --> AA[Return deserialized data]
+
+    AA --> AB[End Deserialization]
+```
 
 The deserialization process:
 
