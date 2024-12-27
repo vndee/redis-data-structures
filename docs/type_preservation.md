@@ -136,14 +136,14 @@ In distributed systems where some processes only consume data (without storing a
 
 ```python
 # In consumer processes, register types before reading data
-redis_structure = RedisDataStructure(key="my_key")
+hash_map = HashMap("my_key")
 
 # Register custom types
-redis_structure.register_type(User)  # For SerializableType classes
-redis_structure.register_type(UserModel)  # For Pydantic models
+hash_map.register_type(User)
+hahs_map.register_type(UserModel)
 
-# You can also register multiple types at once
-redis_structure.register_types([User, UserModel])
+# Or you can also register multiple types at once
+hash_map.register_types([User, UserModel])
 
 # Now you can safely deserialize data
 user = hash_map.get("user")  # Will correctly deserialize as User instance
