@@ -173,6 +173,41 @@ hash_map.set("model", model)  # Registers UserModel in pydantic registry
 
 ### Serialization Process
 
+```mermaid
+graph TD
+    A[Start Serialization] --> B{Is data a Pydantic model?}
+    B -- Yes --> C[Prepare raw_str_data for Pydantic]
+    C --> D[Register Pydantic type]
+    B -- No --> E{Is data a CustomRedisDataType?}
+    E -- Yes --> F[Prepare raw_str_data for Custom Type]
+    F --> G[Register Custom type]
+    E -- No --> H[Call _serialize_recursive]
+    H --> I[Get serialized data]
+    I --> J[Convert to JSON string]
+    J --> K{Is data large enough for compression?}
+    K -- Yes --> L[Compress data]
+    K -- No --> M[Return raw_str_data]
+    
+    M --> N[End Serialization]
+
+    %% Deserialization Process
+    N --> O[Start Deserialization]
+    O --> P{Is data empty?}
+    P -- Yes --> Q[Return None]
+    P -- No --> R[Decode data]
+    R --> S{Is data compressed?}
+    S -- Yes --> T[Decompress data]
+    S -- No --> U[Load JSON data]
+    U --> V{Is _registry present?}
+    V -- Yes --> W{Is it Pydantic?}
+    W -- Yes --> X[Validate using Pydantic model]
+    W -- No --> Y[Use Custom type to create instance]
+    V -- No --> Z[Call _deserialize_recursive]
+    Z --> AA[Return deserialized data]
+
+    AA --> AB[End Deserialization]
+```
+
 The serialization process follows these steps:
 
 1. **Type Detection**
