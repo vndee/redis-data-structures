@@ -110,7 +110,7 @@ class UserModel(BaseModel):
     tags: Set[str] = set()
 ```
 
-See more examples here: [type_preservation_examples.py](../examples/type_preservation_examples.py), [serialization_examples.py](../examples/serialization_examples.py)
+See more examples here: [type_preservation_examples.py](../examples/type_preservation_example.py), [serialization_example.py](../examples/serialization_examples.py)
 ## Implementation Details
 
 ### Type Registry System

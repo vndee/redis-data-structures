@@ -143,10 +143,6 @@ class Serializer:
                 "serialize": lambda x: {"_type": "bytes", "value": x.hex()},
                 "deserialize": lambda x: bytes.fromhex(x["value"]),
             },
-            "uuid": {
-                "serialize": lambda x: {"_type": "uuid", "value": str(x)},
-                "deserialize": lambda x: uuid.UUID(x["value"]),
-            },
             "UUID": {
                 "serialize": lambda x: {"_type": "UUID", "value": str(x)},
                 "deserialize": lambda x: uuid.UUID(x["value"]),
