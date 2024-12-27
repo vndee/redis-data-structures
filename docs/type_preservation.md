@@ -250,7 +250,7 @@ The deserialization process:
    - Keep type names unique across your application
 
 2. **Performance Considerations**
-   - Configure compression threshold based on your data size
+   - Configure compression threshold based on your data size, default is 1024 bytes
    - Use appropriate serialization methods for your data types
    - Consider the overhead of complex nested structures
 

@@ -29,8 +29,8 @@ export REDIS_MAX_CONNECTIONS=10
 
 # Data structure settings
 export REDIS_DS_PREFIX=redis_ds
-export REDIS_DS_COMPRESSION=true
 export REDIS_DS_DEBUG=true
+export REDIS_DS_COMPRESSION_THRESHOLD=1024
 ```
 
 ### YAML Configuration
@@ -55,13 +55,7 @@ redis:
   ssl_ca_certs: /path/to/ca.pem
 data_structures:
   prefix: redis_ds
-  serialization_format: json
-  compression_enabled: false
   compression_threshold: 1024
-  default_ttl: null
-  max_entries: null
-  backup_enabled: false
-  backup_interval: 3600
   debug_enabled: false
 ```
 
