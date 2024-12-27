@@ -22,6 +22,8 @@ def test_serialize_float(serializer):
 
 def test_serialize_str(serializer):
     assert serializer.deserialize(serializer.serialize("test")) == "test"
+    assert serializer.deserialize(serializer.serialize("{'key':'value'}")) == "{'key':'value'}"
+    assert serializer.deserialize(serializer.serialize("{'key':'value'}")) == "{'key':'value'}"
 
 
 def test_serialize_bool(serializer):
