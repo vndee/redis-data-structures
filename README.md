@@ -36,6 +36,7 @@ A Python library providing high-level, Redis-backed data structures with a clean
 - **Circuit breaker** pattern for fault tolerance
 - **Type preservation** for complex types
 - **Automatic compression** of large data using zlib (configurable)
+- **>90%** test coverage
 - **Async support** (coming soon)
 
 ### 📦 Installation
