@@ -4,7 +4,6 @@ import pytest
 from redis.exceptions import RedisError
 
 from redis_data_structures import Set
-from tests.test_base import User
 
 
 @pytest.fixture
@@ -151,12 +150,6 @@ def test_contains_error_handling(set_ds):
         assert not set_ds.contains("data")
 
 
-def test_members_empty_error_handling(set_ds):
-    """Test error handling in members method."""
-    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
-        assert set_ds.members() == []
-
-
 def test_size_error_handling(set_ds):
     """Test error handling in size method."""
     with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
@@ -222,69 +215,7 @@ def test_pop_from_single_item_set(set_ds):
     assert set_ds.size() == 0
 
 
-def test_restore_type(set_ds):
-    """Test restore_type method."""
-    assert set_ds.restore_type({"_type": "int", "value": 42}) == 42
-    assert set_ds.restore_type({"_type": "float", "value": 3.14}) == 3.14
-    assert set_ds.restore_type({"_type": "str", "value": "hello"}) == "hello"
-    assert set_ds.restore_type({"_type": "bool", "value": True}) is True
-    assert set_ds.restore_type({"_type": "NoneType", "value": None}) is None
-
-    assert set_ds.restore_type({"_type": "list", "value": [1, 2, 3]}) == [1, 2, 3]
-    assert set_ds.restore_type({"_type": "dict", "value": {"a": 1, "b": 2}}) == {"a": 1, "b": 2}
-    assert set_ds.restore_type({"_type": "tuple", "value": (1, 2, 3)}) == (1, 2, 3)
-
-    assert User.from_dict(
-        set_ds.restore_type({"_type": "User", "value": {"name": "Alice", "age": 30}}),
-    ) == User(name="Alice", age=30)
-    assert set_ds.restore_type(
-        {
-            "_type": "tuple",
-            "value": [{"_type": "int", "value": 1}, {"_type": "str", "value": "two"}],
-        },
-    ) == (1, "two")
-    assert set_ds.restore_type(
-        {
-            "_type": "set",
-            "value": [{"_type": "str", "value": "item1"}, {"_type": "str", "value": "item2"}],
-        },
-    ) == {"item1", "item2"}
-
-
-def test_make_hashable(set_ds):
-    """Test make_hashable method."""
-    assert set_ds.make_hashable({"a": 1, "b": 2}) == (("a", 1), ("b", 2))
-    assert set_ds.make_hashable([1, 2, 3]) == (1, 2, 3)
-    assert set_ds.make_hashable((1, 2, 3)) == (1, 2, 3)
-    assert set_ds.make_hashable(42) == 42
-    assert set_ds.make_hashable(3.14) == 3.14
-    assert set_ds.make_hashable("hello") == "hello"
-    assert set_ds.make_hashable(True) is True  # noqa: FBT003
-    assert set_ds.make_hashable(None) is None
-    assert set_ds.make_hashable({1, 2, 3}) == (1, 2, 3)
-    assert set_ds.make_hashable(User(name="Alice", age=30)) == "User(name=Alice, age=30)"
-
-
 def test_error_clear_set(set_ds):
     """Test error handling in clear method."""
     with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
         assert not set_ds.clear()
-
-
-def test_error_members_get(set_ds):
-    """Test error handling in members method."""
-    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
-        assert set_ds.members() == []
-
-
-def test_members_error_handling(set_ds):
-    """Test error handling in members method."""
-    mock_data = [b"item1", b"item2", b"item3"]
-
-    with patch.object(set_ds.connection_manager, "execute", return_value=mock_data), patch.object(
-        set_ds,
-        "deserialize",
-        side_effect=[Exception("Deserialization error"), "item2", "item3"],
-    ):
-        result = set_ds.members()
-        assert result == ["item2", "item3"]  # Expect only the successfully deserialized items

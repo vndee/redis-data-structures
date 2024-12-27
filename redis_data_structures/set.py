@@ -19,41 +19,6 @@ class Set(RedisDataStructure):
     while maintaining the performance characteristics of Redis sets.
     """
 
-    def restore_type(self, value: Any) -> Any:
-        """Restore original type from deserialized value."""
-        if not isinstance(value, dict) or "_type" not in value:
-            return value
-
-        type_name = value.get("_type")
-        data: Any = value.get("value")
-
-        if type_name == "NoneType":
-            return None
-        if type_name in ("int", "float", "str", "bool"):
-            return data
-        if type_name == "list":
-            return [self.restore_type(item) for item in data]
-        if type_name == "dict":
-            return {k: self.restore_type(v) for k, v in data.items()}
-        if type_name == "tuple":
-            return tuple(self.restore_type(item) for item in data)
-        if type_name == "set":
-            return {self.restore_type(item) for item in data}
-
-        return data
-
-    def make_hashable(self, value: Any) -> Any:
-        """Convert value to a hashable type."""
-        if isinstance(value, (int, float, str, bool, tuple)) or value is None:
-            return value
-        if isinstance(value, list):
-            return tuple(self.make_hashable(item) for item in value)
-        if isinstance(value, dict):
-            return tuple(sorted((k, self.make_hashable(v)) for k, v in value.items()))
-        if isinstance(value, set):
-            return tuple(sorted(self.make_hashable(item) for item in value))
-        return str(value)
-
     def members(self) -> List[Any]:
         """Get all members of the set.
 
@@ -63,27 +28,11 @@ class Set(RedisDataStructure):
         Returns:
             Set[Any]: Set containing all members with their original types
         """
-        try:
-            items = self.connection_manager.execute("smembers", self.key)
-            if not items:
-                return []
-
-            result = []
-            for item in items:
-                try:
-                    if isinstance(item, bytes):
-                        item = item.decode("utf-8")
-                    deserialized = self.deserialize(item)
-                    restored = self.restore_type(deserialized)
-                    result.append(restored)
-                except Exception:
-                    logger.exception("Error processing item")
-                    continue
-
-            return result
-        except Exception:
-            logger.exception("Error getting set members")
+        items = self.connection_manager.execute("smembers", self.key)
+        if not items:
             return []
+
+        return [self.serializer.deserialize(item) for item in items]
 
     def pop(self) -> Optional[Any]:
         """Remove and return a random element from the set.
@@ -95,12 +44,7 @@ class Set(RedisDataStructure):
         """
         try:
             data = self.connection_manager.execute("spop", self.key)
-            if data is not None:
-                if isinstance(data, bytes):
-                    data = data.decode("utf-8")
-                deserialized = self.deserialize(data)
-                return self.restore_type(deserialized)
-            return None
+            return self.serializer.deserialize(data)
         except Exception:
             logger.exception("Error popping from set")
             return None
@@ -119,8 +63,7 @@ class Set(RedisDataStructure):
             bool: True if the item was added, False if it was already present
         """
         try:
-            # Serialize the data directly without making it hashable
-            serialized = self.serialize(data, include_timestamp=False)
+            serialized = self.serializer.serialize(data)
             result = self.connection_manager.execute("sadd", self.key, serialized)
             return bool(result)  # sadd returns 1 if added, 0 if already exists
         except Exception:
@@ -140,8 +83,7 @@ class Set(RedisDataStructure):
             bool: True if the item was removed, False if it wasn't present
         """
         try:
-            # Serialize the data directly without making it hashable
-            serialized = self.serialize(data, include_timestamp=False)
+            serialized = self.serializer.serialize(data)
             result = self.connection_manager.execute("srem", self.key, serialized)
             return bool(result)  # srem returns 1 if removed, 0 if not found
         except Exception:
@@ -161,8 +103,7 @@ class Set(RedisDataStructure):
             bool: True if the item exists, False otherwise
         """
         try:
-            # Serialize the data directly without making it hashable
-            serialized = self.serialize(data, include_timestamp=False)
+            serialized = self.serializer.serialize(data)
             result = self.connection_manager.execute("sismember", self.key, serialized)
             return bool(result)  # sismember returns 1 if exists, 0 otherwise
         except Exception:

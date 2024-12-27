@@ -32,7 +32,7 @@ class Dict(RedisDataStructure):
             bool: True if the key-value pair was set successfully, False otherwise.
         """
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
-        serialized_value = self.serialize(value)
+        serialized_value = self.serializer.serialize(value)
         return bool(self.connection_manager.execute("set", actual_key, serialized_value))
 
     def get(self, key: str) -> Any:
@@ -46,7 +46,7 @@ class Dict(RedisDataStructure):
         """
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
         serialized_value = self.connection_manager.execute("get", actual_key)
-        return self.deserialize(serialized_value)
+        return self.serializer.deserialize(serialized_value)
 
     def delete(self, key: str) -> bool:
         """Delete a key-value pair from the dictionary.
@@ -67,7 +67,7 @@ class Dict(RedisDataStructure):
             List[str]: A list of all keys in the dictionary.
         """
         return [
-            key.split(":")[-1]
+            key.split(b":")[-1].decode("utf-8")
             for key in self.connection_manager.execute(
                 "keys",
                 f"{self.config.data_structures.prefix}:{self.key}:*",

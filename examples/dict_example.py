@@ -12,7 +12,7 @@ def main():
     # Example: Setting values
     my_dict.set("name", "Alice")
     my_dict.set("age", 30)
-    my_dict.set("is_student", False)  # noqa: FBT003
+    my_dict.set("is_student", False)
 
     # Example: Getting values
     print("Name:", my_dict.get("name"))  # Output: Alice

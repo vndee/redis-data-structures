@@ -37,7 +37,12 @@ class Graph(RedisDataStructure):
             # Store vertex data
             vertex_key = f"{self.key}:vertex:{vertex}"
             if data is not None:
-                self.connection_manager.execute("hset", vertex_key, "data", self.serialize(data))
+                self.connection_manager.execute(
+                    "hset",
+                    vertex_key,
+                    "data",
+                    self.serializer.serialize(data),
+                )
 
             # Initialize empty adjacency list if it doesn't exist
             adj_key = f"{self.key}:adj:{vertex}"
@@ -128,7 +133,7 @@ class Graph(RedisDataStructure):
         try:
             vertex_key = f"{self.key}:vertex:{vertex}"
             data = self.connection_manager.execute("hget", vertex_key, "data")
-            return self.deserialize(data) if data else None
+            return self.serializer.deserialize(data) if data else None
         except Exception:
             logger.exception("Error getting vertex data")
             return None
@@ -147,7 +152,9 @@ class Graph(RedisDataStructure):
             neighbors = self.connection_manager.execute("hgetall", adj_key)
 
             # Filter out initialization flag and convert weights to float
-            return {k: float(v) for k, v in neighbors.items() if k != "_initialized"}
+            return {
+                k.decode("utf-8"): float(v) for k, v in neighbors.items() if k != b"_initialized"
+            }
         except Exception:
             logger.exception("Error getting neighbors")
             return {}
@@ -164,13 +171,13 @@ class Graph(RedisDataStructure):
             # Get vertices from vertex data keys
             vertex_pattern = f"{self.key}:vertex:*"
             for vertex_key in self.connection_manager.execute("scan_iter", match=vertex_pattern):
-                vertex = vertex_key.split(":")[-1]
+                vertex = vertex_key.split(b":")[-1].decode("utf-8")
                 vertices.add(vertex)
 
             # Get vertices from adjacency list keys
             adj_pattern = f"{self.key}:adj:*"
             for adj_key in self.connection_manager.execute("scan_iter", match=adj_pattern):
-                vertex = adj_key.split(":")[-1]
+                vertex = adj_key.split(b":")[-1].decode("utf-8")
                 vertices.add(vertex)
 
             return vertices

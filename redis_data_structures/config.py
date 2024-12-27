@@ -55,13 +55,7 @@ class DataStructureConfig:
     """Configuration for data structures."""
 
     prefix: str = "redis_ds"
-    serialization_format: str = "json"
-    compression_enabled: bool = False
     compression_threshold: int = 1024  # bytes
-    default_ttl: Optional[int] = None
-    max_entries: Optional[int] = None
-    backup_enabled: bool = False
-    backup_interval: int = 3600  # seconds
     debug_enabled: bool = False
 
 
@@ -86,8 +80,8 @@ class Config:
 
         ds_config = DataStructureConfig(
             prefix=os.getenv("REDIS_DS_PREFIX", "redis_ds"),
-            compression_enabled=os.getenv("REDIS_DS_COMPRESSION", "").lower() == "true",
             debug_enabled=os.getenv("REDIS_DS_DEBUG", "").lower() == "true",
+            compression_threshold=int(os.getenv("REDIS_DS_COMPRESSION_THRESHOLD", "1024")),
         )
 
         return cls(redis=redis_config, data_structures=ds_config)
@@ -121,9 +115,7 @@ class Config:
             },
             "data_structures": {
                 "prefix": self.data_structures.prefix,
-                "compression_enabled": self.data_structures.compression_enabled,
                 "debug_enabled": self.data_structures.debug_enabled,
-                "backup_interval": self.data_structures.backup_interval,
                 "compression_threshold": self.data_structures.compression_threshold,
             },
         }
@@ -132,16 +124,7 @@ class Config:
         """Validate entire configuration."""
         self.redis.validate()
 
-        # Add validation for data structures configuration
         if self.data_structures.compression_threshold < 0:
             raise ConfigurationError(
                 f"Invalid compression threshold: {self.data_structures.compression_threshold}",
-            )
-
-        if (
-            self.data_structures.backup_interval is not None
-            and self.data_structures.backup_interval < 0
-        ):
-            raise ConfigurationError(
-                f"Invalid backup interval: {self.data_structures.backup_interval}",
             )

@@ -26,6 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "backoff>=2.2.1",
+    "orjson>=3.10.12",
     "redis>=4.5.0",
 ]
 
@@ -79,7 +80,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "C4", "UP", "N", "W", "D", "S", "BLE", "FBT", "A", "COM", "C90", "T10", "ICN", "Q", "RET", "SIM", "TID", "ARG", "DTZ", "ERA", "PD", "PGH", "PIE", "PL", "PT", "RSE", "RUF", "SLF", "TCH", "TRY"]
-ignore = ["D100", "D104", "PLR2004", "BLE001", "TRY300", "D103", "PT009", "PLW2901", "FBT001", "FBT002", "PLR", "TRY003"]  # Ignore missing docstrings and magic numbers
+ignore = ["D100", "D104", "PLR2004", "BLE001", "TRY300", "D103", "PT009", "PLW2901", "FBT001", "FBT002", "PLR", "TRY003", "FBT003"]  # Ignore missing docstrings and magic numbers
 
 fixable = ["ALL"]
 unfixable = []

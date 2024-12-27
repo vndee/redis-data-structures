@@ -53,18 +53,13 @@ class RingBuffer(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            # Serialize data
-            serialized = self.serialize(data)
+            serialized = self.serializer.serialize(data)
 
-            # Get current size
             current_size = self.size()
-
-            # Use pipeline for atomic operations
             pipe = self.connection_manager.pipeline()
 
             pos_key = self._get_position_key()
 
-            # Always increment position counter as it tracks total items pushed
             pipe.incr(pos_key)
 
             if current_size < self.capacity:
@@ -93,10 +88,7 @@ class RingBuffer(RedisDataStructure):
             items = self.connection_manager.execute("lrange", self.key, 0, -1)
 
             # Deserialize items
-            return [
-                self.deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
-                for item in items
-            ]
+            return [self.serializer.deserialize(item) for item in items]
         except Exception:
             logger.exception("Error getting items from ring buffer")
             return []
@@ -111,14 +103,8 @@ class RingBuffer(RedisDataStructure):
             List[Any]: List of items in reverse order (newest to oldest)
         """
         try:
-            # Get latest n items
             items = self.connection_manager.execute("lrange", self.key, -n, -1)
-
-            # Deserialize items in reverse order
-            return [
-                self.deserialize(item.decode("utf-8") if isinstance(item, bytes) else item)
-                for item in reversed(items)
-            ]
+            return [self.serializer.deserialize(item) for item in reversed(items)]
         except Exception:
             logger.exception("Error getting latest items from ring buffer")
             return []

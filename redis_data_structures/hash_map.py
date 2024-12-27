@@ -24,7 +24,7 @@ class HashMap(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            serialized = self.serialize(value)
+            serialized = self.serializer.serialize(value)
             logger.debug(f"Setting field {field} with serialized value: {serialized}")
             return bool(self.connection_manager.execute("hset", self.key, field, serialized))
         except Exception:
@@ -42,12 +42,7 @@ class HashMap(RedisDataStructure):
         """
         try:
             data = self.connection_manager.execute("hget", self.key, field)
-            if data:
-                # Handle bytes response from Redis
-                if isinstance(data, bytes):
-                    data = data.decode("utf-8")
-                return self.deserialize(data)
-            return None
+            return self.serializer.deserialize(data) if data else None
         except Exception:
             logger.exception("Error getting hash field")
             return None
@@ -82,51 +77,17 @@ class HashMap(RedisDataStructure):
             logger.exception("Error checking hash field existence")
             return False
 
-    def get_all(self) -> Dict[str, Any]:  # noqa: C901
+    def get_all(self) -> Dict[str, Any]:
         """Get all fields and values from the hash map.
 
         Returns:
             Dict[str, Any]: Dictionary of field-value pairs
         """
-        try:
-            data = self.connection_manager.execute("hgetall", self.key)
-            if not data:
-                return {}
-
-            # Redis returns a flat list of [key1, val1, key2, val2, ...]
-            # Convert to dict and deserialize values
-            result = {}
-            if isinstance(data, list):
-                it = iter(data)
-                for field in it:
-                    value = next(it)
-                    if isinstance(field, bytes):
-                        field = field.decode("utf-8")
-                    if isinstance(value, bytes):
-                        value = value.decode("utf-8")
-                    try:
-                        logger.debug(f"Raw value for field {field}: {value}")
-                        deserialized = self.deserialize(value)
-                        logger.debug(f"Deserialized value for field {field}: {deserialized}")
-                        result[field] = deserialized
-                    except Exception:
-                        logger.exception(f"Error deserializing value for field {field}")
-                        result[field] = None
-            else:
-                # If data is already a dict (some Redis clients return dict)
-                for field, value in data.items():
-                    try:
-                        if isinstance(value, bytes):
-                            value = value.decode("utf-8")
-                        deserialized = self.deserialize(value)
-                        result[field] = deserialized
-                    except Exception:
-                        logger.exception(f"Error deserializing value for field {field}")
-                        result[field] = None
-            return result
-        except Exception:
-            logger.exception("Error getting all hash fields")
+        data = self.connection_manager.execute("hgetall", self.key)
+        if not data:
             return {}
+
+        return {k.decode("utf-8"): self.serializer.deserialize(v) for k, v in data.items()}
 
     def get_fields(self) -> List[str]:
         """Get all fields from the hash map.
@@ -163,8 +124,6 @@ class HashMap(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            # Use delete instead of del (del is a Python keyword)
-            # delete returns the number of keys that were removed
             self.connection_manager.execute("delete", self.key)
             return True
         except Exception:

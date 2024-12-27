@@ -203,11 +203,6 @@ def test_exists_error_handling(hash_map):
         assert not hash_map.exists("field")
 
 
-def test_get_all_error_handling(hash_map):
-    with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
-        assert hash_map.get_all() == {}
-
-
 def test_get_fields_error_handling(hash_map):
     with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
         assert hash_map.get_fields() == []
@@ -291,20 +286,3 @@ def test_get_all_items(hash_map):
     hash_map.set("key1", "value1")
     hash_map.set("key2", "value2")
     assert hash_map.get_all() == {"key1": "value1", "key2": "value2"}
-
-
-def test_get_all_deserialization_error_handling(hash_map):
-    """Test error handling during deserialization in get_all operation."""
-    # Mock the execute method to return a list of fields and values
-    mock_data = [b"field1", b"value1", b"field2", b"value2"]
-
-    with patch.object(hash_map.connection_manager, "execute", return_value=mock_data), patch.object(
-        hash_map,
-        "deserialize",
-        side_effect=Exception("Deserialization error"),
-    ):
-        result = hash_map.get_all()
-        assert result == {
-            "field1": None,
-            "field2": None,
-        }  # Expect None for deserialization errors

@@ -38,15 +38,11 @@ class LRUCache(RedisDataStructure):
         """
         try:
             cache_key = self.key
-            # Get the value without updating access order
             data = self.connection_manager.execute("hget", cache_key, field)
             if not data:
                 return None
 
-            # Handle bytes response from Redis
-            if isinstance(data, bytes):
-                data = data.decode("utf-8")
-            return self.deserialize(data)
+            return self.serializer.deserialize(data)
         except Exception:
             logger.exception("Error peeking cache")
             return None
@@ -59,9 +55,7 @@ class LRUCache(RedisDataStructure):
         """
         try:
             cache_key = self.key
-            # Get the list in reverse order (most recently used to least)
             data = self.connection_manager.execute("lrange", f"{cache_key}:order", 0, -1)
-            # Convert bytes to strings if necessary and reverse to get LRU order
             return [
                 item.decode("utf-8") if isinstance(item, bytes) else item
                 for item in reversed(data or [])
@@ -81,16 +75,12 @@ class LRUCache(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            # Start a Redis transaction
             pipeline = self.connection_manager.pipeline()
             cache_key = self.key
 
-            # Remove the field from the order list if it exists
             pipeline.lrem(f"{cache_key}:order", 0, field)
-            # Add the field to the front of the order list
             pipeline.lpush(f"{cache_key}:order", field)
-            # Store the value in the hash
-            pipeline.hset(cache_key, field, self.serialize(value))
+            pipeline.hset(cache_key, field, self.serializer.serialize(value))
 
             # Check if we need to remove the least recently used item
             pipeline.llen(f"{cache_key}:order")
@@ -120,21 +110,16 @@ class LRUCache(RedisDataStructure):
         """
         try:
             cache_key = self.key
-            # Get the value
             data = self.connection_manager.execute("hget", cache_key, field)
             if not data:
                 return None
 
-            # Update access order in a pipeline
             pipeline = self.connection_manager.pipeline()
             pipeline.lrem(f"{cache_key}:order", 0, field)
             pipeline.lpush(f"{cache_key}:order", field)
             pipeline.execute()
 
-            # Handle bytes response from Redis
-            if isinstance(data, bytes):
-                data = data.decode("utf-8")
-            return self.deserialize(data)
+            return self.serializer.deserialize(data)
         except Exception:
             logger.exception("Error getting from cache")
             return None
@@ -188,44 +173,15 @@ class LRUCache(RedisDataStructure):
             logger.exception("Error getting cache size")
             return 0
 
-    def get_all(self) -> dict:  # noqa: C901
+    def get_all(self) -> dict:
         """Get all items from the cache.
 
         Returns:
             dict: Dictionary of all field-value pairs in the cache
         """
-        try:
-            cache_key = self.key
-            data = self.connection_manager.execute("hgetall", cache_key)
-            if not data:
-                return {}
-
-            # Convert from Redis response to dictionary
-            result = {}
-            if isinstance(data, list):
-                it = iter(data)
-                for field in it:
-                    value = next(it)
-                    if isinstance(field, bytes):
-                        field = field.decode("utf-8")
-                    if isinstance(value, bytes):
-                        value = value.decode("utf-8")
-                    try:
-                        result[field] = self.deserialize(value)
-                    except Exception:
-                        logger.exception(f"Error deserializing value for field {field}")
-                        result[field] = None
-            else:
-                # If data is already a dict (some Redis clients return dict)
-                for field, value in data.items():
-                    try:
-                        if isinstance(value, bytes):
-                            value = value.decode("utf-8")
-                        result[field] = self.deserialize(value)
-                    except Exception:
-                        logger.exception(f"Error deserializing value for field {field}")
-                        result[field] = None
-            return result
-        except Exception:
-            logger.exception("Error getting all items from cache")
+        cache_key = self.key
+        data = self.connection_manager.execute("hgetall", cache_key)
+        if not data:
             return {}
+
+        return {k.decode("utf-8"): self.serializer.deserialize(v) for k, v in data.items()}

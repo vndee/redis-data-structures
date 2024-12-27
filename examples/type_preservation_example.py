@@ -3,8 +3,7 @@ from typing import Any, Optional, Set
 
 from pydantic import BaseModel, Field
 
-from redis_data_structures import HashMap, LRUCache
-from redis_data_structures.base import CustomRedisDataType
+from redis_data_structures import CustomRedisDataType, HashMap, LRUCache
 
 
 class User(CustomRedisDataType):

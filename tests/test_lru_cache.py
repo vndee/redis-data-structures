@@ -331,12 +331,6 @@ def test_get_lru_order_exception_handling(lru_cache):
         assert lru_cache.get_lru_order() == []
 
 
-def test_get_all_exception_handling(lru_cache):
-    """Test exception handling during get_all operation."""
-    with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
-        assert lru_cache.get_all() == {}
-
-
 def test_size_exception_handling(lru_cache):
     """Test exception handling during size operation."""
     with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
@@ -348,24 +342,3 @@ def test_get_all_items(lru_cache):
     lru_cache.put("key1", "value1")
     lru_cache.put("key2", "value2")
     assert lru_cache.get_all() == {"key1": "value1", "key2": "value2"}
-
-
-def test_get_all_deserialization_error_handling(lru_cache):
-    """Test error handling during deserialization in get_all operation."""
-    # Mock the execute method to return a list of fields and values
-    mock_data = [b"field1", b"value1", b"field2", b"value2"]
-
-    with patch.object(
-        lru_cache.connection_manager,
-        "execute",
-        return_value=mock_data,
-    ), patch.object(
-        lru_cache,
-        "deserialize",
-        side_effect=Exception("Deserialization error"),
-    ):
-        result = lru_cache.get_all()
-        assert result == {
-            "field1": None,
-            "field2": None,
-        }  # Expect None for deserialization errors

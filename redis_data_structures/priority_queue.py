@@ -26,7 +26,7 @@ class PriorityQueue(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            serialized = self.serialize(data)
+            serialized = self.serializer.serialize(data)
             # Redis zadd expects mapping of {member: score}
             mapping = {serialized: float(priority)}
             return bool(self.connection_manager.execute("zadd", self.key, mapping=mapping))
@@ -48,16 +48,13 @@ class PriorityQueue(RedisDataStructure):
 
             # Redis returns a list of tuples [(member, score)]
             item, priority = items[0]
-            # Handle bytes if Redis returns bytes
-            if isinstance(item, bytes):
-                item = item.decode("utf-8")
 
             # Remove the item from the queue
             if not self.connection_manager.execute("zrem", self.key, item):
                 logger.exception("Failed to remove item from priority queue")
                 return None
 
-            return self.deserialize(item), int(float(priority))
+            return self.serializer.deserialize(item), int(float(priority))
         except Exception:
             logger.exception("Error popping from priority queue")
             return None
@@ -76,11 +73,8 @@ class PriorityQueue(RedisDataStructure):
 
             # Redis returns a list of tuples [(member, score)]
             item, priority = items[0]
-            # Handle bytes if Redis returns bytes
-            if isinstance(item, bytes):
-                item = item.decode("utf-8")
 
-            return self.deserialize(item), int(float(priority))
+            return self.serializer.deserialize(item), int(float(priority))
         except Exception:
             logger.exception("Error peeking priority queue")
             return None
@@ -120,13 +114,10 @@ class PriorityQueue(RedisDataStructure):
             if not items:
                 return []
 
-            result = []
-            # items is a list of tuples [(member, score)]
-            for item, priority in items:
-                if isinstance(item, bytes):
-                    item = item.decode("utf-8")
-                result.append((self.deserialize(item), int(float(priority))))
-            return result
+            return [
+                (self.serializer.deserialize(item), int(float(priority)))
+                for item, priority in items
+            ]
         except Exception:
             logger.exception("Error getting all items from priority queue")
             return []

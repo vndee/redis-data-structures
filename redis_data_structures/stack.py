@@ -23,7 +23,7 @@ class Stack(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            serialized = self.serialize(data, include_timestamp=False)
+            serialized = self.serializer.serialize(data)
             result = self.connection_manager.execute("lpush", self.key, serialized)
             return bool(result)
         except Exception:
@@ -38,11 +38,7 @@ class Stack(RedisDataStructure):
         """
         try:
             data = self.connection_manager.execute("lpop", self.key)
-            if data is not None:
-                if isinstance(data, bytes):
-                    data = data.decode("utf-8")
-                return self.deserialize(data)
-            return None
+            return self.serializer.deserialize(data)
         except Exception:
             logger.exception("Error popping from stack")
             return None
@@ -55,11 +51,7 @@ class Stack(RedisDataStructure):
         """
         try:
             data = self.connection_manager.execute("lindex", self.key, 0)
-            if data is not None:
-                if isinstance(data, bytes):
-                    data = data.decode("utf-8")
-                return self.deserialize(data)
-            return None
+            return self.serializer.deserialize(data)
         except Exception:
             logger.exception("Error peeking stack")
             return None

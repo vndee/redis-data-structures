@@ -40,10 +40,7 @@ def test_data_structure_config():
     """Test DataStructureConfig defaults."""
     ds_config = DataStructureConfig()
     assert ds_config.prefix == "redis_ds"
-    assert ds_config.serialization_format == "json"
-    assert ds_config.compression_enabled is False
     assert ds_config.compression_threshold == 1024
-    assert ds_config.backup_interval == 3600
     assert ds_config.debug_enabled is False
 
 
@@ -59,10 +56,7 @@ def test_config_from_yaml(tmp_path):
       max_connections: 10
     data_structures:
       prefix: redis_ds
-      serialization_format: json
-      compression_enabled: false
       compression_threshold: 1024
-      backup_interval: 3600
       debug_enabled: false
     """
     yaml_file = tmp_path / "config.yaml"
@@ -76,10 +70,7 @@ def test_config_from_yaml(tmp_path):
     assert config.redis.ssl is False
     assert config.redis.max_connections == 10
     assert config.data_structures.prefix == "redis_ds"
-    assert config.data_structures.serialization_format == "json"
-    assert config.data_structures.compression_enabled is False
     assert config.data_structures.compression_threshold == 1024
-    assert config.data_structures.backup_interval == 3600
     assert config.data_structures.debug_enabled is False
 
 
@@ -119,9 +110,7 @@ def test_to_dict():
         ),
         data_structures=DataStructureConfig(
             prefix="test_prefix",
-            compression_enabled=False,
             compression_threshold=1024,
-            backup_interval=3600,
             debug_enabled=False,
         ),
     )
@@ -136,9 +125,7 @@ def test_to_dict():
         },
         "data_structures": {
             "prefix": "test_prefix",
-            "compression_enabled": False,
             "compression_threshold": 1024,
-            "backup_interval": 3600,
             "debug_enabled": False,
         },
     }
@@ -152,14 +139,4 @@ def test_validate_compression_threshold_error():
         data_structures=DataStructureConfig(compression_threshold=-1),
     )
     with pytest.raises(ConfigurationError, match="Invalid compression threshold"):
-        config.validate()
-
-
-def test_validate_backup_interval_error():
-    """Test validation raises ConfigurationError for invalid backup interval."""
-    config = Config(
-        redis=MagicMock(),
-        data_structures=DataStructureConfig(compression_threshold=1024, backup_interval=-1),
-    )
-    with pytest.raises(ConfigurationError, match="Invalid backup interval"):
         config.validate()

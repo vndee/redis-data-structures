@@ -56,8 +56,6 @@ class ConnectionManager:
             "host": host,
             "port": port,
             "db": db,
-            "decode_responses": True,  # Always decode responses to strings
-            "encoding": "utf-8",  # Use UTF-8 encoding
         }
 
         # Add optional parameters only if they are not None
@@ -78,7 +76,7 @@ class ConnectionManager:
         self.connection_params = connection_params
         self._pool = connection_pool or ConnectionPool(
             max_connections=max_connections,
-            **connection_params,  # type: ignore[arg-type]
+            **connection_params,
         )
 
         self._client: Optional[redis.Redis] = None

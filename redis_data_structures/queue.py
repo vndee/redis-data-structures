@@ -23,7 +23,7 @@ class Queue(RedisDataStructure):
             bool: True if successful, False otherwise
         """
         try:
-            serialized = self.serialize(data)
+            serialized = self.serializer.serialize(data)
             return bool(self.connection_manager.execute("rpush", self.key, serialized))
         except Exception:
             logger.exception("Error pushing to queue")
@@ -37,12 +37,7 @@ class Queue(RedisDataStructure):
         """
         try:
             data = self.connection_manager.execute("lpop", self.key)
-            if data:
-                # Handle bytes response from Redis
-                if isinstance(data, bytes):
-                    data = data.decode("utf-8")
-                return self.deserialize(data)
-            return None
+            return self.serializer.deserialize(data) if data else None
         except Exception:
             logger.exception("Error popping from queue")
             return None
@@ -55,12 +50,7 @@ class Queue(RedisDataStructure):
         """
         try:
             data = self.connection_manager.execute("lindex", self.key, 0)
-            if data:
-                # Handle bytes response from Redis
-                if isinstance(data, bytes):
-                    data = data.decode("utf-8")
-                return self.deserialize(data)
-            return None
+            return self.serializer.deserialize(data) if data else None
         except Exception:
             logger.exception("Error peeking queue")
             return None
