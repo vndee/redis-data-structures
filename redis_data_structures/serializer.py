@@ -117,72 +117,86 @@ class Serializer:
 
         self.type_handlers: Dict[str, SerializerTypeHandler] = {
             "int": {
-                "serialize": lambda x: {"_type": "int", "value": x},
-                "deserialize": lambda x: int(x["value"]),
+                "serialize": staticmethod(lambda x: {"_type": "int", "value": x}),
+                "deserialize": staticmethod(lambda x: int(x["value"])),
             },
             "float": {
-                "serialize": lambda x: {"_type": "float", "value": x},
-                "deserialize": lambda x: float(x["value"]),
+                "serialize": staticmethod(lambda x: {"_type": "float", "value": x}),
+                "deserialize": staticmethod(lambda x: float(x["value"])),
             },
             "str": {
-                "serialize": lambda x: {"_type": "str", "value": x},
-                "deserialize": lambda x: str(x["value"]),
+                "serialize": staticmethod(lambda x: {"_type": "str", "value": x}),
+                "deserialize": staticmethod(lambda x: str(x["value"])),
             },
             "bool": {
-                "serialize": lambda x: {"_type": "bool", "value": x},
-                "deserialize": lambda x: bool(x["value"]),
+                "serialize": staticmethod(lambda x: {"_type": "bool", "value": x}),
+                "deserialize": staticmethod(lambda x: bool(x["value"])),
             },
             "list": {
-                "serialize": lambda x: {
-                    "_type": "list",
-                    "value": [self._serialize_recursive(item) for item in x],
-                },
-                "deserialize": lambda x: [self._deserialize_recursive(item) for item in x["value"]],
+                "serialize": staticmethod(
+                    lambda x: {
+                        "_type": "list",
+                        "value": [self._serialize_recursive(item) for item in x],
+                    },
+                ),
+                "deserialize": staticmethod(
+                    lambda x: [self._deserialize_recursive(item) for item in x["value"]],
+                ),
             },
             "dict": {
-                "serialize": lambda x: {
-                    "_type": "dict",
-                    "value": {str(k): self._serialize_recursive(v) for k, v in x.items()},
-                },
-                "deserialize": lambda x: {
-                    k: self._deserialize_recursive(v) for k, v in x["value"].items()
-                },
+                "serialize": staticmethod(
+                    lambda x: {
+                        "_type": "dict",
+                        "value": {str(k): self._serialize_recursive(v) for k, v in x.items()},
+                    },
+                ),
+                "deserialize": staticmethod(
+                    lambda x: {k: self._deserialize_recursive(v) for k, v in x["value"].items()},
+                ),
             },
             "tuple": {
-                "serialize": lambda x: {
-                    "_type": "tuple",
-                    "value": [self._serialize_recursive(item) for item in x],
-                },
-                "deserialize": lambda x: tuple(
-                    self._deserialize_recursive(item) for item in x["value"]
+                "serialize": staticmethod(
+                    lambda x: {
+                        "_type": "tuple",
+                        "value": [self._serialize_recursive(item) for item in x],
+                    },
+                ),
+                "deserialize": staticmethod(
+                    lambda x: tuple(self._deserialize_recursive(item) for item in x["value"]),
                 ),
             },
             "set": {
-                "serialize": lambda x: {
-                    "_type": "set",
-                    "value": [self._serialize_recursive(item) for item in x],
-                },
-                "deserialize": lambda x: {self._deserialize_recursive(item) for item in x["value"]},
+                "serialize": staticmethod(
+                    lambda x: {
+                        "_type": "set",
+                        "value": [self._serialize_recursive(item) for item in x],
+                    },
+                ),
+                "deserialize": staticmethod(
+                    lambda x: {self._deserialize_recursive(item) for item in x["value"]},
+                ),
             },
             "datetime": {
-                "serialize": lambda x: {"_type": "datetime", "value": x.isoformat()},
-                "deserialize": lambda x: datetime.fromisoformat(x["value"]),
+                "serialize": staticmethod(lambda x: {"_type": "datetime", "value": x.isoformat()}),
+                "deserialize": staticmethod(lambda x: datetime.fromisoformat(x["value"])),
             },
             "timedelta": {
-                "serialize": lambda x: {"_type": "timedelta", "value": x.total_seconds()},
-                "deserialize": lambda x: timedelta(seconds=float(x["value"])),
+                "serialize": staticmethod(
+                    lambda x: {"_type": "timedelta", "value": x.total_seconds()},
+                ),
+                "deserialize": staticmethod(lambda x: timedelta(seconds=float(x["value"]))),
             },
             "bytes": {
-                "serialize": lambda x: {"_type": "bytes", "value": x.hex()},
-                "deserialize": lambda x: bytes.fromhex(x["value"]),
+                "serialize": staticmethod(lambda x: {"_type": "bytes", "value": x.hex()}),
+                "deserialize": staticmethod(lambda x: bytes.fromhex(x["value"])),
             },
             "UUID": {
-                "serialize": lambda x: {"_type": "UUID", "value": str(x)},
-                "deserialize": lambda x: uuid.UUID(x["value"]),
+                "serialize": staticmethod(lambda x: {"_type": "UUID", "value": str(x)}),
+                "deserialize": staticmethod(lambda x: uuid.UUID(x["value"])),
             },
             "NoneType": {
-                "serialize": lambda _: {"_type": "NoneType", "value": None},
-                "deserialize": lambda _: None,
+                "serialize": staticmethod(lambda _: {"_type": "NoneType", "value": None}),
+                "deserialize": staticmethod(lambda _: None),
             },
         }
 
