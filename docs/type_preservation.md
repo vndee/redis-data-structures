@@ -132,7 +132,7 @@ hash_map.set("model", model)  # UserModel is automatically registered
 
 ### Manual Registration for Consumers
 
-In distributed systems where some processes only consume data (without storing any), you need to manually register types before deserializing:
+In distributed systems where some processes only consume data (without storing any), you need to manually register types before deserializing since the type registering is only automatically done when storing data:
 
 ```python
 # In consumer processes, register types before reading data
@@ -246,9 +246,8 @@ The deserialization process:
 ## Best Practices
 
 1. **Type Registration**
-   - Register types explicitly in consumer processes that don't write data
+   - Register all types explicitly to avoid missing types when deserializing (important for consumer processes)
    - Keep type names unique across your application
-   - Register types before attempting to deserialize data
 
 2. **Performance Considerations**
    - Configure compression threshold based on your data size

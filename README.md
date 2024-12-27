@@ -312,7 +312,7 @@ result = hash_map.get("nested")
 
 ```
 
-> **Important Note for Distributed Systems**: In scenarios where some processes only consume data (without storing any), you need to manually register types before deserializing. This is common in worker processes, read-only replicas, or monitoring systems. Example:
+> **Important Note for Distributed Systems**: In scenarios where some processes only consume data (without storing any), you need to manually register types before deserializing since the type registering is only automatically done when storing data. This is common in worker processes, read-only replicas, or monitoring systems. Example:
 > ```python
 > from redis_data_structures import RedisDataStructure
 > 
