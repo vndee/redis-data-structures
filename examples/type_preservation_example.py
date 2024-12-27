@@ -3,10 +3,10 @@ from typing import Any, Optional, Set
 
 from pydantic import BaseModel, Field
 
-from redis_data_structures import CustomRedisDataType, HashMap, LRUCache
+from redis_data_structures import HashMap, LRUCache, SerializableType
 
 
-class User(CustomRedisDataType):
+class User(SerializableType):
     """Example of a custom Redis data type using standard class."""
 
     def __init__(self, name: str, joined: datetime):
@@ -218,9 +218,9 @@ def set_examples():
     set_ds.add(user)
 
     # Custom types
-    from redis_data_structures import CustomRedisDataType
+    from redis_data_structures import SerializableType
 
-    class User(CustomRedisDataType):
+    class User(SerializableType):
         id: str
         name: str
         joined: datetime

@@ -1,7 +1,15 @@
 import uuid
 import zlib
 from datetime import datetime, timedelta
-from typing import Any, Callable, ClassVar, Dict, Optional, Type, TypedDict
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Optional,
+    Type,
+    TypedDict,
+)
 
 import orjson as json
 
@@ -14,12 +22,12 @@ except ImportError:
     PYDANTIC_AVAILABLE = False
 
 
-class CustomRedisDataType:
+class SerializableType:
     """Base class for creating custom Redis data types.
 
     Example with standard class:
         ```python
-        class User(CustomRedisDataType):
+        class User(SerializableType):
             def __init__(self, name: str, age: int):
                 self.name = name
                 self.age = age
@@ -38,14 +46,14 @@ class CustomRedisDataType:
         raise NotImplementedError("Subclasses must implement to_dict()")
 
     @classmethod
-    def from_dict(cls, data: dict) -> "CustomRedisDataType":
+    def from_dict(cls, data: dict) -> "SerializableType":
         """Create instance from dictionary.
 
         Args:
             data: The dictionary to create the instance from.
 
         Returns:
-            CustomRedisDataType: The created instance.
+            SerializableType: The created instance.
         """
         raise NotImplementedError("Subclasses must implement from_dict()")
 
@@ -182,7 +190,7 @@ class Serializer:
         """Serialize data to a hex string."""
         if type(data).__name__ in self.type_handlers:
             return self.type_handlers[type(data).__name__]["serialize"](data)
-        if isinstance(data, CustomRedisDataType):
+        if isinstance(data, SerializableType):
             return {"_type": data.__class__.__name__, "value": data.to_dict()}
         if isinstance(data, BaseModel) and PYDANTIC_AVAILABLE:
             return {"_type": data.__class__.__name__, "value": data.model_dump(mode="json")}
@@ -209,7 +217,7 @@ class Serializer:
                 "_registry": "pydantic",
             }
             self.pydantic_type_registry.register(data.__class__.__name__, data.__class__)
-        elif isinstance(data, CustomRedisDataType):
+        elif isinstance(data, SerializableType):
             raw_str_data = {
                 "value": data.to_dict(),
                 "_type": data.__class__.__name__,
@@ -245,3 +253,10 @@ class Serializer:
         if "_registry" in data and data["_registry"] == "custom":
             return self.custom_type_registry.get(data["_type"]).from_dict(data["value"])  # type: ignore[union-attr]
         return self._deserialize_recursive(data)
+
+    def get_registered_types(self) -> Dict[str, Type]:
+        """Get all registered types."""
+        return {
+            **self.pydantic_type_registry._registry,  # noqa: SLF001
+            **self.custom_type_registry._registry,  # noqa: SLF001
+        }

@@ -65,12 +65,12 @@ The following Python types are automatically preserved through built-in type han
 
 ### Standard Class Approach
 
-For custom types, inherit from `CustomRedisDataType` and implement the required methods:
+For custom types, inherit from `SerializableType` and implement the required methods:
 
 ```python
-from redis_data_structures.base import CustomRedisDataType
+from redis_data_structures.base import SerializableType
 
-class User(CustomRedisDataType):
+class User(SerializableType):
     def __init__(self, name: str, age: int):
         self.name = name
         self.age = age
@@ -139,8 +139,11 @@ In distributed systems where some processes only consume data (without storing a
 redis_structure = RedisDataStructure(key="my_key")
 
 # Register custom types
-redis_structure.register_type(User)  # For CustomRedisDataType classes
+redis_structure.register_type(User)  # For SerializableType classes
 redis_structure.register_type(UserModel)  # For Pydantic models
+
+# You can also register multiple types at once
+redis_structure.register_types([User, UserModel])
 
 # Now you can safely deserialize data
 user = hash_map.get("user")  # Will correctly deserialize as User instance
@@ -159,7 +162,7 @@ This is particularly important in scenarios like:
 
 The serialization system uses two registries managed by the `TypeRegistry` class:
 
-1. **Custom Type Registry**: For classes inheriting from `CustomRedisDataType`
+1. **Custom Type Registry**: For classes inheriting from `SerializableType`
 2. **Pydantic Type Registry**: For Pydantic models
 
 ```python
@@ -178,7 +181,7 @@ graph TD
     A[Start Serialization] --> B{Is data a Pydantic model?}
     B -- Yes --> C[Prepare raw_str_data for Pydantic]
     C --> D[Register Pydantic type]
-    B -- No --> E{Is data a CustomRedisDataType?}
+    B -- No --> E{Is data a SerializableType?}
     E -- Yes --> F[Prepare raw_str_data for Custom Type]
     F --> G[Register Custom type]
     E -- No --> H[Call _serialize_recursive]
@@ -195,7 +198,7 @@ The serialization process follows these steps:
 
 1. **Type Detection**
    - Checks if the value is a Pydantic model
-   - Checks if the value is a CustomRedisDataType
+   - Checks if the value is a SerializableType
    - Falls back to built-in type handlers
 
 2. **Data Transformation**
@@ -255,7 +258,7 @@ The deserialization process:
    - Consider the overhead of complex nested structures
 
 3. **Custom Type Implementation**
-   - Always override `__eq__` in CustomRedisDataType subclasses
+   - Always override `__eq__` in SerializableType subclasses
    - The default `__eq__` implementation compares `to_dict()` output, which may not be what you want
    - Implement proper equality comparison based on your type's semantics
    ```python

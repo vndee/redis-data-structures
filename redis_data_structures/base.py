@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
 
 from pydantic import BaseModel
 
 from .config import Config
 from .connection import ConnectionManager
-from .serializer import CustomRedisDataType, Serializer
+from .serializer import SerializableType, Serializer
 
 PYDANTIC_AVAILABLE = True
 try:
@@ -16,7 +16,7 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
-T = TypeVar("T")
+T = TypeVar("T", bound=Union[BaseModel, SerializableType])
 
 
 class RedisDataStructure:
@@ -48,25 +48,47 @@ class RedisDataStructure:
         )
         self.key = f"{self.config.data_structures.prefix}:{key}"
 
-    def register_type(self, type_class: Type[T]) -> None:
+    def _register_type(self, type_class: Type[T]) -> None:
         """Register a type for type preservation.
 
         Args:
             type_class: The class to register.
-                        Must be either a Pydantic model or inherit from CustomRedisDataType.
+                        Must be either a Pydantic model or inherit from SerializableType.
 
         Raises:
-            ValueError: If the type is not a Pydantic model or CustomRedisDataType.
+            ValueError: If the type is not a Pydantic model or SerializableType.
         """
         if PYDANTIC_AVAILABLE and issubclass(type_class, BaseModel):
             self.serializer.pydantic_type_registry.register(type_class.__name__, type_class)
-        elif issubclass(type_class, CustomRedisDataType):
+        elif issubclass(type_class, SerializableType):
             self.serializer.custom_type_registry.register(type_class.__name__, type_class)
         else:
             raise ValueError(
                 f"Type {type_class.__name__} must be a Pydantic model or "
-                "inherit from CustomRedisDataType",
+                "inherit from SerializableType",
             )
+
+    def register_types(self, types: Union[Iterable[Type[T]], Type[T], None] = None) -> None:
+        """Register multiple types at once.
+
+        Args:
+            types: The types to register.
+
+        Examples:
+            Register a single type:
+                register_types(types=MyType)
+            Register multiple types:
+                register_types(types=[MyType1, MyType2])
+        """
+        if isinstance(types, Iterable):
+            for type_class in types:
+                self._register_type(type_class)
+        else:
+            self._register_type(types)  # type: ignore[arg-type]
+
+    def get_registered_types(self) -> Dict[str, Type]:
+        """Get all registered types."""
+        return self.serializer.get_registered_types()
 
     def set_ttl(self, key: str, ttl: Union[int, timedelta, datetime]) -> bool:
         """Set Time To Live (TTL) for a key."""

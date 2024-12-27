@@ -11,7 +11,7 @@ from .lru_cache import LRUCache
 from .priority_queue import PriorityQueue
 from .queue import Queue
 from .ring_buffer import RingBuffer
-from .serializer import CustomRedisDataType, Serializer
+from .serializer import SerializableType, Serializer
 from .set import Set
 from .stack import Stack
 from .trie import Trie
@@ -19,7 +19,6 @@ from .trie import Trie
 __all__ = [
     "BloomFilter",
     "ConnectionManager",
-    "CustomRedisDataType",
     "Deque",
     "Dict",
     "Graph",
@@ -29,6 +28,7 @@ __all__ = [
     "Queue",
     "RedisDataStructure",
     "RingBuffer",
+    "SerializableType",
     "Serializer",
     "Set",
     "Stack",

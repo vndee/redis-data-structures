@@ -171,11 +171,11 @@ set_ds = Set("users", connection_manager=conn)
 
 
 ```python
-from redis_data_structures import LRUCache, HashMap
+from redis_data_structures import LRUCache, HashMap, SerializableType
 from datetime import datetime, timezone
 from pydantic import BaseModel
 
-class User(CustomRedisDataType):
+class User(SerializableType):
     """Example of a custom Redis data type using standard class."""
 
     def __init__(self, name: str, joined: datetime):
@@ -320,9 +320,12 @@ result = hash_map.get("nested")
 > redis_structure = RedisDataStructure(key="my_key")
 > 
 > # Register your custom types
-> redis_structure.register_type(User)  # For CustomRedisDataType classes
+> redis_structure.register_type(User)  # For SerializableType classes
 > redis_structure.register_type(UserModel)  # For Pydantic models
-> 
+>
+> # Register multiple types at once
+> redis_structure.register_types([User, UserModel])  # For multiple types
+>
 > # Now you can safely deserialize data
 > user = hash_map.get("custom_user")  # Will correctly deserialize as User instance
 > model = hash_map.get("pydantic_user")  # Will correctly deserialize as UserModel instance

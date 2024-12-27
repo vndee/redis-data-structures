@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
+from typing import List
 from unittest.mock import Mock
 
 import pytest
@@ -8,10 +9,10 @@ from pydantic import BaseModel
 from redis_data_structures.base import RedisDataStructure
 from redis_data_structures.config import Config
 from redis_data_structures.connection import ConnectionManager
-from redis_data_structures.serializer import CustomRedisDataType
+from redis_data_structures.serializer import SerializableType
 
 
-class User(CustomRedisDataType):
+class User(SerializableType):
     """User class for testing."""
 
     def __init__(self, name: str, age: int):
@@ -129,7 +130,7 @@ class TestRedisDataStructure:
     def test_custom_type_without_implementation(self):
         """Test custom type without required implementations."""
 
-        class InvalidCustomType(CustomRedisDataType):
+        class InvalidCustomType(SerializableType):
             pass
 
         invalid_type = InvalidCustomType()
@@ -230,14 +231,14 @@ class TestRedisDataStructure:
             x: float
             y: float
 
-        self.rds.register_type(Point)
+        self.rds.register_types(Point)
 
         point = Point(x=1.5, y=2.5)
         serialized = self.rds.serializer.serialize(point)
         deserialized = self.rds.serializer.deserialize(serialized)
         assert deserialized == point
 
-        class Point2(CustomRedisDataType):
+        class Point2(SerializableType):
             def __init__(self, x: float, y: float):
                 self.x = x
                 self.y = y
@@ -249,8 +250,94 @@ class TestRedisDataStructure:
             def from_dict(cls, data: dict) -> "Point2":
                 return cls(data["x"], data["y"])
 
-        self.rds.register_type(Point2)
+        self.rds.register_types(Point2)
         point2 = Point2(x=1.5, y=2.5)
         serialized = self.rds.serializer.serialize(point2)
         deserialized = self.rds.serializer.deserialize(serialized)
         assert deserialized == point2
+
+    def test_get_registered_types(self):
+        """Test getting registered types."""
+
+        class Location(BaseModel):
+            name: str
+            country: str
+
+        class Address(BaseModel):
+            street: str
+            city: str
+            state: str
+            zip_code: str
+            location: Location
+
+        class Person(BaseModel):
+            name: str
+            age: int
+            address: Address
+
+        class Company(BaseModel):
+            name: str
+            employees: List[Person]
+
+        self.rds.register_types(Location)
+        self.rds.register_types([Address, Person, Company])
+
+        company = Company(
+            name="Test Company",
+            employees=[
+                Person(
+                    name="John Doe",
+                    age=30,
+                    address=Address(
+                        street="123 Main St",
+                        city="Anytown",
+                        state="CA",
+                        zip_code="12345",
+                        location=Location(name="Home", country="USA"),
+                    ),
+                ),
+                Person(
+                    name="Jane Smith",
+                    age=25,
+                    address=Address(
+                        street="456 Elm St",
+                        city="Othertown",
+                        state="NY",
+                        zip_code="67890",
+                        location=Location(name="Work", country="USA"),
+                    ),
+                ),
+                Person(
+                    name="Alice Johnson",
+                    age=35,
+                    address=Address(
+                        street="789 Oak St",
+                        city="Smalltown",
+                        state="TX",
+                        zip_code="11223",
+                        location=Location(name="Home", country="USA"),
+                    ),
+                ),
+            ],
+        )
+
+        serialized = self.rds.serializer.serialize(company)
+        deserialized = self.rds.serializer.deserialize(serialized)
+        assert deserialized == company
+
+        class CustomType1(SerializableType):
+            def __init__(self, name: str):
+                self.name = name
+
+            def to_dict(self) -> dict:
+                return {"name": self.name}
+
+            @classmethod
+            def from_dict(cls, data: dict) -> "CustomType1":
+                return cls(data["name"])
+
+        self.rds.register_types(CustomType1)
+        custom_type = CustomType1(name="Test")
+        serialized = self.rds.serializer.serialize(custom_type)
+        deserialized = self.rds.serializer.deserialize(serialized)
+        assert deserialized == custom_type

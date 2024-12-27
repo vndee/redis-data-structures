@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel
 
-from redis_data_structures.serializer import CustomRedisDataType, Serializer
+from redis_data_structures.serializer import SerializableType, Serializer
 
 if __name__ == "__main__":
     serializer = Serializer()
@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     print("-" * 100)
 
-    class Address(CustomRedisDataType):
+    class Address(SerializableType):
         """An address with a street, city, state, and zipcode."""
 
         def __init__(self, street: str, city: str, state: str, zipcode: str):
@@ -100,7 +100,7 @@ if __name__ == "__main__":
             """Print the address."""
             print(f"{self.street}, {self.city}, {self.state} {self.zipcode}")
 
-    class User(CustomRedisDataType):
+    class User(SerializableType):
         """A user with an address."""
 
         def __init__(self, name: str, age: int, joined: datetime, address: Address):
