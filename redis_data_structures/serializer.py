@@ -1,7 +1,7 @@
 import uuid
 import zlib
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Dict, Optional, Type
+from typing import Any, Callable, ClassVar, Dict, Optional, Type, TypedDict
 
 import orjson as json
 
@@ -39,8 +39,26 @@ class CustomRedisDataType:
 
     @classmethod
     def from_dict(cls, data: dict) -> "CustomRedisDataType":
-        """Create instance from dictionary."""
+        """Create instance from dictionary.
+
+        Args:
+            data: The dictionary to create the instance from.
+
+        Returns:
+            CustomRedisDataType: The created instance.
+        """
         raise NotImplementedError("Subclasses must implement from_dict()")
+
+    def __eq__(self, other: Any) -> bool:
+        """Check if two instances are equal.
+
+        Args:
+            other: The other instance to compare.
+
+        Returns:
+            bool: True if the instances are equal, False otherwise.
+        """
+        return isinstance(other, self.__class__) and self.to_dict() == other.to_dict()
 
 
 class TypeRegistry:
@@ -66,6 +84,13 @@ class TypeRegistry:
         return cls._registry.get(type_name)
 
 
+class SerializerTypeHandler(TypedDict):
+    """Type handler for serializing and deserializing data."""
+
+    serialize: Callable[[Any], Any]
+    deserialize: Callable[[Any], Any]
+
+
 class Serializer:
     """Serializer for Redis data structures."""
 
@@ -82,7 +107,7 @@ class Serializer:
         self.pydantic_type_registry = TypeRegistry()
         self.compression_threshold = compression_threshold
 
-        self.type_handlers = {
+        self.type_handlers: Dict[str, SerializerTypeHandler] = {
             "int": {
                 "serialize": lambda x: {"_type": "int", "value": x},
                 "deserialize": lambda x: int(x["value"]),

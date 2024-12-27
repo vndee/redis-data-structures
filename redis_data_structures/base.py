@@ -1,10 +1,19 @@
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Optional, Type, TypeVar, Union
+
+from pydantic import BaseModel
 
 from .config import Config
 from .connection import ConnectionManager
-from .serializer import Serializer
+from .serializer import CustomRedisDataType, Serializer
+
+PYDANTIC_AVAILABLE = True
+try:
+    from pydantic import BaseModel
+except ImportError:
+    PYDANTIC_AVAILABLE = False
+
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -38,6 +47,26 @@ class RedisDataStructure:
             compression_threshold=self.config.data_structures.compression_threshold,
         )
         self.key = f"{self.config.data_structures.prefix}:{key}"
+
+    def register_type(self, type_class: Type[T]) -> None:
+        """Register a type for type preservation.
+
+        Args:
+            type_class: The class to register.
+                        Must be either a Pydantic model or inherit from CustomRedisDataType.
+
+        Raises:
+            ValueError: If the type is not a Pydantic model or CustomRedisDataType.
+        """
+        if PYDANTIC_AVAILABLE and issubclass(type_class, BaseModel):
+            self.serializer.pydantic_type_registry.register(type_class.__name__, type_class)
+        elif issubclass(type_class, CustomRedisDataType):
+            self.serializer.custom_type_registry.register(type_class.__name__, type_class)
+        else:
+            raise ValueError(
+                f"Type {type_class.__name__} must be a Pydantic model or "
+                "inherit from CustomRedisDataType",
+            )
 
     def set_ttl(self, key: str, ttl: Union[int, timedelta, datetime]) -> bool:
         """Set Time To Live (TTL) for a key."""

@@ -198,6 +198,14 @@ class User(CustomRedisDataType):
             joined=datetime.fromisoformat(data["joined"]),  # Convert string back to datetime
         )
 
+    def __eq__(self, other) -> bool:
+        """Override __eq__ for proper equality comparison."""
+        return (
+            isinstance(other, User) and 
+            self.name == other.name and 
+            self.joined == other.joined
+        )
+
     def __str__(self) -> str:
         """Return a string representation of the User object."""
         return f"User(name='{self.name}', joined={self.joined.isoformat()})"
@@ -303,6 +311,23 @@ hash_map.set("nested", nested_data)
 result = hash_map.get("nested")
 
 ```
+
+> **Important Note for Distributed Systems**: In scenarios where some processes only consume data (without storing any), you need to manually register types before deserializing. This is common in worker processes, read-only replicas, or monitoring systems. Example:
+> ```python
+> from redis_data_structures import RedisDataStructure
+> 
+> # In consumer processes, register types before reading data
+> redis_structure = RedisDataStructure(key="my_key")
+> 
+> # Register your custom types
+> redis_structure.register_type(User)  # For CustomRedisDataType classes
+> redis_structure.register_type(UserModel)  # For Pydantic models
+> 
+> # Now you can safely deserialize data
+> user = hash_map.get("custom_user")  # Will correctly deserialize as User instance
+> model = hash_map.get("pydantic_user")  # Will correctly deserialize as UserModel instance
+> ```
+
 See **[type preservation](docs/type_preservation.md)** for more information.
 
 ### 🤝 Contributing

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock
 
 import pytest
+from pydantic import BaseModel
 
 from redis_data_structures.base import RedisDataStructure
 from redis_data_structures.config import Config
@@ -159,3 +160,97 @@ class TestRedisDataStructure:
         assert self.rds.get_ttl("key") is None
         assert self.rds.persist("key") is False
         assert self.rds.clear() is False
+
+    def test_manual_type_registration(self):
+        """Test manual registration of type handlers."""
+
+        # Custom type for testing
+        class Point:
+            def __init__(self, x: float, y: float):
+                self.x = x
+                self.y = y
+
+            def __eq__(self, other):
+                if not isinstance(other, Point):
+                    return False
+                return self.x == other.x and self.y == other.y
+
+        # Register type handlers
+        self.rds.serializer.type_handlers["Point"] = {
+            "serialize": lambda p: {"_type": "Point", "value": {"x": p.x, "y": p.y}},
+            "deserialize": lambda d: Point(d["value"]["x"], d["value"]["y"]),
+        }
+
+        # Test serialization/deserialization with registered type
+        point = Point(1.5, 2.5)
+        serialized = self.rds.serializer.serialize(point)
+        deserialized = self.rds.serializer.deserialize(serialized)
+
+        assert isinstance(deserialized, Point)
+        assert deserialized == point
+        assert deserialized.x == 1.5
+        assert deserialized.y == 2.5
+
+    def test_manual_type_registration_override(self):
+        """Test overriding existing type handlers."""
+
+        # Custom serialization for datetime that only keeps date part
+        def date_only_serializer(dt):
+            return {"_type": "datetime", "value": dt.date().isoformat()}
+
+        def date_only_deserializer(data):
+            return datetime.fromisoformat(data["value"])
+
+        # Store original handlers
+        original_handlers = self.rds.serializer.type_handlers["datetime"]
+
+        try:
+            # Override datetime handlers
+            self.rds.serializer.type_handlers["datetime"] = {
+                "serialize": date_only_serializer,
+                "deserialize": date_only_deserializer,
+            }
+
+            # Test with new handlers
+            dt = datetime(2023, 1, 1, 12, 30, 45, tzinfo=timezone.utc)
+            serialized = self.rds.serializer.serialize(dt)
+            deserialized = self.rds.serializer.deserialize(serialized)
+
+            # Should only preserve the date part
+            assert deserialized.date() == dt.date()
+            assert deserialized.hour == 0
+            assert deserialized.minute == 0
+            assert deserialized.second == 0
+        finally:
+            # Restore original handlers
+            self.rds.serializer.type_handlers["datetime"] = original_handlers
+
+    def test_manual_type_registration_via_base_model(self):
+        class Point(BaseModel):
+            x: float
+            y: float
+
+        self.rds.register_type(Point)
+
+        point = Point(x=1.5, y=2.5)
+        serialized = self.rds.serializer.serialize(point)
+        deserialized = self.rds.serializer.deserialize(serialized)
+        assert deserialized == point
+
+        class Point2(CustomRedisDataType):
+            def __init__(self, x: float, y: float):
+                self.x = x
+                self.y = y
+
+            def to_dict(self) -> dict:
+                return {"x": self.x, "y": self.y}
+
+            @classmethod
+            def from_dict(cls, data: dict) -> "Point2":
+                return cls(data["x"], data["y"])
+
+        self.rds.register_type(Point2)
+        point2 = Point2(x=1.5, y=2.5)
+        serialized = self.rds.serializer.serialize(point2)
+        deserialized = self.rds.serializer.deserialize(serialized)
+        assert deserialized == point2

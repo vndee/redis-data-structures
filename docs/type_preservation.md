@@ -84,6 +84,10 @@ class User(CustomRedisDataType):
     @classmethod
     def from_dict(cls, data: dict) -> "User":
         return cls(data["name"], data["age"])
+
+    def __eq__(self, other):
+        # Override __eq__ for proper equality comparison
+        return isinstance(other, User) and self.name == other.name and self.age == other.age
 ```
 
 ### Pydantic Integration
@@ -111,6 +115,44 @@ class UserModel(BaseModel):
 ```
 
 See more examples here: [type_preservation_examples.py](../examples/type_preservation_example.py), [serialization_example.py](../examples/serialization_examples.py)
+
+## Type Registration
+
+### Automatic Registration
+
+Types are automatically registered when you first store them in a Redis data structure:
+
+```python
+user = User("John", 30)
+hash_map.set("user", user)  # User type is automatically registered
+
+model = UserModel(name="Jane", email="jane@example.com", age=25)
+hash_map.set("model", model)  # UserModel is automatically registered
+```
+
+### Manual Registration for Consumers
+
+In distributed systems where some processes only consume data (without storing any), you need to manually register types before deserializing:
+
+```python
+# In consumer processes, register types before reading data
+redis_structure = RedisDataStructure(key="my_key")
+
+# Register custom types
+redis_structure.register_type(User)  # For CustomRedisDataType classes
+redis_structure.register_type(UserModel)  # For Pydantic models
+
+# Now you can safely deserialize data
+user = hash_map.get("user")  # Will correctly deserialize as User instance
+model = hash_map.get("model")  # Will correctly deserialize as UserModel instance
+```
+
+This is particularly important in scenarios like:
+- Worker processes that only read from queues
+- Read-only replicas or analytics services
+- Monitoring or logging systems
+- Any process that doesn't write data but needs to read it
+
 ## Implementation Details
 
 ### Type Registry System
@@ -168,16 +210,29 @@ The deserialization process:
 ## Best Practices
 
 1. **Type Registration**
-   - Types are automatically registered during serialization
-   - No manual registration required
+   - Register types explicitly in consumer processes that don't write data
    - Keep type names unique across your application
+   - Register types before attempting to deserialize data
 
 2. **Performance Considerations**
    - Configure compression threshold based on your data size
    - Use appropriate serialization methods for your data types
    - Consider the overhead of complex nested structures
 
-3. **Error Handling**
+3. **Custom Type Implementation**
+   - Always override `__eq__` in CustomRedisDataType subclasses
+   - The default `__eq__` implementation compares `to_dict()` output, which may not be what you want
+   - Implement proper equality comparison based on your type's semantics
+   ```python
+   def __eq__(self, other):
+       return (
+           isinstance(other, self.__class__) and  # Check type
+           self.field1 == other.field1 and        # Compare relevant fields
+           self.field2 == other.field2
+       )
+   ```
+
+4. **Error Handling**
    ```python
    try:
        result = hash_map.get("key")
