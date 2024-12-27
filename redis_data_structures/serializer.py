@@ -181,7 +181,7 @@ class Serializer:
     def _serialize_recursive(self, data: Any) -> Any:
         """Serialize data to a hex string."""
         if type(data).__name__ in self.type_handlers:
-            return self.type_handlers[type(data).__name__]["serialize"](data)  # type: ignore[index]
+            return self.type_handlers[type(data).__name__]["serialize"](data)
         if isinstance(data, CustomRedisDataType):
             return {"_type": data.__class__.__name__, "value": data.to_dict()}
         if isinstance(data, BaseModel) and PYDANTIC_AVAILABLE:
@@ -196,7 +196,7 @@ class Serializer:
 
             type_name = data["_type"]
             if type_name in self.type_handlers:
-                return self.type_handlers[type_name]["deserialize"](data)  # type: ignore[index]
+                return self.type_handlers[type_name]["deserialize"](data)
 
         return data
 
