@@ -34,7 +34,7 @@ A Python library providing high-level, Redis-backed data structures with a clean
 - Clean, **Pythonic interface**
 - Connection pooling and **automatic retries**
 - **Circuit breaker** pattern for fault tolerance
-- JSON serialization and **type preservation** for complex types
+- **Type preservation** for complex types
 - **Automatic compression** of large data using zlib (configurable)
 - **Async support** (coming soon)
 
