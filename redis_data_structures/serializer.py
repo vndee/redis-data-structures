@@ -3,12 +3,10 @@ import zlib
 from datetime import datetime, timedelta
 from typing import (
     Any,
-    Callable,
     ClassVar,
     Dict,
     Optional,
     Type,
-    TypedDict,
 )
 
 import orjson as json
@@ -92,13 +90,6 @@ class TypeRegistry:
         return cls._registry.get(type_name)
 
 
-class SerializerTypeHandler(TypedDict):
-    """Type handler for serializing and deserializing data."""
-
-    serialize: Callable[[Any], Any]
-    deserialize: Callable[[Any], Any]
-
-
 class Serializer:
     """Serializer for Redis data structures."""
 
@@ -115,7 +106,7 @@ class Serializer:
         self.pydantic_type_registry = TypeRegistry()
         self.compression_threshold = compression_threshold
 
-        self.type_handlers: Dict[str, SerializerTypeHandler] = {
+        self.type_handlers: Dict[str, Any] = {
             "int": {
                 "serialize": staticmethod(lambda x: {"_type": "int", "value": x}),
                 "deserialize": staticmethod(lambda x: int(x["value"])),
