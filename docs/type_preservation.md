@@ -139,8 +139,8 @@ In distributed systems where some processes only consume data (without storing a
 hash_map = HashMap("my_key")
 
 # Register custom types
-hash_map.register_type(User)
-hahs_map.register_type(UserModel)
+hash_map.register_types(User)
+hahs_map.register_types(UserModel)
 
 # Or you can also register multiple types at once
 hash_map.register_types([User, UserModel])
