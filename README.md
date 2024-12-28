@@ -10,7 +10,7 @@
 
 A Python library providing high-level, Redis-backed data structures with a clean, Pythonic interface. Perfect for distributed systems, microservices, and any application requiring persistent, thread-safe data structures, especially in environments where multiple workers share the same data structure.
 
-![Redis Data Structures (1)](https://github.com/user-attachments/assets/2c3ad6c9-4150-4626-9d27-40d3a1da3309)
+![Redis Data Structures (1)](assets/Redis%20Data%20Structures%20(1).png)
 
 
 💡 **[Examples](examples/)**
@@ -103,7 +103,7 @@ Refer to **[initialization](docs/initialization.md)** for more information.
 
 ### 💻 Usage Examples
 
-![Redis Data Structures (2)](https://github.com/user-attachments/assets/06d8e6e6-af64-48f3-b422-a5e688d71c31)
+![Redis Data Structures (2)](assets/Redis%20Data%20Structures%20(2).png)
 
 ```python
 from redis_data_structures import Queue
@@ -167,7 +167,7 @@ set_ds = Set("users", connection_manager=conn)
 
 ### 🔍 Complex Types
 
-![Redis Data Structures (3)](https://github.com/user-attachments/assets/251753a3-f331-40a9-90a5-41d66ea796f4)
+![Redis Data Structures (3)](assets/Redis%20Data%20Structures%20(3).png)
 
 
 ```python
