@@ -197,7 +197,7 @@ class Serializer:
             return self.type_handlers[type(data).__name__]["serialize"](data)
         if isinstance(data, SerializableType):
             return {"_type": data.__class__.__name__, "value": data.to_dict()}
-        if isinstance(data, BaseModel) and PYDANTIC_AVAILABLE:
+        if PYDANTIC_AVAILABLE and isinstance(data, BaseModel):
             return {"_type": data.__class__.__name__, "value": data.model_dump(mode="json")}
         raise ValueError(f"Unsupported type: {type(data)} {type(data).__name__}")
 
@@ -215,7 +215,7 @@ class Serializer:
 
     def serialize(self, data: Any) -> Any:
         """Serialize data to a string."""
-        if isinstance(data, BaseModel) and PYDANTIC_AVAILABLE:
+        if PYDANTIC_AVAILABLE and isinstance(data, BaseModel):
             raw_str_data = {
                 "value": data.model_dump(mode="json"),
                 "_type": data.__class__.__name__,

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from pydantic import BaseModel
 
-from redis_data_structures.serializer import Serializer
+from redis_data_structures.serializer import SerializableType, Serializer
 
 
 @pytest.fixture
@@ -140,3 +140,20 @@ def test_pydantic_import_error(monkeypatch):
     from redis_data_structures.serializer import PYDANTIC_AVAILABLE
 
     assert PYDANTIC_AVAILABLE is False
+
+
+def test_serializable_type(serializer):
+    class User(SerializableType):
+        def __init__(self, name: str, age: int):
+            self.name = name
+            self.age = age
+
+        def to_dict(self) -> dict:
+            return {"name": self.name, "age": self.age}
+
+        @classmethod
+        def from_dict(cls, data: dict) -> "User":
+            return cls(data["name"], data["age"])
+
+    user = User(name="Alice", age=30)
+    assert serializer.deserialize(serializer.serialize(user)) == user

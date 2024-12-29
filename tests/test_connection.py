@@ -1,4 +1,3 @@
-import redis
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
@@ -178,8 +177,7 @@ def test_connection_with_username_password(connection_manager):
         port=6379,
         db=0,
         username="default",
-        password="password",
+        password="password",  # noqa: S106
         socket_timeout=1,
     )
     assert connection_manager.client is not None
-
