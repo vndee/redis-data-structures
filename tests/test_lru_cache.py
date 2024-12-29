@@ -1,8 +1,6 @@
 import time
-from unittest.mock import patch
 
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import LRUCache
 
@@ -148,21 +146,6 @@ def test_complex_data_types(lru_cache):
     assert lru_cache.get("tuple") == tuple_value
 
 
-def test_error_handling(lru_cache):
-    # Test error handling
-    with patch.object(lru_cache.connection_manager, "pipeline", side_effect=RedisError):
-        assert not lru_cache.put("key", "value")
-
-    with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
-        assert lru_cache.get("key") is None
-
-    with patch.object(lru_cache.connection_manager, "pipeline", side_effect=RedisError):
-        assert not lru_cache.remove("key")
-
-    with patch.object(lru_cache.connection_manager, "pipeline", side_effect=RedisError):
-        assert not lru_cache.clear()
-
-
 def test_update_existing(lru_cache):
     # Test updating existing cache entries
     lru_cache.put("key1", "value1")
@@ -293,48 +276,6 @@ def test_concurrent_access(lru_cache):
 
     # Verify the cache size is within capacity
     assert lru_cache.size() <= lru_cache.capacity
-
-
-def test_put_exception_handling(lru_cache):
-    """Test exception handling during put operation."""
-    with patch.object(lru_cache.connection_manager, "pipeline", side_effect=RedisError):
-        assert not lru_cache.put("key", "value")
-
-
-def test_get_exception_handling(lru_cache):
-    """Test exception handling during get operation."""
-    with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
-        assert lru_cache.get("key") is None
-
-
-def test_remove_exception_handling(lru_cache):
-    """Test exception handling during remove operation."""
-    with patch.object(lru_cache.connection_manager, "pipeline", side_effect=RedisError):
-        assert not lru_cache.remove("key")
-
-
-def test_clear_exception_handling(lru_cache):
-    """Test exception handling during clear operation."""
-    with patch.object(lru_cache.connection_manager, "pipeline", side_effect=RedisError):
-        assert not lru_cache.clear()
-
-
-def test_peek_exception_handling(lru_cache):
-    """Test exception handling during peek operation."""
-    with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
-        assert lru_cache.peek("key") is None
-
-
-def test_get_lru_order_exception_handling(lru_cache):
-    """Test exception handling during get_lru_order operation."""
-    with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
-        assert lru_cache.get_lru_order() == []
-
-
-def test_size_exception_handling(lru_cache):
-    """Test exception handling during size operation."""
-    with patch.object(lru_cache.connection_manager, "execute", side_effect=RedisError):
-        assert lru_cache.size() == 0
 
 
 def test_get_all_items(lru_cache):

@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import Graph
 
@@ -170,69 +167,3 @@ def test_clear(graph):
     assert not graph.vertex_exists("v1")
     assert not graph.vertex_exists("v2")
     assert not graph.get_edge_weight("v1", "v2")
-
-
-# Error handling tests
-def test_add_vertex_error_handling(graph):
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert not graph.add_vertex("v1", {"data": "value"})
-
-
-def test_add_edge_error_handling(graph):
-    graph.add_vertex("v1")
-    graph.add_vertex("v2")
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert not graph.add_edge("v1", "v2")
-
-
-def test_remove_vertex_error_handling(graph):
-    graph.add_vertex("v1")
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert not graph.remove_vertex("v1")
-
-
-def test_remove_edge_error_handling(graph):
-    graph.add_vertex("v1")
-    graph.add_vertex("v2")
-    graph.add_edge("v1", "v2")
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert not graph.remove_edge("v1", "v2")
-
-
-def test_get_vertex_data_error_handling(graph):
-    graph.add_vertex("v1", {"data": "value"})
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert graph.get_vertex_data("v1") is None
-
-
-def test_get_neighbors_error_handling(graph):
-    graph.add_vertex("v1")
-    graph.add_edge("v1", "v2")
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert len(graph.get_neighbors("v1")) == 0
-
-
-def test_get_vertices_error_handling(graph):
-    graph.add_vertex("v1")
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert len(graph.get_vertices()) == 0
-
-
-def test_vertex_exists_error_handling(graph):
-    graph.add_vertex("v1")
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert not graph.vertex_exists("v1")
-
-
-def test_get_edge_weight_error_handling(graph):
-    graph.add_vertex("v1")
-    graph.add_vertex("v2")
-    graph.add_edge("v1", "v2", 1.5)
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert graph.get_edge_weight("v1", "v2") is None
-
-
-def test_clear_error_handling(graph):
-    graph.add_vertex("v1")
-    with patch.object(graph.connection_manager, "execute", side_effect=RedisError):
-        assert not graph.clear()

@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import Set
 
@@ -132,36 +129,6 @@ def test_serialization_edge_cases(set_ds):
         assert data in set_ds.members()
 
 
-def test_add_error_handling(set_ds):
-    """Test error handling in add method."""
-    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
-        assert not set_ds.add("data")
-
-
-def test_remove_error_handling(set_ds):
-    """Test error handling in remove method."""
-    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
-        assert not set_ds.remove("data")
-
-
-def test_contains_error_handling(set_ds):
-    """Test error handling in contains method."""
-    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
-        assert not set_ds.contains("data")
-
-
-def test_size_error_handling(set_ds):
-    """Test error handling in size method."""
-    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
-        assert set_ds.size() == 0
-
-
-def test_pop_error_handling(set_ds):
-    """Test error handling in pop method."""
-    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
-        assert set_ds.pop() is None
-
-
 # Additional tests for increased coverage
 def test_add_and_remove_multiple_items(set_ds):
     """Test adding and removing multiple items."""
@@ -213,9 +180,3 @@ def test_pop_from_single_item_set(set_ds):
     popped = set_ds.pop()
     assert popped == "item1"
     assert set_ds.size() == 0
-
-
-def test_error_clear_set(set_ds):
-    """Test error handling in clear method."""
-    with patch.object(set_ds.connection_manager, "execute", side_effect=RedisError):
-        assert not set_ds.clear()

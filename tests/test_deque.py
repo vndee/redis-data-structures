@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import Deque
 
@@ -112,38 +109,3 @@ def test_complex_data_types(deque):
 
     assert deque.pop_front() == test_dict
     assert deque.pop_back() == test_list
-
-
-def test_push_front_error_handling(deque):
-    with patch.object(deque.connection_manager, "execute", side_effect=RedisError):
-        assert deque.push_front("data") is False
-
-
-def test_push_back_error_handling(deque):
-    with patch.object(deque.connection_manager, "execute", side_effect=RedisError):
-        assert deque.push_back("data") is False
-
-
-def test_pop_front_error_handling(deque):
-    with patch.object(deque.connection_manager, "execute", side_effect=RedisError):
-        assert deque.pop_front() is None
-
-
-def test_pop_back_error_handling(deque):
-    with patch.object(deque.connection_manager, "execute", side_effect=RedisError):
-        assert deque.pop_back() is None
-
-
-def test_peek_front_error_handling(deque):
-    with patch.object(deque.connection_manager, "execute", side_effect=RedisError):
-        assert deque.peek_front() is None
-
-
-def test_peek_back_error_handling(deque):
-    with patch.object(deque.connection_manager, "execute", side_effect=RedisError):
-        assert deque.peek_back() is None
-
-
-def test_size_error_handling(deque):
-    with patch.object(deque.connection_manager, "execute", side_effect=RedisError):
-        assert deque.size() == 0

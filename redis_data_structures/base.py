@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Type, TypeVar, Union
 
 from redis.exceptions import RedisError
 
@@ -18,6 +18,19 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=Union[BaseModel, SerializableType])
+
+
+def handle_operation_error(func: Callable[..., Any]) -> Callable[..., Any]:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return func(*args, **kwargs)
+        except RedisError as e:
+            raise e from e
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception("Error executing operation")
+            raise RedisDataStructureError(f"Error executing operation: {e}") from e
+
+    return wrapper
 
 
 class RedisDataStructure:
@@ -91,53 +104,42 @@ class RedisDataStructure:
         """Get all registered types."""
         return self.serializer.get_registered_types()
 
+    @handle_operation_error
     def set_ttl(self, key: str, ttl: Union[int, timedelta, datetime]) -> bool:
         """Set Time To Live (TTL) for a key."""
-        try:
-            if isinstance(ttl, timedelta):
-                ttl = int(ttl.total_seconds())
-            elif isinstance(ttl, datetime):
-                if ttl.tzinfo is None:
-                    ttl = int((ttl - datetime.now()).total_seconds())
-                else:
-                    ttl = int((ttl - datetime.now(ttl.tzinfo)).total_seconds())
+        if isinstance(ttl, timedelta):
+            ttl = int(ttl.total_seconds())
+        elif isinstance(ttl, datetime):
+            if ttl.tzinfo is None:
+                ttl = int((ttl - datetime.now()).total_seconds())
             else:
-                ttl = int(ttl)
+                ttl = int((ttl - datetime.now(ttl.tzinfo)).total_seconds())
+        else:
+            ttl = int(ttl)
 
-            if not bool(self.connection_manager.execute("expire", key, ttl)):
-                raise RedisDataStructureError(
-                    f"Failed to set TTL for key {key} to {ttl}. Key {key} might not exist.",
-                )
+        if not bool(self.connection_manager.execute("expire", key, ttl)):
+            raise RedisDataStructureError(
+                f"Failed to set TTL for key {key} to {ttl}. Key {key} might not exist.",
+            )
 
-            return True
-        except RedisError:
-            logger.exception("Error setting TTL")
-            return False
+        return True
 
+    @handle_operation_error
     def get_ttl(self, key: str) -> Any:
         """Get remaining Time To Live (TTL) for a key."""
-        try:
-            return self.connection_manager.execute("ttl", key)
-        except Exception:
-            logger.exception("Error getting TTL")
-            return None
+        return self.connection_manager.execute("ttl", key)
 
+    @handle_operation_error
     def persist(self, key: str) -> bool:
         """Remove TTL from a key."""
-        try:
-            return bool(self.connection_manager.execute("persist", key))
-        except Exception:
-            logger.exception("Error removing TTL")
-            return False
+        return bool(self.connection_manager.execute("persist", key))
 
+    @handle_operation_error
     def clear(self) -> bool:
         """Clear all elements from the data structure."""
-        try:
-            return bool(self.connection_manager.execute("delete", self.key))
-        except Exception:
-            logger.exception("Error clearing data structure")
-            return False
+        return bool(self.connection_manager.execute("delete", self.key))
 
+    @handle_operation_error
     def close(self) -> None:
         """Close Redis connection."""
         self.connection_manager.close()

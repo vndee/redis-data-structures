@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional
 
-from .base import RedisDataStructure
+from .base import RedisDataStructure, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ class Deque(RedisDataStructure):
     and other scenarios requiring bidirectional access to the data structure.
     """
 
+    @handle_operation_error
     def push_front(self, data: Any) -> bool:
         """Push an item to the front of the deque.
 
@@ -24,13 +25,10 @@ class Deque(RedisDataStructure):
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            serialized = self.serializer.serialize(data)
-            return bool(self.connection_manager.execute("lpush", self.key, serialized))
-        except Exception:
-            logger.exception("Error pushing to front of deque")
-            return False
+        serialized = self.serializer.serialize(data)
+        return bool(self.connection_manager.execute("lpush", self.key, serialized))
 
+    @handle_operation_error
     def push_back(self, data: Any) -> bool:
         """Push an item to the back of the deque.
 
@@ -40,73 +38,54 @@ class Deque(RedisDataStructure):
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            serialized = self.serializer.serialize(data)
-            return bool(self.connection_manager.execute("rpush", self.key, serialized))
-        except Exception:
-            logger.exception("Error pushing to back of deque")
-            return False
+        serialized = self.serializer.serialize(data)
+        return bool(self.connection_manager.execute("rpush", self.key, serialized))
 
+    @handle_operation_error
     def pop_front(self) -> Optional[Any]:
         """Pop an item from the front of the deque.
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
-        try:
-            data = self.connection_manager.execute("lpop", self.key)
-            return self.serializer.deserialize(data)
-        except Exception:
-            logger.exception("Error popping from front of deque")
-            return None
+        data = self.connection_manager.execute("lpop", self.key)
+        return self.serializer.deserialize(data)
 
+    @handle_operation_error
     def pop_back(self) -> Optional[Any]:
         """Pop an item from the back of the deque.
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
-        try:
-            data = self.connection_manager.execute("rpop", self.key)
-            return self.serializer.deserialize(data)
-        except Exception:
-            logger.exception("Error popping from back of deque")
-            return None
+        data = self.connection_manager.execute("rpop", self.key)
+        return self.serializer.deserialize(data)
 
+    @handle_operation_error
     def peek_front(self) -> Optional[Any]:
         """Peek at the front item without removing it.
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
-        try:
-            data = self.connection_manager.execute("lindex", self.key, 0)
-            return self.serializer.deserialize(data)
-        except Exception:
-            logger.exception("Error peeking front of deque")
-            return None
+        data = self.connection_manager.execute("lindex", self.key, 0)
+        return self.serializer.deserialize(data)
 
+    @handle_operation_error
     def peek_back(self) -> Optional[Any]:
         """Peek at the back item without removing it.
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
-        try:
-            data = self.connection_manager.execute("lindex", self.key, -1)
-            return self.serializer.deserialize(data)
-        except Exception:
-            logger.exception("Error peeking back of deque")
-            return None
+        data = self.connection_manager.execute("lindex", self.key, -1)
+        return self.serializer.deserialize(data)
 
+    @handle_operation_error
     def size(self) -> int:
         """Get the size of the deque.
 
         Returns:
             int: Number of elements in the deque
         """
-        try:
-            return self.connection_manager.execute("llen", self.key) or 0
-        except Exception:
-            logger.exception("Error getting deque size")
-            return 0
+        return self.connection_manager.execute("llen", self.key) or 0

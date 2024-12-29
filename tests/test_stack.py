@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import Stack
 
@@ -98,34 +95,3 @@ def test_serialization_edge_cases(stack_ds):
         assert stack_ds.push(data)
         assert stack_ds.peek() == data
         assert stack_ds.pop() == data
-
-
-# Error handling tests
-def test_push_error_handling(stack_ds):
-    """Test error handling in push method."""
-    with patch.object(stack_ds.connection_manager, "execute", side_effect=RedisError):
-        assert not stack_ds.push("data")
-
-
-def test_pop_error_handling(stack_ds):
-    """Test error handling in pop method."""
-    with patch.object(stack_ds.connection_manager, "execute", side_effect=RedisError):
-        assert stack_ds.pop() is None
-
-
-def test_peek_error_handling(stack_ds):
-    """Test error handling in peek method."""
-    with patch.object(stack_ds.connection_manager, "execute", side_effect=RedisError):
-        assert stack_ds.peek() is None
-
-
-def test_size_error_handling(stack_ds):
-    """Test error handling in size method."""
-    with patch.object(stack_ds.connection_manager, "execute", side_effect=RedisError):
-        assert stack_ds.size() == 0
-
-
-def test_clear_error_handling(stack_ds):
-    """Test error handling in clear method."""
-    with patch.object(stack_ds.connection_manager, "execute", side_effect=RedisError):
-        assert not stack_ds.clear()

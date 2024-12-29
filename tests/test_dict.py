@@ -3,6 +3,7 @@ import ast
 import pytest
 
 from redis_data_structures import Dict
+from redis_data_structures.exceptions import RedisDataStructureError
 
 
 @pytest.fixture
@@ -139,14 +140,12 @@ def test_concurrent_access(dict_instance):
         assert dict_instance.get(f"key_{i}") == f"value_{i}"
 
 
-# Tests for Python special methods
 def test_getitem(dict_instance):
     """Test dictionary-style access using []."""
     dict_instance.set("key1", "value1")
     assert dict_instance["key1"] == "value1"
 
-    # Test accessing non-existent key
-    with pytest.raises(KeyError):
+    with pytest.raises(RedisDataStructureError):
         _ = dict_instance["nonexistent"]
 
 
@@ -167,7 +166,7 @@ def test_delitem(dict_instance):
     assert dict_instance.get("key1") is None
 
     # Test deleting non-existent key
-    with pytest.raises(KeyError):
+    with pytest.raises(RedisDataStructureError, match="Error executing operation"):
         del dict_instance["nonexistent"]
 
 

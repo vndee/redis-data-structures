@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, Optional, Set
 
-from .base import RedisDataStructure
+from .base import RedisDataStructure, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ class Graph(RedisDataStructure):
     - Persistent storage
     """
 
+    @handle_operation_error
     def add_vertex(self, vertex: str, data: Any = None) -> bool:
         """Add a vertex to the graph.
 
@@ -33,27 +34,24 @@ class Graph(RedisDataStructure):
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            # Store vertex data
-            vertex_key = f"{self.key}:vertex:{vertex}"
-            if data is not None:
-                self.connection_manager.execute(
-                    "hset",
-                    vertex_key,
-                    "data",
-                    self.serializer.serialize(data),
-                )
+        # Store vertex data
+        vertex_key = f"{self.key}:vertex:{vertex}"
+        if data is not None:
+            self.connection_manager.execute(
+                "hset",
+                vertex_key,
+                "data",
+                self.serializer.serialize(data),
+            )
 
-            # Initialize empty adjacency list if it doesn't exist
-            adj_key = f"{self.key}:adj:{vertex}"
-            if not self.connection_manager.execute("exists", adj_key):
-                self.connection_manager.execute("hset", adj_key, "_initialized", "1")
+        # Initialize empty adjacency list if it doesn't exist
+        adj_key = f"{self.key}:adj:{vertex}"
+        if not self.connection_manager.execute("exists", adj_key):
+            self.connection_manager.execute("hset", adj_key, "_initialized", "1")
 
-            return True
-        except Exception:
-            logger.exception("Error adding vertex")
-            return False
+        return True
 
+    @handle_operation_error
     def add_edge(self, from_vertex: str, to_vertex: str, weight: float = 1.0) -> bool:
         """Add a directed edge between vertices.
 
@@ -65,19 +63,16 @@ class Graph(RedisDataStructure):
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            # Ensure both vertices exist
-            if not self.vertex_exists(from_vertex) or not self.vertex_exists(to_vertex):
-                return False
-
-            # Add edge to adjacency list
-            adj_key = f"{self.key}:adj:{from_vertex}"
-            self.connection_manager.execute("hset", adj_key, to_vertex, str(weight))
-            return True
-        except Exception:
-            logger.exception("Error adding edge")
+        # Ensure both vertices exist
+        if not self.vertex_exists(from_vertex) or not self.vertex_exists(to_vertex):
             return False
 
+        # Add edge to adjacency list
+        adj_key = f"{self.key}:adj:{from_vertex}"
+        self.connection_manager.execute("hset", adj_key, to_vertex, str(weight))
+        return True
+
+    @handle_operation_error
     def remove_vertex(self, vertex: str) -> bool:
         """Remove a vertex and all its edges from the graph.
 
@@ -87,23 +82,20 @@ class Graph(RedisDataStructure):
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            # Remove vertex data and adjacency list
-            vertex_key = f"{self.key}:vertex:{vertex}"
-            adj_key = f"{self.key}:adj:{vertex}"
+        # Remove vertex data and adjacency list
+        vertex_key = f"{self.key}:vertex:{vertex}"
+        adj_key = f"{self.key}:adj:{vertex}"
 
-            # Remove incoming edges from other vertices
-            pattern = f"{self.key}:adj:*"
-            for adj_list_key in self.connection_manager.execute("scan_iter", match=pattern):
-                self.connection_manager.execute("hdel", adj_list_key, vertex)
+        # Remove incoming edges from other vertices
+        pattern = f"{self.key}:adj:*"
+        for adj_list_key in self.connection_manager.execute("scan_iter", match=pattern):
+            self.connection_manager.execute("hdel", adj_list_key, vertex)
 
-            # Remove vertex's own data and adjacency list
-            self.connection_manager.execute("delete", vertex_key, adj_key)
-            return True
-        except Exception:
-            logger.exception("Error removing vertex")
-            return False
+        # Remove vertex's own data and adjacency list
+        self.connection_manager.execute("delete", vertex_key, adj_key)
+        return True
 
+    @handle_operation_error
     def remove_edge(self, from_vertex: str, to_vertex: str) -> bool:
         """Remove an edge from the graph.
 
@@ -114,13 +106,10 @@ class Graph(RedisDataStructure):
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            adj_key = f"{self.key}:adj:{from_vertex}"
-            return bool(self.connection_manager.execute("hdel", adj_key, to_vertex))
-        except Exception:
-            logger.exception("Error removing edge")
-            return False
+        adj_key = f"{self.key}:adj:{from_vertex}"
+        return bool(self.connection_manager.execute("hdel", adj_key, to_vertex))
 
+    @handle_operation_error
     def get_vertex_data(self, vertex: str) -> Optional[Any]:
         """Get data associated with a vertex.
 
@@ -130,14 +119,11 @@ class Graph(RedisDataStructure):
         Returns:
             Optional[Any]: Vertex data if it exists, None otherwise
         """
-        try:
-            vertex_key = f"{self.key}:vertex:{vertex}"
-            data = self.connection_manager.execute("hget", vertex_key, "data")
-            return self.serializer.deserialize(data) if data else None
-        except Exception:
-            logger.exception("Error getting vertex data")
-            return None
+        vertex_key = f"{self.key}:vertex:{vertex}"
+        data = self.connection_manager.execute("hget", vertex_key, "data")
+        return self.serializer.deserialize(data) if data else None
 
+    @handle_operation_error
     def get_neighbors(self, vertex: str) -> Dict[str, float]:
         """Get all neighbors of a vertex with their edge weights.
 
@@ -147,44 +133,36 @@ class Graph(RedisDataStructure):
         Returns:
             Dict[str, float]: Dictionary mapping neighbor vertices to edge weights
         """
-        try:
-            adj_key = f"{self.key}:adj:{vertex}"
-            neighbors = self.connection_manager.execute("hgetall", adj_key)
+        adj_key = f"{self.key}:adj:{vertex}"
+        neighbors = self.connection_manager.execute("hgetall", adj_key)
 
-            # Filter out initialization flag and convert weights to float
-            return {
-                k.decode("utf-8"): float(v) for k, v in neighbors.items() if k != b"_initialized"
-            }
-        except Exception:
-            logger.exception("Error getting neighbors")
-            return {}
+        # Filter out initialization flag and convert weights to float
+        return {k.decode("utf-8"): float(v) for k, v in neighbors.items() if k != b"_initialized"}
 
+    @handle_operation_error
     def get_vertices(self) -> Set[str]:
         """Get all vertices in the graph.
 
         Returns:
             Set[str]: Set of all vertex identifiers
         """
-        try:
-            vertices = set()
+        vertices = set()
 
-            # Get vertices from vertex data keys
-            vertex_pattern = f"{self.key}:vertex:*"
-            for vertex_key in self.connection_manager.execute("scan_iter", match=vertex_pattern):
-                vertex = vertex_key.split(b":")[-1].decode("utf-8")
-                vertices.add(vertex)
+        # Get vertices from vertex data keys
+        vertex_pattern = f"{self.key}:vertex:*"
+        for vertex_key in self.connection_manager.execute("scan_iter", match=vertex_pattern):
+            vertex = vertex_key.split(b":")[-1].decode("utf-8")
+            vertices.add(vertex)
 
-            # Get vertices from adjacency list keys
-            adj_pattern = f"{self.key}:adj:*"
-            for adj_key in self.connection_manager.execute("scan_iter", match=adj_pattern):
-                vertex = adj_key.split(b":")[-1].decode("utf-8")
-                vertices.add(vertex)
+        # Get vertices from adjacency list keys
+        adj_pattern = f"{self.key}:adj:*"
+        for adj_key in self.connection_manager.execute("scan_iter", match=adj_pattern):
+            vertex = adj_key.split(b":")[-1].decode("utf-8")
+            vertices.add(vertex)
 
-            return vertices
-        except Exception:
-            logger.exception("Error getting vertices")
-            return set()
+        return vertices
 
+    @handle_operation_error
     def vertex_exists(self, vertex: str) -> bool:
         """Check if a vertex exists in the graph.
 
@@ -194,17 +172,14 @@ class Graph(RedisDataStructure):
         Returns:
             bool: True if vertex exists, False otherwise
         """
-        try:
-            vertex_key = f"{self.key}:vertex:{vertex}"
-            adj_key = f"{self.key}:adj:{vertex}"
-            return bool(
-                self.connection_manager.execute("exists", vertex_key)
-                or self.connection_manager.execute("exists", adj_key),
-            )
-        except Exception:
-            logger.exception("Error checking vertex existence")
-            return False
+        vertex_key = f"{self.key}:vertex:{vertex}"
+        adj_key = f"{self.key}:adj:{vertex}"
+        return bool(
+            self.connection_manager.execute("exists", vertex_key)
+            or self.connection_manager.execute("exists", adj_key),
+        )
 
+    @handle_operation_error
     def get_edge_weight(self, from_vertex: str, to_vertex: str) -> Optional[float]:
         """Get the weight of an edge between two vertices.
 
@@ -215,33 +190,26 @@ class Graph(RedisDataStructure):
         Returns:
             Optional[float]: Edge weight if edge exists, None otherwise
         """
-        try:
-            adj_key = f"{self.key}:adj:{from_vertex}"
-            weight = self.connection_manager.execute("hget", adj_key, to_vertex)
-            return float(weight) if weight else None
-        except Exception:
-            logger.exception("Error getting edge weight")
-            return None
+        adj_key = f"{self.key}:adj:{from_vertex}"
+        weight = self.connection_manager.execute("hget", adj_key, to_vertex)
+        return float(weight) if weight else None
 
+    @handle_operation_error
     def clear(self) -> bool:
         """Remove all vertices and edges from the graph.
 
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            # Get all keys related to this graph
-            vertex_pattern = f"{self.key}:vertex:*"
-            adj_pattern = f"{self.key}:adj:*"
+        # Get all keys related to this graph
+        vertex_pattern = f"{self.key}:vertex:*"
+        adj_pattern = f"{self.key}:adj:*"
 
-            # Delete all vertex data and adjacency lists
-            keys_to_delete = []
-            for pattern in [vertex_pattern, adj_pattern]:
-                keys_to_delete.extend(self.connection_manager.execute("scan_iter", match=pattern))
+        # Delete all vertex data and adjacency lists
+        keys_to_delete = []
+        for pattern in [vertex_pattern, adj_pattern]:
+            keys_to_delete.extend(self.connection_manager.execute("scan_iter", match=pattern))
 
-            if keys_to_delete:
-                self.connection_manager.execute("delete", *keys_to_delete)
-            return True
-        except Exception:
-            logger.exception("Error clearing graph")
-            return False
+        if keys_to_delete:
+            self.connection_manager.execute("delete", *keys_to_delete)
+        return True

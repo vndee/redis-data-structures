@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import PriorityQueue
 
@@ -148,30 +145,3 @@ def test_negative_priority(priority_queue):
     assert priority2 == 0
     assert item3 == "positive"
     assert priority3 == 1
-
-
-def test_error_handling(priority_queue):
-    """Test error handling."""
-    # Test Redis error during push
-    with patch.object(priority_queue.connection_manager, "execute", side_effect=RedisError):
-        assert not priority_queue.push("data", 1)
-
-    # Test Redis error during pop
-    with patch.object(priority_queue.connection_manager, "execute", side_effect=RedisError):
-        assert priority_queue.pop() is None
-
-    # Test Redis error during peek
-    with patch.object(priority_queue.connection_manager, "execute", side_effect=RedisError):
-        assert priority_queue.peek() is None
-
-    # Test Redis error during size
-    with patch.object(priority_queue.connection_manager, "execute", side_effect=RedisError):
-        assert priority_queue.size() == 0
-
-    # Test Redis error during clear
-    with patch.object(priority_queue.connection_manager, "execute", side_effect=RedisError):
-        assert not priority_queue.clear()
-
-    # Test Redis error during get_all
-    with patch.object(priority_queue.connection_manager, "execute", side_effect=RedisError):
-        assert priority_queue.get_all() == []

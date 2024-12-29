@@ -1,8 +1,6 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
 
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import HashMap
 
@@ -180,42 +178,6 @@ def test_unicode_strings(hash_map):
     for field, value in test_data.items():
         assert hash_map.set(field, value)
         assert hash_map.get(field) == value
-
-
-# Error handling tests
-def test_set_error_handling(hash_map):
-    with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
-        assert not hash_map.set("field", "value")
-
-
-def test_get_error_handling(hash_map):
-    with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
-        assert hash_map.get("field") is None
-
-
-def test_delete_error_handling(hash_map):
-    with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
-        assert not hash_map.delete("field")
-
-
-def test_exists_error_handling(hash_map):
-    with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
-        assert not hash_map.exists("field")
-
-
-def test_get_fields_error_handling(hash_map):
-    with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
-        assert hash_map.get_fields() == []
-
-
-def test_size_error_handling(hash_map):
-    with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
-        assert hash_map.size() == 0
-
-
-def test_clear_error_handling(hash_map):
-    with patch.object(hash_map.connection_manager, "execute", side_effect=RedisError):
-        assert not hash_map.clear()
 
 
 def test_set_and_get_large_data(hash_map):

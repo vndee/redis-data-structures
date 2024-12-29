@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional
 
-from .base import RedisDataStructure
+from .base import RedisDataStructure, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,7 @@ class Queue(RedisDataStructure):
     are added to the back and removed from the front, following FIFO order.
     """
 
+    @handle_operation_error
     def push(self, data: Any) -> bool:
         """Push an item to the back of the queue.
 
@@ -22,59 +23,43 @@ class Queue(RedisDataStructure):
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            serialized = self.serializer.serialize(data)
-            return bool(self.connection_manager.execute("rpush", self.key, serialized))
-        except Exception:
-            logger.exception("Error pushing to queue")
-            return False
+        serialized = self.serializer.serialize(data)
+        return bool(self.connection_manager.execute("rpush", self.key, serialized))
 
+    @handle_operation_error
     def pop(self) -> Optional[Any]:
         """Pop an item from the front of the queue.
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
-        try:
-            data = self.connection_manager.execute("lpop", self.key)
-            return self.serializer.deserialize(data) if data else None
-        except Exception:
-            logger.exception("Error popping from queue")
-            return None
+        data = self.connection_manager.execute("lpop", self.key)
+        return self.serializer.deserialize(data) if data else None
 
+    @handle_operation_error
     def peek(self) -> Optional[Any]:
         """Peek at the front item without removing it.
 
         Returns:
             Optional[Any]: The data if successful, None otherwise
         """
-        try:
-            data = self.connection_manager.execute("lindex", self.key, 0)
-            return self.serializer.deserialize(data) if data else None
-        except Exception:
-            logger.exception("Error peeking queue")
-            return None
+        data = self.connection_manager.execute("lindex", self.key, 0)
+        return self.serializer.deserialize(data) if data else None
 
+    @handle_operation_error
     def size(self) -> int:
         """Get the number of items in the queue.
 
         Returns:
             int: Number of items in the queue
         """
-        try:
-            return self.connection_manager.execute("llen", self.key) or 0
-        except Exception:
-            logger.exception("Error getting queue size")
-            return 0
+        return self.connection_manager.execute("llen", self.key) or 0
 
+    @handle_operation_error
     def clear(self) -> bool:
         """Clear all items from the queue.
 
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            return bool(self.connection_manager.execute("delete", self.key))
-        except Exception:
-            logger.exception("Error clearing queue")
-            return False
+        return bool(self.connection_manager.execute("delete", self.key))

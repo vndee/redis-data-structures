@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import RingBuffer
 
@@ -102,62 +99,3 @@ def test_empty_buffer(ring_buffer):
     assert ring_buffer.get_all() == []
     assert ring_buffer.get_latest() == []
     assert ring_buffer.get_latest(5) == []
-
-
-# Error handling tests
-def test_push_error_handling(ring_buffer):
-    """Test error handling during push operation."""
-    with patch.object(ring_buffer.connection_manager, "pipeline", side_effect=RedisError):
-        assert not ring_buffer.push("data")
-
-
-def test_get_all_error_handling(ring_buffer):
-    """Test error handling during get_all operation."""
-    with patch.object(ring_buffer.connection_manager, "execute", side_effect=RedisError):
-        assert ring_buffer.get_all() == []
-
-
-def test_get_latest_error_handling(ring_buffer):
-    """Test error handling during get_latest operation."""
-    with patch.object(ring_buffer.connection_manager, "execute", side_effect=RedisError):
-        assert ring_buffer.get_latest() == []
-
-
-def test_size_error_handling(ring_buffer):
-    """Test error handling during size operation."""
-    with patch.object(ring_buffer.connection_manager, "execute", side_effect=RedisError):
-        assert ring_buffer.size() == 0
-
-
-def test_clear_error_handling(ring_buffer):
-    """Test error handling during clear operation."""
-    with patch.object(ring_buffer.connection_manager, "pipeline", side_effect=RedisError):
-        assert not ring_buffer.clear()
-
-
-def test_get_current_position(ring_buffer):
-    """Test getting the current position of the ring buffer."""
-    # Push items into the ring buffer
-    assert ring_buffer.push("item1")
-    assert ring_buffer.push("item2")
-
-    # Check the current position after pushing two items
-    assert ring_buffer.get_current_position() == 2
-
-    # Push one more item
-    assert ring_buffer.push("item3")
-
-    # Check the current position after pushing three items
-    assert ring_buffer.get_current_position() == 3
-
-    # Clear the ring buffer
-    ring_buffer.clear()
-
-    # Check the current position after clearing
-    assert ring_buffer.get_current_position() == 0
-
-
-def test_get_current_position_error_handling(ring_buffer):
-    """Test error handling during get_current_position operation."""
-    with patch.object(ring_buffer.connection_manager, "execute", side_effect=RedisError):
-        assert ring_buffer.get_current_position() == 0

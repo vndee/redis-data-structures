@@ -7,7 +7,6 @@ from unittest.mock import Mock
 
 import pytest
 from pydantic import BaseModel
-from redis.exceptions import RedisError
 
 from redis_data_structures.base import RedisDataStructure
 from redis_data_structures.config import Config
@@ -191,11 +190,23 @@ class TestRedisDataStructure:
     def test_redis_error_handling(self):
         """Test Redis error handling."""
         # Test TTL error handling
-        self.rds.connection_manager.execute.side_effect = RedisError("Redis error")
-        assert self.rds.set_ttl("key", 100) is False
-        assert self.rds.get_ttl("key") is None
-        assert self.rds.persist("key") is False
-        assert self.rds.clear() is False
+        self.rds.connection_manager.execute.side_effect = RedisDataStructureError(
+            "Error executing operation",
+        )
+
+        # Use pytest.raises to check for the exception
+        with pytest.raises(RedisDataStructureError):
+            self.rds.set_ttl("key", 100)
+
+        # You can also check other methods if needed
+        with pytest.raises(RedisDataStructureError):
+            self.rds.get_ttl("key")
+
+        with pytest.raises(RedisDataStructureError):
+            self.rds.persist("key")
+
+        with pytest.raises(RedisDataStructureError):
+            self.rds.clear()
 
     def test_manual_type_registration(self):
         """Test manual registration of type handlers."""

@@ -2,7 +2,7 @@ import logging
 from typing import Any, Iterator, List, Tuple
 from typing import Dict as DictType
 
-from .base import RedisDataStructure
+from .base import RedisDataStructure, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ class Dict(RedisDataStructure):
         super().__init__(key, *args, **kwargs)
         self.key = key
 
+    @handle_operation_error
     def set(self, key: str, value: Any) -> bool:
         """Set a key-value pair in the dictionary.
 
@@ -35,6 +36,7 @@ class Dict(RedisDataStructure):
         serialized_value = self.serializer.serialize(value)
         return bool(self.connection_manager.execute("set", actual_key, serialized_value))
 
+    @handle_operation_error
     def get(self, key: str) -> Any:
         """Get a value from the dictionary.
 
@@ -48,6 +50,7 @@ class Dict(RedisDataStructure):
         serialized_value = self.connection_manager.execute("get", actual_key)
         return self.serializer.deserialize(serialized_value)
 
+    @handle_operation_error
     def delete(self, key: str) -> bool:
         """Delete a key-value pair from the dictionary.
 
@@ -60,6 +63,7 @@ class Dict(RedisDataStructure):
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
         return bool(self.connection_manager.execute("delete", actual_key))
 
+    @handle_operation_error
     def keys(self) -> List[str]:
         """Get all keys in the dictionary.
 
@@ -74,6 +78,7 @@ class Dict(RedisDataStructure):
             )
         ]
 
+    @handle_operation_error
     def values(self) -> List[Any]:
         """Get all values in the dictionary.
 
@@ -82,6 +87,7 @@ class Dict(RedisDataStructure):
         """
         return [self.get(key) for key in self.keys()]
 
+    @handle_operation_error
     def items(self) -> List[Tuple[str, Any]]:
         """Get all key-value pairs in the dictionary.
 
@@ -90,25 +96,30 @@ class Dict(RedisDataStructure):
         """
         return [(key.split(":")[-1], self.get(key)) for key in self.keys()]
 
+    @handle_operation_error
     def clear(self) -> bool:
         """Clear the dictionary."""
         for key in self.keys():
             self.delete(key)
         return True
 
+    @handle_operation_error
     def exists(self, key: str) -> bool:
         """Check if a key exists in the dictionary."""
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
         return bool(self.connection_manager.execute("exists", actual_key))
 
+    @handle_operation_error
     def size(self) -> int:
         """Get the number of key-value pairs in the dictionary."""
         return len(self.keys())
 
+    @handle_operation_error
     def __contains__(self, key: str) -> bool:
         """Check if a key exists in the dictionary."""
         return self.exists(key)
 
+    @handle_operation_error
     def __getitem__(self, key: str) -> Any:
         """Get a value from the dictionary using the subscript operator.
 
@@ -123,13 +134,15 @@ class Dict(RedisDataStructure):
         """
         value = self.get(key)
         if value is None:
-            raise KeyError(key)
+            raise KeyError(f"Key {key} does not exist")
         return value
 
+    @handle_operation_error
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a value in the dictionary using the subscript operator."""
         self.set(key, value)
 
+    @handle_operation_error
     def __delitem__(self, key: str) -> None:
         """Delete a key-value pair from the dictionary using the subscript operator.
 
@@ -140,25 +153,30 @@ class Dict(RedisDataStructure):
             KeyError: If the key does not exist.
         """
         if not self.exists(key):
-            raise KeyError(key)
+            raise KeyError(f"Key {key} does not exist")
         self.delete(key)
 
+    @handle_operation_error
     def __iter__(self) -> Iterator[str]:
         """Iterate over the keys in the dictionary."""
         return iter(self.keys())
 
+    @handle_operation_error
     def __len__(self) -> int:
         """Get the number of key-value pairs in the dictionary."""
         return len(self.keys())
 
+    @handle_operation_error
     def __repr__(self) -> str:
         """Return a string representation of the dictionary."""
         return f"Dict(key={self.key}, items={self.items()})"
 
+    @handle_operation_error
     def __str__(self) -> str:
         """Return a string representation of the dictionary."""
         return str(self.to_dict())
 
+    @handle_operation_error
     def __eq__(self, other: object) -> bool:
         """Check if the dictionary is equal to another dictionary."""
         if not isinstance(other, Dict):
@@ -166,6 +184,7 @@ class Dict(RedisDataStructure):
 
         return self.to_dict() == other.to_dict()
 
+    @handle_operation_error
     def to_dict(self) -> DictType[str, Any]:
         """Return a dictionary representation of the dictionary."""
         return {key: self.get(key) for key in self.keys()}

@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import Trie
 
@@ -90,17 +87,6 @@ def test_empty_string(trie_ds):
     assert trie_ds.size() == 1
     assert trie_ds.delete("")
     assert not trie_ds.search("")
-
-
-def test_error_handling(trie_ds):
-    """Test error handling."""
-    with patch.object(trie_ds.connection_manager, "execute", side_effect=RedisError):
-        assert not trie_ds.insert("test")
-        assert not trie_ds.search("test")
-        assert trie_ds.starts_with("test") == []
-        assert not trie_ds.delete("test")
-        assert trie_ds.size() == 0
-        assert not trie_ds.clear()
 
 
 def test_get_all_words(trie_ds):

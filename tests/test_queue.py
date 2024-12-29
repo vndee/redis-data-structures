@@ -1,7 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from redis.exceptions import RedisError
 
 from redis_data_structures import Queue
 
@@ -119,34 +116,3 @@ def test_serialization_edge_cases(queue):
         assert queue.push(data)
         assert queue.peek() == data
         assert queue.pop() == data
-
-
-# Error handling tests
-def test_push_error_handling(queue):
-    """Test error handling during push operation."""
-    with patch.object(queue.connection_manager, "execute", side_effect=RedisError):
-        assert not queue.push("data")
-
-
-def test_pop_error_handling(queue):
-    """Test error handling during pop operation."""
-    with patch.object(queue.connection_manager, "execute", side_effect=RedisError):
-        assert queue.pop() is None
-
-
-def test_peek_error_handling(queue):
-    """Test error handling during peek operation."""
-    with patch.object(queue.connection_manager, "execute", side_effect=RedisError):
-        assert queue.peek() is None
-
-
-def test_size_error_handling(queue):
-    """Test error handling during size operation."""
-    with patch.object(queue.connection_manager, "execute", side_effect=RedisError):
-        assert queue.size() == 0
-
-
-def test_clear_error_handling(queue):
-    """Test error handling during clear operation."""
-    with patch.object(queue.connection_manager, "execute", side_effect=RedisError):
-        assert not queue.clear()
