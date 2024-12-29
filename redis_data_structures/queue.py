@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional
 
-from .base import RedisDataStructure, handle_operation_error
+from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,7 @@ class Queue(RedisDataStructure):
     are added to the back and removed from the front, following FIFO order.
     """
 
+    @atomic_operation
     @handle_operation_error
     def push(self, data: Any) -> bool:
         """Push an item to the back of the queue.
@@ -26,6 +27,7 @@ class Queue(RedisDataStructure):
         serialized = self.serializer.serialize(data)
         return bool(self.connection_manager.execute("rpush", self.key, serialized))
 
+    @atomic_operation
     @handle_operation_error
     def pop(self) -> Optional[Any]:
         """Pop an item from the front of the queue.
@@ -36,6 +38,7 @@ class Queue(RedisDataStructure):
         data = self.connection_manager.execute("lpop", self.key)
         return self.serializer.deserialize(data) if data else None
 
+    @atomic_operation
     @handle_operation_error
     def peek(self) -> Optional[Any]:
         """Peek at the front item without removing it.
@@ -46,6 +49,7 @@ class Queue(RedisDataStructure):
         data = self.connection_manager.execute("lindex", self.key, 0)
         return self.serializer.deserialize(data) if data else None
 
+    @atomic_operation
     @handle_operation_error
     def size(self) -> int:
         """Get the number of items in the queue.
@@ -55,6 +59,7 @@ class Queue(RedisDataStructure):
         """
         return self.connection_manager.execute("llen", self.key) or 0
 
+    @atomic_operation
     @handle_operation_error
     def clear(self) -> bool:
         """Clear all items from the queue.

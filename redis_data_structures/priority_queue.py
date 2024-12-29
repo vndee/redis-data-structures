@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional, Tuple
 
-from .base import RedisDataStructure, handle_operation_error
+from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ class PriorityQueue(RedisDataStructure):
     to be processed based on their relative importance or urgency.
     """
 
+    @atomic_operation
     @handle_operation_error
     def push(self, data: Any, priority: int = 0) -> bool:
         """Push an item onto the priority queue.
@@ -31,6 +32,7 @@ class PriorityQueue(RedisDataStructure):
         mapping = {serialized: float(priority)}
         return bool(self.connection_manager.execute("zadd", self.key, mapping=mapping))
 
+    @atomic_operation
     @handle_operation_error
     def pop(self) -> Optional[Tuple[Any, int]]:
         """Pop the highest priority item from the queue.
@@ -52,6 +54,7 @@ class PriorityQueue(RedisDataStructure):
 
         return self.serializer.deserialize(item), int(float(priority))
 
+    @atomic_operation
     @handle_operation_error
     def peek(self) -> Optional[Tuple[Any, int]]:
         """Peek at the highest priority item without removing it.
@@ -68,6 +71,7 @@ class PriorityQueue(RedisDataStructure):
 
         return self.serializer.deserialize(item), int(float(priority))
 
+    @atomic_operation
     @handle_operation_error
     def size(self) -> int:
         """Get the number of items in the priority queue.
@@ -77,6 +81,7 @@ class PriorityQueue(RedisDataStructure):
         """
         return self.connection_manager.execute("zcard", self.key) or 0
 
+    @atomic_operation
     @handle_operation_error
     def clear(self) -> bool:
         """Clear all items from the priority queue.
@@ -86,6 +91,7 @@ class PriorityQueue(RedisDataStructure):
         """
         return bool(self.connection_manager.execute("delete", self.key))
 
+    @atomic_operation
     @handle_operation_error
     def get_all(self) -> list:
         """Get all items in the priority queue without removing them.

@@ -1,5 +1,7 @@
 import logging
 from datetime import datetime, timedelta
+from functools import wraps
+from threading import RLock
 from typing import Any, Callable, Dict, Iterable, Optional, Type, TypeVar, Union
 
 from redis.exceptions import RedisError
@@ -22,14 +24,37 @@ R = TypeVar("R")
 
 
 def handle_operation_error(func: Callable[..., R]) -> Callable[..., R]:
-    def wrapper(*args: Any, **kwargs: Any) -> R:
+    """Decorator for handling Redis operation errors."""
+
+    @wraps(func)
+    def wrapper(self: "RedisDataStructure", *args: Any, **kwargs: Any) -> R:
         try:
-            return func(*args, **kwargs)
+            return func(self, *args, **kwargs)
         except RedisError as e:
             raise e from e
         except Exception as e:  # pylint: disable=broad-except
             logger.exception("Error executing operation")
             raise RedisDataStructureError(f"Error executing operation: {e}") from e
+
+    return wrapper
+
+
+def atomic_operation(func: Callable[..., R]) -> Callable[..., R]:
+    """Decorator for atomic operations."""
+
+    @wraps(func)
+    def wrapper(self: "RedisDataStructure", *args: Any, **kwargs: Any) -> R:
+        with self._lock:
+            return func(self, *args, **kwargs)
+
+    return wrapper
+
+
+def thread_safe(func: Callable[..., R]) -> Callable[..., R]:
+    @wraps(func)
+    def wrapper(self: "RedisDataStructure", *args: Any, **kwargs: Any) -> R:
+        with self._lock:
+            return func(self, *args, **kwargs)
 
     return wrapper
 
@@ -62,7 +87,9 @@ class RedisDataStructure:
             compression_threshold=self.config.data_structures.compression_threshold,
         )
         self.key = f"{self.config.data_structures.prefix}:{key}"
+        self._lock = RLock()
 
+    @thread_safe
     def _register_type(self, type_class: Type[T]) -> None:
         """Register a type for type preservation.
 
@@ -99,12 +126,14 @@ class RedisDataStructure:
             for type_class in types:
                 self._register_type(type_class)
         else:
-            self._register_type(types)  # type: ignore[arg-type]
+            self._register_type(types)
 
+    @thread_safe
     def get_registered_types(self) -> Dict[str, Type]:
         """Get all registered types."""
         return self.serializer.get_registered_types()
 
+    @thread_safe
     @handle_operation_error
     def set_ttl(self, key: str, ttl: Union[int, timedelta, datetime]) -> bool:
         """Set Time To Live (TTL) for a key."""
@@ -125,21 +154,25 @@ class RedisDataStructure:
 
         return True
 
+    @thread_safe
     @handle_operation_error
     def get_ttl(self, key: str) -> Any:
         """Get remaining Time To Live (TTL) for a key."""
         return self.connection_manager.execute("ttl", key)
 
+    @thread_safe
     @handle_operation_error
     def persist(self, key: str) -> bool:
         """Remove TTL from a key."""
         return bool(self.connection_manager.execute("persist", key))
 
+    @thread_safe
     @handle_operation_error
     def clear(self) -> bool:
         """Clear all elements from the data structure."""
         return bool(self.connection_manager.execute("delete", self.key))
 
+    @thread_safe
     @handle_operation_error
     def close(self) -> None:
         """Close Redis connection."""

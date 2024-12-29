@@ -1,7 +1,7 @@
 import logging
 from typing import Any, List
 
-from .base import RedisDataStructure, handle_operation_error
+from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class Trie(RedisDataStructure):
         """
         return f"{self.key}{self.delimiter}{prefix}" if prefix else self.key
 
+    @atomic_operation
     @handle_operation_error
     def insert(self, word: str) -> bool:
         """Insert a word into the trie.
@@ -56,6 +57,7 @@ class Trie(RedisDataStructure):
         self.connection_manager.execute("hset", end_key, "*", "1")
         return True
 
+    @atomic_operation
     @handle_operation_error
     def search(self, word: str) -> bool:
         """Search for a word in the trie.
@@ -78,6 +80,7 @@ class Trie(RedisDataStructure):
         end_key = self._get_node_key(current_prefix)
         return bool(self.connection_manager.execute("hexists", end_key, "*"))
 
+    @atomic_operation
     @handle_operation_error
     def starts_with(self, prefix: str) -> List[str]:
         """Find all words that start with the given prefix.
@@ -104,6 +107,7 @@ class Trie(RedisDataStructure):
         self._collect_words(prefix, prefix, words)
         return sorted(words)  # Return sorted list for consistency
 
+    @atomic_operation
     @handle_operation_error
     def get_all_words(self) -> List[str]:
         """Get all words in the trie.
@@ -117,6 +121,7 @@ class Trie(RedisDataStructure):
         self._collect_words("", "", words)
         return sorted(words)
 
+    @atomic_operation
     @handle_operation_error
     def _collect_words(self, prefix: str, current_word: str, words: List[str]) -> None:
         """Helper method to collect all words with a given prefix using DFS.
@@ -141,6 +146,7 @@ class Trie(RedisDataStructure):
                 next_prefix = prefix + child_str if prefix else child_str
                 self._collect_words(next_prefix, current_word + child_str, words)
 
+    @atomic_operation
     @handle_operation_error
     def delete(self, word: str) -> bool:
         """Delete a word from the trie.
@@ -173,6 +179,7 @@ class Trie(RedisDataStructure):
 
         return True
 
+    @atomic_operation
     @handle_operation_error
     def size(self) -> int:
         """Get the number of words in the trie.
@@ -207,6 +214,7 @@ class Trie(RedisDataStructure):
 
         return count
 
+    @atomic_operation
     @handle_operation_error
     def clear(self) -> bool:
         """Remove all words from the trie.

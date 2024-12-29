@@ -2,7 +2,7 @@ import logging
 import math
 from typing import Any, List, Optional
 
-from .base import RedisDataStructure, handle_operation_error
+from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,7 @@ class BloomFilter(RedisDataStructure):
         self.bit_size = self.get_optimal_size(expected_elements, false_positive_rate)
         self.num_hashes = self.get_optimal_num_hashes(expected_elements, self.bit_size)
 
+    @atomic_operation
     @handle_operation_error
     def get_optimal_size(self, n: int, p: float) -> int:
         """Calculate optimal bit array size.
@@ -68,6 +69,7 @@ class BloomFilter(RedisDataStructure):
         """
         return int(-n * math.log(p) / (math.log(2) ** 2))
 
+    @atomic_operation
     @handle_operation_error
     def get_optimal_num_hashes(self, n: int, m: int) -> int:
         """Calculate optimal number of hash functions.
@@ -81,6 +83,7 @@ class BloomFilter(RedisDataStructure):
         """
         return max(1, int(m / n * math.log(2)))
 
+    @atomic_operation
     @handle_operation_error
     def get_hash_values(self, item: Any) -> List[int]:
         """Generate hash values for an item.
@@ -102,6 +105,7 @@ class BloomFilter(RedisDataStructure):
             hash_values.append(abs(hash_val))
         return hash_values
 
+    @atomic_operation
     @handle_operation_error
     def add(self, item: Any) -> bool:
         """Add an item to the Bloom filter.
@@ -125,6 +129,7 @@ class BloomFilter(RedisDataStructure):
             logger.exception("Error adding item to Bloom filter")
             return False
 
+    @atomic_operation
     @handle_operation_error
     def contains(self, item: Any) -> bool:
         """Check if an item might exist in the Bloom filter.
@@ -147,6 +152,7 @@ class BloomFilter(RedisDataStructure):
             logger.exception("Error checking item in Bloom filter")
             return False
 
+    @atomic_operation
     @handle_operation_error
     def clear(self) -> bool:
         """Clear the Bloom filter.
@@ -156,6 +162,7 @@ class BloomFilter(RedisDataStructure):
         """
         return super().clear()
 
+    @atomic_operation
     @handle_operation_error
     def size(self) -> int:
         """Get the size of the Bloom filter in bits.

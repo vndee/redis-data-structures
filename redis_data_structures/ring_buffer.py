@@ -1,7 +1,7 @@
 import logging
 from typing import Any, List
 
-from .base import RedisDataStructure, handle_operation_error
+from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +28,20 @@ class RingBuffer(RedisDataStructure):
         super().__init__(key, **kwargs)
         self.capacity = capacity
 
+    @atomic_operation
     @handle_operation_error
     def _get_position_key(self) -> str:
         """Get the Redis key for storing the current write position."""
         return f"{self.key}:pos"
 
+    @atomic_operation
     @handle_operation_error
     def get_current_position(self) -> int:
         """Get the current write position for the buffer."""
         pos = self.connection_manager.execute("get", self._get_position_key())
         return int(pos) if pos is not None else 0
 
+    @atomic_operation
     @handle_operation_error
     def push(self, data: Any) -> bool:
         """Push an item into the ring buffer.
@@ -72,6 +75,7 @@ class RingBuffer(RedisDataStructure):
         pipe.execute()
         return True
 
+    @atomic_operation
     @handle_operation_error
     def get_all(self) -> List[Any]:
         """Get all items in the buffer in order.
@@ -83,6 +87,7 @@ class RingBuffer(RedisDataStructure):
 
         return [self.serializer.deserialize(item) for item in items]
 
+    @atomic_operation
     @handle_operation_error
     def get_latest(self, n: int = 1) -> List[Any]:
         """Get the n most recent items from the buffer.
@@ -96,6 +101,7 @@ class RingBuffer(RedisDataStructure):
         items = self.connection_manager.execute("lrange", self.key, -n, -1)
         return [self.serializer.deserialize(item) for item in reversed(items)]
 
+    @atomic_operation
     @handle_operation_error
     def size(self) -> int:
         """Get the current number of items in the buffer.
@@ -105,6 +111,7 @@ class RingBuffer(RedisDataStructure):
         """
         return self.connection_manager.execute("llen", self.key) or 0
 
+    @atomic_operation
     @handle_operation_error
     def clear(self) -> bool:
         """Clear all items from the buffer.

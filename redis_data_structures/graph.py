@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, Optional, Set
 
-from .base import RedisDataStructure, handle_operation_error
+from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ class Graph(RedisDataStructure):
     - Persistent storage
     """
 
+    @atomic_operation
     @handle_operation_error
     def add_vertex(self, vertex: str, data: Any = None) -> bool:
         """Add a vertex to the graph.
@@ -51,6 +52,7 @@ class Graph(RedisDataStructure):
 
         return True
 
+    @atomic_operation
     @handle_operation_error
     def add_edge(self, from_vertex: str, to_vertex: str, weight: float = 1.0) -> bool:
         """Add a directed edge between vertices.
@@ -72,6 +74,7 @@ class Graph(RedisDataStructure):
         self.connection_manager.execute("hset", adj_key, to_vertex, str(weight))
         return True
 
+    @atomic_operation
     @handle_operation_error
     def remove_vertex(self, vertex: str) -> bool:
         """Remove a vertex and all its edges from the graph.
@@ -95,6 +98,7 @@ class Graph(RedisDataStructure):
         self.connection_manager.execute("delete", vertex_key, adj_key)
         return True
 
+    @atomic_operation
     @handle_operation_error
     def remove_edge(self, from_vertex: str, to_vertex: str) -> bool:
         """Remove an edge from the graph.
@@ -109,6 +113,7 @@ class Graph(RedisDataStructure):
         adj_key = f"{self.key}:adj:{from_vertex}"
         return bool(self.connection_manager.execute("hdel", adj_key, to_vertex))
 
+    @atomic_operation
     @handle_operation_error
     def get_vertex_data(self, vertex: str) -> Optional[Any]:
         """Get data associated with a vertex.
@@ -123,6 +128,7 @@ class Graph(RedisDataStructure):
         data = self.connection_manager.execute("hget", vertex_key, "data")
         return self.serializer.deserialize(data) if data else None
 
+    @atomic_operation
     @handle_operation_error
     def get_neighbors(self, vertex: str) -> Dict[str, float]:
         """Get all neighbors of a vertex with their edge weights.
@@ -139,6 +145,7 @@ class Graph(RedisDataStructure):
         # Filter out initialization flag and convert weights to float
         return {k.decode("utf-8"): float(v) for k, v in neighbors.items() if k != b"_initialized"}
 
+    @atomic_operation
     @handle_operation_error
     def get_vertices(self) -> Set[str]:
         """Get all vertices in the graph.
@@ -162,6 +169,7 @@ class Graph(RedisDataStructure):
 
         return vertices
 
+    @atomic_operation
     @handle_operation_error
     def vertex_exists(self, vertex: str) -> bool:
         """Check if a vertex exists in the graph.
@@ -179,6 +187,7 @@ class Graph(RedisDataStructure):
             or self.connection_manager.execute("exists", adj_key),
         )
 
+    @atomic_operation
     @handle_operation_error
     def get_edge_weight(self, from_vertex: str, to_vertex: str) -> Optional[float]:
         """Get the weight of an edge between two vertices.
@@ -194,6 +203,7 @@ class Graph(RedisDataStructure):
         weight = self.connection_manager.execute("hget", adj_key, to_vertex)
         return float(weight) if weight else None
 
+    @atomic_operation
     @handle_operation_error
     def clear(self) -> bool:
         """Remove all vertices and edges from the graph.

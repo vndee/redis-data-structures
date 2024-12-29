@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Optional
 
-from .base import RedisDataStructure, handle_operation_error
+from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ class LRUCache(RedisDataStructure):
         super().__init__(key, **kwargs)
         self.capacity = max(1, capacity)  # Ensure minimum capacity of 1
 
+    @atomic_operation
     @handle_operation_error
     def peek(self, field: str) -> Optional[Any]:
         """Get an item from the cache without updating its access time.
@@ -44,6 +45,7 @@ class LRUCache(RedisDataStructure):
 
         return self.serializer.deserialize(data)
 
+    @atomic_operation
     @handle_operation_error
     def get_lru_order(self) -> list:
         """Get the list of keys in LRU order (least recently used to most recently used).
@@ -58,6 +60,7 @@ class LRUCache(RedisDataStructure):
             for item in reversed(data or [])
         ]
 
+    @atomic_operation
     @handle_operation_error
     def put(self, field: str, value: Any) -> bool:
         """Put an item in the cache.
@@ -90,6 +93,7 @@ class LRUCache(RedisDataStructure):
 
         return True
 
+    @atomic_operation
     @handle_operation_error
     def get(self, field: str) -> Optional[Any]:
         """Get an item from the cache.
@@ -112,6 +116,7 @@ class LRUCache(RedisDataStructure):
 
         return self.serializer.deserialize(data)
 
+    @atomic_operation
     @handle_operation_error
     def remove(self, field: str) -> bool:
         """Remove an item from the cache.
@@ -129,6 +134,7 @@ class LRUCache(RedisDataStructure):
         results = pipeline.execute()
         return bool(results[0])
 
+    @atomic_operation
     @handle_operation_error
     def clear(self) -> bool:
         """Clear all items from the cache.
@@ -143,6 +149,7 @@ class LRUCache(RedisDataStructure):
         pipeline.execute()
         return True
 
+    @atomic_operation
     @handle_operation_error
     def size(self) -> int:
         """Get the number of items in the cache.
@@ -152,6 +159,7 @@ class LRUCache(RedisDataStructure):
         """
         return self.connection_manager.execute("hlen", self.key) or 0
 
+    @atomic_operation
     @handle_operation_error
     def get_all(self) -> dict:
         """Get all items from the cache.
