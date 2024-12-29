@@ -145,3 +145,26 @@ def test_negative_priority(priority_queue):
     assert priority2 == 0
     assert item3 == "positive"
     assert priority3 == 1
+
+def test_pop_from_empty_priority_queue(priority_queue):
+    """Test pop from an empty priority queue."""
+    assert priority_queue.pop() is None
+
+
+def test_concurrent_access(priority_queue):
+    """Test concurrent access to the priority queue."""
+    import threading
+
+    def push_items():
+        for i in range(1000):
+            priority_queue.push(f"item_{i}", i)
+
+    def pop_items():
+        for i in range(1000):
+            priority_queue.pop()
+
+    threads = [threading.Thread(target=push_items) for _ in range(10)]
+    [thread.start() for thread in threads]
+    [thread.join() for thread in threads]
+
+    assert priority_queue.size() == 1000

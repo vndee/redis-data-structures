@@ -18,9 +18,6 @@ def queue() -> Queue:
     q.clear()
 
 
-# Your existing test cases here...
-
-
 def test_concurrent_push(queue):
     """Test concurrent push operations."""
     num_threads = 4
@@ -195,3 +192,8 @@ def test_concurrent_error_handling(queue):
     # Queue should still be usable
     assert queue.push("valid_item")
     assert queue.pop() == "valid_item"
+
+
+def test_pop_from_empty_queue(queue):
+    """Test pop from an empty queue."""
+    assert queue.pop() is None
