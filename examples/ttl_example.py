@@ -110,6 +110,14 @@ def demonstrate_ttl_with_data_structures():
     print(f"Set will expire at: {future_time}")
 
 
+def demonstrate_ttl_without_tzinfo():
+    print("\n=== TTL without timezone info ===\n")
+    redis_ds = RedisDataStructure(key="test_ttl")
+    redis_ds.set_ttl("key", datetime.now() + timedelta(seconds=10))
+    print("TTL:", redis_ds.get_ttl("keyz"))
+
+
 if __name__ == "__main__":
     demonstrate_ttl()
     demonstrate_ttl_with_data_structures()
+    demonstrate_ttl_without_tzinfo()

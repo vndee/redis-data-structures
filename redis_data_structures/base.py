@@ -1,19 +1,20 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
 
-from pydantic import BaseModel
+from redis.exceptions import RedisError
 
 from .config import Config
 from .connection import ConnectionManager
+from .exceptions import RedisDataStructureError
 from .serializer import SerializableType, Serializer
 
-PYDANTIC_AVAILABLE = True
 try:
     from pydantic import BaseModel
+
+    PYDANTIC_AVAILABLE = True
 except ImportError:
     PYDANTIC_AVAILABLE = False
-
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=Union[BaseModel, SerializableType])
@@ -56,14 +57,14 @@ class RedisDataStructure:
                         Must be either a Pydantic model or inherit from SerializableType.
 
         Raises:
-            ValueError: If the type is not a Pydantic model or SerializableType.
+            TypeError: If the type is not a Pydantic model or SerializableType.
         """
         if PYDANTIC_AVAILABLE and issubclass(type_class, BaseModel):
             self.serializer.pydantic_type_registry.register(type_class.__name__, type_class)
         elif issubclass(type_class, SerializableType):
             self.serializer.custom_type_registry.register(type_class.__name__, type_class)
         else:
-            raise ValueError(
+            raise TypeError(
                 f"Type {type_class.__name__} must be a Pydantic model or "
                 "inherit from SerializableType",
             )
@@ -97,15 +98,19 @@ class RedisDataStructure:
                 ttl = int(ttl.total_seconds())
             elif isinstance(ttl, datetime):
                 if ttl.tzinfo is None:
-                    ttl = ttl.replace(tzinfo=timezone.utc)  # Make it timezone-aware
-                    ttl = int((ttl - datetime.now(timezone.utc)).total_seconds())
+                    ttl = int((ttl - datetime.now()).total_seconds())
                 else:
                     ttl = int((ttl - datetime.now(ttl.tzinfo)).total_seconds())
             else:
                 ttl = int(ttl)
 
-            return bool(self.connection_manager.execute("expire", key, ttl))
-        except Exception:
+            if not bool(self.connection_manager.execute("expire", key, ttl)):
+                raise RedisDataStructureError(
+                    f"Failed to set TTL for key {key} to {ttl}. Key {key} might not exist.",
+                )
+
+            return True
+        except RedisError:
             logger.exception("Error setting TTL")
             return False
 

@@ -1,14 +1,18 @@
+import importlib
 import json
+import sys
 from datetime import datetime, timedelta, timezone
 from typing import List
 from unittest.mock import Mock
 
 import pytest
 from pydantic import BaseModel
+from redis.exceptions import RedisError
 
 from redis_data_structures.base import RedisDataStructure
 from redis_data_structures.config import Config
 from redis_data_structures.connection import ConnectionManager
+from redis_data_structures.exceptions import RedisDataStructureError
 from redis_data_structures.serializer import SerializableType
 
 
@@ -72,6 +76,27 @@ class TestRedisDataStructure:
         assert isinstance(deserialized, datetime)
         assert deserialized.timestamp() == pytest.approx(now.timestamp())
 
+    def test_pydantic_import_error(self, monkeypatch):
+        """Test that PYDANTIC_AVAILABLE is False when pydantic is not available."""
+        if "pydantic" in sys.modules:
+            del sys.modules["pydantic"]
+        if "redis_data_structures.serializer" in sys.modules:
+            del sys.modules["redis_data_structures.serializer"]
+
+        def mock_import(name, *args, **kwargs):
+            if name == "pydantic":
+                raise ImportError(
+                    "Pydantic is not available. You might need to install it with"
+                    " `pip install pydantic`.",
+                )
+            return importlib.__import__(name, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.__import__", mock_import)
+
+        from redis_data_structures.serializer import PYDANTIC_AVAILABLE
+
+        assert PYDANTIC_AVAILABLE is False
+
     def test_serialize_timedelta(self):
         """Test serialization of timedelta objects."""
         delta = timedelta(days=1, hours=2, minutes=3)
@@ -124,8 +149,18 @@ class TestRedisDataStructure:
         # Persist key
         assert self.rds.persist(key)
 
+        assert self.rds.set_ttl(key, datetime.now() + timedelta(seconds=10))
+
+        assert self.rds.set_ttl(key, timedelta(seconds=10))
+
+        assert self.rds.set_ttl(key, datetime.now(timezone.utc) + timedelta(seconds=10))
+
         # Verify correct Redis calls
         self.rds.connection_manager.execute.assert_called()
+
+        self.rds.connection_manager.execute.return_value = False
+        with pytest.raises(RedisDataStructureError):
+            self.rds.set_ttl(key, 100)
 
     def test_custom_type_without_implementation(self):
         """Test custom type without required implementations."""
@@ -156,7 +191,7 @@ class TestRedisDataStructure:
     def test_redis_error_handling(self):
         """Test Redis error handling."""
         # Test TTL error handling
-        self.rds.connection_manager.execute.side_effect = Exception("Redis error")
+        self.rds.connection_manager.execute.side_effect = RedisError("Redis error")
         assert self.rds.set_ttl("key", 100) is False
         assert self.rds.get_ttl("key") is None
         assert self.rds.persist("key") is False
@@ -341,3 +376,5 @@ class TestRedisDataStructure:
         serialized = self.rds.serializer.serialize(custom_type)
         deserialized = self.rds.serializer.deserialize(serialized)
         assert deserialized == custom_type
+
+        assert self.rds.get_registered_types()
