@@ -320,8 +320,8 @@ result = hash_map.get("nested")
 > redis_structure = RedisDataStructure(key="my_key")
 > 
 > # Register your custom types
-> redis_structure.register_type(User)  # For SerializableType classes
-> redis_structure.register_type(UserModel)  # For Pydantic models
+> redis_structure.register_types(User)  # For SerializableType classes
+> redis_structure.register_types(UserModel)  # For Pydantic models
 >
 > # Register multiple types at once
 > redis_structure.register_types([User, UserModel])  # For multiple types
