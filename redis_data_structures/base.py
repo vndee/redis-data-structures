@@ -50,15 +50,6 @@ def atomic_operation(func: Callable[..., R]) -> Callable[..., R]:
     return wrapper
 
 
-def thread_safe(func: Callable[..., R]) -> Callable[..., R]:
-    @wraps(func)
-    def wrapper(self: "RedisDataStructure", *args: Any, **kwargs: Any) -> R:
-        with self._lock:
-            return func(self, *args, **kwargs)
-
-    return wrapper
-
-
 class RedisDataStructure:
     """Base class for Redis-backed data structures."""
 
@@ -89,7 +80,7 @@ class RedisDataStructure:
         self.key = f"{self.config.data_structures.prefix}:{key}"
         self._lock = RLock()
 
-    @thread_safe
+    @atomic_operation
     def _register_type(self, type_class: Type[T]) -> None:
         """Register a type for type preservation.
 
@@ -110,6 +101,7 @@ class RedisDataStructure:
                 "inherit from SerializableType",
             )
 
+    @atomic_operation
     def register_types(self, types: Union[Iterable[Type[T]], Type[T], None] = None) -> None:
         """Register multiple types at once.
 
@@ -128,12 +120,12 @@ class RedisDataStructure:
         else:
             self._register_type(types)
 
-    @thread_safe
+    @atomic_operation
     def get_registered_types(self) -> Dict[str, Type]:
         """Get all registered types."""
         return self.serializer.get_registered_types()
 
-    @thread_safe
+    @atomic_operation
     @handle_operation_error
     def set_ttl(self, key: str, ttl: Union[int, timedelta, datetime]) -> bool:
         """Set Time To Live (TTL) for a key."""
@@ -154,25 +146,25 @@ class RedisDataStructure:
 
         return True
 
-    @thread_safe
+    @atomic_operation
     @handle_operation_error
     def get_ttl(self, key: str) -> Any:
         """Get remaining Time To Live (TTL) for a key."""
         return self.connection_manager.execute("ttl", key)
 
-    @thread_safe
+    @atomic_operation
     @handle_operation_error
     def persist(self, key: str) -> bool:
         """Remove TTL from a key."""
         return bool(self.connection_manager.execute("persist", key))
 
-    @thread_safe
+    @atomic_operation
     @handle_operation_error
     def clear(self) -> bool:
         """Clear all elements from the data structure."""
         return bool(self.connection_manager.execute("delete", self.key))
 
-    @thread_safe
+    @atomic_operation
     @handle_operation_error
     def close(self) -> None:
         """Close Redis connection."""
