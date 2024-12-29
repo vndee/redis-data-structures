@@ -1,12 +1,14 @@
 import logging
-from typing import Any, Optional
+from typing import Generic, Optional, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
-class Deque(RedisDataStructure):
+
+class Deque(RedisDataStructure, Generic[T]):
     """A Redis-backed double-ended queue implementation.
 
     This class implements a deque (double-ended queue) using Redis lists, allowing
@@ -17,11 +19,11 @@ class Deque(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def push_front(self, data: Any) -> bool:
+    def push_front(self, data: T) -> bool:
         """Push an item to the front of the deque.
 
         Args:
-            data (Any): Data to be stored
+            data (T): Data to be stored
 
         Returns:
             bool: True if successful, False otherwise
@@ -31,11 +33,11 @@ class Deque(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def push_back(self, data: Any) -> bool:
+    def push_back(self, data: T) -> bool:
         """Push an item to the back of the deque.
 
         Args:
-            data (Any): Data to be stored
+            data (T): Data to be stored
 
         Returns:
             bool: True if successful, False otherwise
@@ -45,47 +47,47 @@ class Deque(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def pop_front(self) -> Optional[Any]:
+    def pop_front(self) -> Optional[T]:
         """Pop an item from the front of the deque.
 
         Returns:
-            Optional[Any]: The data if successful, None otherwise
+            Optional[T]: The data if successful, None otherwise
         """
         data = self.connection_manager.execute("lpop", self.key)
-        return self.serializer.deserialize(data)
+        return self.serializer.deserialize(data)  # type: ignore[no-any-return]
 
     @atomic_operation
     @handle_operation_error
-    def pop_back(self) -> Optional[Any]:
+    def pop_back(self) -> Optional[T]:
         """Pop an item from the back of the deque.
 
         Returns:
-            Optional[Any]: The data if successful, None otherwise
+            Optional[T]: The data if successful, None otherwise
         """
         data = self.connection_manager.execute("rpop", self.key)
-        return self.serializer.deserialize(data)
+        return self.serializer.deserialize(data)  # type: ignore[no-any-return]
 
     @atomic_operation
     @handle_operation_error
-    def peek_front(self) -> Optional[Any]:
+    def peek_front(self) -> Optional[T]:
         """Peek at the front item without removing it.
 
         Returns:
-            Optional[Any]: The data if successful, None otherwise
+            Optional[T]: The data if successful, None otherwise
         """
         data = self.connection_manager.execute("lindex", self.key, 0)
-        return self.serializer.deserialize(data)
+        return self.serializer.deserialize(data)  # type: ignore[no-any-return]
 
     @atomic_operation
     @handle_operation_error
-    def peek_back(self) -> Optional[Any]:
+    def peek_back(self) -> Optional[T]:
         """Peek at the back item without removing it.
 
         Returns:
-            Optional[Any]: The data if successful, None otherwise
+            Optional[T]: The data if successful, None otherwise
         """
         data = self.connection_manager.execute("lindex", self.key, -1)
-        return self.serializer.deserialize(data)
+        return self.serializer.deserialize(data)  # type: ignore[no-any-return]
 
     @atomic_operation
     @handle_operation_error

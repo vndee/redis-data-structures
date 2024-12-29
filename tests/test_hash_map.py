@@ -143,14 +143,14 @@ def test_get_fields(hash_map):
     for field, value in test_data.items():
         hash_map.set(field, value)
 
-    fields = hash_map.get_fields()
+    fields = hash_map.keys()
     assert set(fields) == set(test_data.keys())
 
 
 def test_empty_operations(hash_map):
     # Test operations on empty hash map
     assert hash_map.get_all() == {}
-    assert hash_map.get_fields() == []
+    assert hash_map.keys() == []
     assert hash_map.size() == 0
 
 

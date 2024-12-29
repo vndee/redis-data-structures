@@ -55,6 +55,19 @@ all_items = d.items()  # Returns list of (key, value) tuples
 d.delete("notifications")
 del d["notifications"]  # Alternative syntax
 d.clear()  # Remove all keys
+
+# Arbitrary types as keys
+class TestModel(BaseModel):
+    id: int
+    name: str
+
+dict = Dict[TestModel, str]("test_dict")
+dict[TestModel(id=1, name="one")] = "one"
+dict[TestModel(id=2, name="two")] = "two"
+assert dict[TestModel(id=1, name="one")] == "one"
+assert dict[TestModel(id=2, name="two")] == "two"
+
+assert dict.keys() == [TestModel(id=1, name="one"), TestModel(id=2, name="two")]
 ```
 
 ## Advanced Usage

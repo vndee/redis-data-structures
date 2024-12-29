@@ -1,12 +1,14 @@
 import logging
-from typing import Any, Optional, Tuple
+from typing import Generic, Optional, Tuple, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
-class PriorityQueue(RedisDataStructure):
+
+class PriorityQueue(RedisDataStructure, Generic[T]):
     """A Redis-backed priority queue implementation.
 
     This class implements a priority queue using Redis sorted sets, where elements
@@ -17,11 +19,11 @@ class PriorityQueue(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def push(self, data: Any, priority: int = 0) -> bool:
+    def push(self, data: T, priority: int = 0) -> bool:
         """Push an item onto the priority queue.
 
         Args:
-            data (Any): Data to be stored
+            data (T): Data to be stored
             priority (int): Priority level (lower number = higher priority)
 
         Returns:
@@ -34,11 +36,11 @@ class PriorityQueue(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def pop(self) -> Optional[Tuple[Any, int]]:
+    def pop(self) -> Optional[Tuple[T, int]]:
         """Pop the highest priority item from the queue.
 
         Returns:
-            Optional[Tuple[Any, int]]: Tuple of (data, priority) if successful, None otherwise
+            Optional[Tuple[T, int]]: Tuple of (data, priority) if successful, None otherwise
         """
         items = self.connection_manager.execute("zrange", self.key, 0, 0, withscores=True)
         if not items:
@@ -56,11 +58,11 @@ class PriorityQueue(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def peek(self) -> Optional[Tuple[Any, int]]:
+    def peek(self) -> Optional[Tuple[T, int]]:
         """Peek at the highest priority item without removing it.
 
         Returns:
-            Optional[Tuple[Any, int]]: Tuple of (data, priority) if successful, None otherwise
+            Optional[Tuple[T, int]]: Tuple of (data, priority) if successful, None otherwise
         """
         items = self.connection_manager.execute("zrange", self.key, 0, 0, withscores=True)
         if not items:

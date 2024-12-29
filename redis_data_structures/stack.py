@@ -1,12 +1,14 @@
 import logging
-from typing import Any, Optional
+from typing import Generic, Optional, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
-class Stack(RedisDataStructure):
+
+class Stack(RedisDataStructure, Generic[T]):
     """A Redis-backed LIFO (Last-In-First-Out) stack implementation.
 
     This class implements a stack data structure using Redis lists, where elements
@@ -15,11 +17,11 @@ class Stack(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def push(self, data: Any) -> bool:
+    def push(self, data: T) -> bool:
         """Push an item onto the top of the stack.
 
         Args:
-            data (Any): Data to be stored. Can be any serializable Python object.
+            data (T): Data to be stored. Can be any serializable Python object.
 
         Returns:
             bool: True if successful, False otherwise
@@ -30,22 +32,22 @@ class Stack(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def pop(self) -> Optional[Any]:
+    def pop(self) -> Optional[T]:
         """Pop an item from the top of the stack.
 
         Returns:
-            Optional[Any]: The data if successful, None otherwise
+            Optional[T]: The data if successful, None otherwise
         """
         data = self.connection_manager.execute("lpop", self.key)
         return self.serializer.deserialize(data) if data else None
 
     @atomic_operation
     @handle_operation_error
-    def peek(self) -> Optional[Any]:
+    def peek(self) -> Optional[T]:
         """Peek at the top item without removing it.
 
         Returns:
-            Optional[Any]: The data if successful, None otherwise
+            Optional[T]: The data if successful, None otherwise
         """
         data = self.connection_manager.execute("lindex", self.key, 0)
         return self.serializer.deserialize(data) if data else None

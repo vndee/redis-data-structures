@@ -1,12 +1,14 @@
 import logging
-from typing import Any, List
+from typing import Any, Generic, List, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+TrieType = TypeVar("TrieType", bound=str)
 
-class Trie(RedisDataStructure):
+
+class Trie(RedisDataStructure, Generic[TrieType]):
     """A Redis-backed Trie (prefix tree) implementation.
 
     This class implements a trie data structure using Redis hashes, where each node

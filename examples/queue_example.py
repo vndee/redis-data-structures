@@ -7,7 +7,7 @@ from redis_data_structures import Queue
 def demonstrate_queue():
     """Demonstrate queue functionality with a task processing system."""
     # Initialize queue
-    queue = Queue("task_queue")
+    queue = Queue[Dict[str, Any]]("task_queue")
 
     # Clear any existing data
     queue.clear()

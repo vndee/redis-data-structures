@@ -1,12 +1,15 @@
 import logging
-from typing import Any, Optional
+from typing import Any, Generic, Optional, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+K = TypeVar("K")
+V = TypeVar("V")
 
-class LRUCache(RedisDataStructure):
+
+class LRUCache(RedisDataStructure, Generic[K, V]):
     """A Redis-backed LRU (Least Recently Used) cache implementation.
 
     This class implements an LRU cache using Redis lists and hashes, where the least
@@ -29,21 +32,28 @@ class LRUCache(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def peek(self, field: str) -> Optional[Any]:
+    def peek(self, field: K) -> Optional[V]:
         """Get an item from the cache without updating its access time.
 
         Args:
-            field (str): The field name
+            field (K): The field name
 
         Returns:
-            Optional[Any]: The value if successful, None otherwise
+            Optional[V]: The value if successful, None otherwise
         """
         cache_key = self.key
-        data = self.connection_manager.execute("hget", cache_key, field)
+        if self.serializer.is_redis_key_acceptable_type(field):
+            data = self.connection_manager.execute("hget", cache_key, field)
+        else:
+            data = self.connection_manager.execute(
+                "hget",
+                cache_key,
+                self.serializer.serialize(field),
+            )
         if not data:
             return None
 
-        return self.serializer.deserialize(data)
+        return self.serializer.deserialize(data)  # type: ignore[no-any-return]
 
     @atomic_operation
     @handle_operation_error
@@ -62,12 +72,12 @@ class LRUCache(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def put(self, field: str, value: Any) -> bool:
+    def put(self, field: K, value: V) -> bool:
         """Put an item in the cache.
 
         Args:
-            field (str): The field name
-            value (Any): The value to store
+            field (K): The field name
+            value (V): The value to store
 
         Returns:
             bool: True if successful, False otherwise
@@ -75,9 +85,12 @@ class LRUCache(RedisDataStructure):
         pipeline = self.connection_manager.pipeline()
         cache_key = self.key
 
-        pipeline.lrem(f"{cache_key}:order", 0, field)
-        pipeline.lpush(f"{cache_key}:order", field)
-        pipeline.hset(cache_key, field, self.serializer.serialize(value))
+        if not self.serializer.is_redis_key_acceptable_type(field):
+            field = self.serializer.serialize(field)
+
+        pipeline.lrem(f"{cache_key}:order", 0, field)  # type: ignore[arg-type]
+        pipeline.lpush(f"{cache_key}:order", field)  # type: ignore[arg-type]
+        pipeline.hset(cache_key, field, self.serializer.serialize(value))  # type: ignore[arg-type]
 
         # Check if we need to remove the least recently used item
         pipeline.llen(f"{cache_key}:order")
@@ -95,42 +108,48 @@ class LRUCache(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def get(self, field: str) -> Optional[Any]:
+    def get(self, field: K) -> Optional[V]:
         """Get an item from the cache.
 
         Args:
-            field (str): The field name
+            field (K): The field name
 
         Returns:
-            Optional[Any]: The value if successful, None otherwise
+            Optional[V]: The value if successful, None otherwise
         """
         cache_key = self.key
+        if not self.serializer.is_redis_key_acceptable_type(field):
+            field = self.serializer.serialize(field)
+
         data = self.connection_manager.execute("hget", cache_key, field)
         if not data:
             return None
 
         pipeline = self.connection_manager.pipeline()
-        pipeline.lrem(f"{cache_key}:order", 0, field)
-        pipeline.lpush(f"{cache_key}:order", field)
+        pipeline.lrem(f"{cache_key}:order", 0, field)  # type: ignore[arg-type]
+        pipeline.lpush(f"{cache_key}:order", field)  # type: ignore[arg-type]
         pipeline.execute()
 
-        return self.serializer.deserialize(data)
+        return self.serializer.deserialize(data)  # type: ignore[no-any-return]
 
     @atomic_operation
     @handle_operation_error
-    def remove(self, field: str) -> bool:
+    def remove(self, field: K) -> bool:
         """Remove an item from the cache.
 
         Args:
-            field (str): The field name
+            field (K): The field name
 
         Returns:
             bool: True if successful, False otherwise
         """
         cache_key = self.key
         pipeline = self.connection_manager.pipeline()
-        pipeline.hdel(cache_key, field)
-        pipeline.lrem(f"{cache_key}:order", 0, field)
+        if not self.serializer.is_redis_key_acceptable_type(field):
+            field = self.serializer.serialize(field)
+
+        pipeline.hdel(cache_key, field)  # type: ignore[arg-type]
+        pipeline.lrem(f"{cache_key}:order", 0, field)  # type: ignore[arg-type]
         results = pipeline.execute()
         return bool(results[0])
 

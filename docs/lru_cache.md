@@ -47,6 +47,17 @@ cache.remove("user:1")
 
 # Clear cache
 cache.clear()
+
+# Arbitrary types as keys
+class TestModel(BaseModel):
+    id: int
+    name: str
+
+cache = LRUCache[TestModel, str]("test_cache", max_size=10)
+cache.put(TestModel(id=1, name="one"), "one")
+cache.put(TestModel(id=2, name="two"), "two")
+assert cache.get(TestModel(id=1, name="one")) == "one"
+assert cache.get(TestModel(id=2, name="two")) == "two"
 ```
 
 ## Advanced Usage

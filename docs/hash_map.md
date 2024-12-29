@@ -41,11 +41,34 @@ exists = hm.exists("language")  # Returns True
 
 # Get multiple values
 all_settings = hm.get_all()  # Returns dict of all settings
-field_names = hm.get_fields()  # Returns list of field names
+field_names = hm.keys()  # Returns list of field names
 
 # Remove values
 hm.delete("notifications")
 hm.clear()  # Remove all fields
+
+# Arbitrary types as keys
+class TestModel(BaseModel):
+    id: int
+    name: str
+
+hash_map = HashMap[int, str]("test_hash_map")
+hash_map[1] = "one"
+hash_map[2] = "two"
+assert hash_map[1] == "one"
+assert hash_map[2] == "two"
+
+assert sorted(hash_map.keys()) == [1, 2]
+assert sorted(hash_map.values()) == ["one", "two"]
+assert sorted(hash_map.items()) == [(1, "one"), (2, "two")]
+
+assert 1 in hash_map
+assert 2 in hash_map
+assert 3 not in hash_map
+
+new_hash_map = HashMap("test_hash_map_2")
+new_hash_map[TestModel(id=1, name="one")] = "one"
+assert new_hash_map.keys() == [TestModel(id=1, name="one")]
 ```
 
 ## Advanced Usage

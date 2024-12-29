@@ -93,7 +93,7 @@ class TypeRegistry:
 class Serializer:
     """Serializer for Redis data structures."""
 
-    COMPRESSION_MARKER = "434D5052:"  # CMPR:
+    COMPRESSION_MARKER = "434D5052"  # CMPR
     COMPRESSION_MARKER_LEN = len(COMPRESSION_MARKER)
 
     def __init__(self, compression_threshold: int = 1024):
@@ -191,13 +191,21 @@ class Serializer:
             },
         }
 
+    @staticmethod
+    def is_redis_key_acceptable_type(data: Any) -> bool:
+        """Check if data is a redis key acceptable type."""
+        if isinstance(data, bool):
+            return False
+
+        return isinstance(data, (int, float, str, bytes))
+
     def _serialize_recursive(self, data: Any) -> Any:
         """Serialize data to a hex string."""
         if type(data).__name__ in self.type_handlers:
             return self.type_handlers[type(data).__name__]["serialize"](data)
         if isinstance(data, SerializableType):
             return {"_type": data.__class__.__name__, "value": data.to_dict()}
-        if PYDANTIC_AVAILABLE and isinstance(data, BaseModel):
+        if isinstance(data, BaseModel) and PYDANTIC_AVAILABLE:
             return {"_type": data.__class__.__name__, "value": data.model_dump(mode="json")}
         raise ValueError(f"Unsupported type: {type(data)} {type(data).__name__}")
 
@@ -213,9 +221,9 @@ class Serializer:
 
         return data
 
-    def serialize(self, data: Any) -> Any:
+    def serialize(self, data: Any, force_compression: bool = False, decode: bool = False) -> Any:
         """Serialize data to a string."""
-        if PYDANTIC_AVAILABLE and isinstance(data, BaseModel):
+        if isinstance(data, BaseModel) and PYDANTIC_AVAILABLE:
             raw_str_data = {
                 "value": data.model_dump(mode="json"),
                 "_type": data.__class__.__name__,
@@ -232,14 +240,16 @@ class Serializer:
         else:
             raw_str_data = self._serialize_recursive(data)
 
-        raw_str_data = json.dumps(raw_str_data)  # type: ignore[assignment]
+        raw_bytes_data = json.dumps(raw_str_data)
 
-        if len(raw_str_data) >= self.compression_threshold:
-            return f"{self.COMPRESSION_MARKER}{zlib.compress(raw_str_data).hex()}".encode()  # type: ignore[arg-type]
+        if len(raw_str_data) >= self.compression_threshold or force_compression:
+            raw_bytes_data = (
+                f"{self.COMPRESSION_MARKER}{zlib.compress(raw_bytes_data).hex()}".encode()
+            )
 
-        return raw_str_data
+        return raw_bytes_data.decode() if decode else raw_bytes_data
 
-    def _is_compressed(self, data: Any) -> bool:
+    def is_compressed(self, data: Any) -> bool:
         """Check if data is compressed."""
         return data.startswith(self.COMPRESSION_MARKER)  # type: ignore[no-any-return]
 
@@ -249,7 +259,7 @@ class Serializer:
             return None
 
         data = data.decode()
-        if self._is_compressed(data):
+        if self.is_compressed(data):
             data = zlib.decompress(bytes.fromhex(data[self.COMPRESSION_MARKER_LEN :]))
 
         data = json.loads(data)

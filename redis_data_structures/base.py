@@ -19,6 +19,7 @@ except ImportError:
     PYDANTIC_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
 T = TypeVar("T", bound=Union[BaseModel, SerializableType])
 R = TypeVar("R")
 

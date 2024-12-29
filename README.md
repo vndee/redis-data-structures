@@ -169,6 +169,8 @@ set_ds = Set("users", connection_manager=conn)
 
 ![Redis Data Structures (3)](assets/Redis%20Data%20Structures%20(3).png)
 
+![Redis Data Structures (4)](assets/Redis%20Data%20Structures%20(4).png)
+
 
 ```python
 from redis_data_structures import LRUCache, HashMap, SerializableType

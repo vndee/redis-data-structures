@@ -1,13 +1,16 @@
 import logging
-from typing import Any, Iterator, List, Tuple
+from typing import Any, Generic, Iterator, List, Tuple, TypeVar
 from typing import Dict as DictType
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+K = TypeVar("K")
+V = TypeVar("V")
 
-class Dict(RedisDataStructure):
+
+class Dict(RedisDataStructure, Generic[K, V]):
     """A python-like dictionary data structure for Redis with separate redis key if you don't want to use HashMap with `HSET` and `HGET` commands."""  # noqa: E501
 
     def __init__(self, key: str, *args: Any, **kwargs: Any) -> None:
@@ -23,7 +26,7 @@ class Dict(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def set(self, key: str, value: Any) -> bool:
+    def set(self, key: K, value: V) -> bool:
         """Set a key-value pair in the dictionary.
 
         Args:
@@ -33,13 +36,14 @@ class Dict(RedisDataStructure):
         Returns:
             bool: True if the key-value pair was set successfully, False otherwise.
         """
+        key = self.serializer.serialize(key, force_compression=True, decode=True)
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
         serialized_value = self.serializer.serialize(value)
         return bool(self.connection_manager.execute("set", actual_key, serialized_value))
 
     @atomic_operation
     @handle_operation_error
-    def get(self, key: str) -> Any:
+    def get(self, key: K) -> V:
         """Get a value from the dictionary.
 
         Args:
@@ -48,13 +52,14 @@ class Dict(RedisDataStructure):
         Returns:
             Any: The value associated with the key.
         """
+        key = self.serializer.serialize(key, force_compression=True, decode=True)
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
         serialized_value = self.connection_manager.execute("get", actual_key)
-        return self.serializer.deserialize(serialized_value)
+        return self.serializer.deserialize(serialized_value)  # type: ignore[no-any-return]
 
     @atomic_operation
     @handle_operation_error
-    def delete(self, key: str) -> bool:
+    def delete(self, key: K) -> bool:
         """Delete a key-value pair from the dictionary.
 
         Args:
@@ -63,44 +68,47 @@ class Dict(RedisDataStructure):
         Returns:
             bool: True if the key-value pair was deleted successfully, False otherwise.
         """
+        key = self.serializer.serialize(key, force_compression=True, decode=True)
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
         return bool(self.connection_manager.execute("delete", actual_key))
 
     @atomic_operation
     @handle_operation_error
-    def keys(self) -> List[str]:
+    def keys(self) -> List[K]:
         """Get all keys in the dictionary.
 
         Returns:
             List[str]: A list of all keys in the dictionary.
         """
-        return [
-            key.split(b":")[-1].decode("utf-8")
+        k = [
+            key.decode().split(":")[-1]
             for key in self.connection_manager.execute(
                 "keys",
                 f"{self.config.data_structures.prefix}:{self.key}:*",
             )
         ]
 
+        return [self.serializer.deserialize(key.encode()) for key in k]
+
     @atomic_operation
     @handle_operation_error
-    def values(self) -> List[Any]:
+    def values(self) -> List[V]:
         """Get all values in the dictionary.
 
         Returns:
-            List[Any]: A list of all values in the dictionary.
+            List[T]: A list of all values in the dictionary.
         """
         return [self.get(key) for key in self.keys()]
 
     @atomic_operation
     @handle_operation_error
-    def items(self) -> List[Tuple[str, Any]]:
+    def items(self) -> List[Tuple[K, V]]:
         """Get all key-value pairs in the dictionary.
 
         Returns:
-            List[Tuple[str, Any]]: A list of all key-value pairs in the dictionary.
+            List[Tuple[str, T]]: A list of all key-value pairs in the dictionary.
         """
-        return [(key.split(":")[-1], self.get(key)) for key in self.keys()]
+        return [(key.split(":")[-1], self.get(key)) for key in self.keys()]  # type: ignore[attr-defined]
 
     @atomic_operation
     @handle_operation_error
@@ -112,8 +120,9 @@ class Dict(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def exists(self, key: str) -> bool:
+    def exists(self, key: K) -> bool:
         """Check if a key exists in the dictionary."""
+        key = self.serializer.serialize(key, force_compression=True, decode=True)
         actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
         return bool(self.connection_manager.execute("exists", actual_key))
 
@@ -125,20 +134,20 @@ class Dict(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key: K) -> bool:
         """Check if a key exists in the dictionary."""
         return self.exists(key)
 
     @atomic_operation
     @handle_operation_error
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: K) -> V:
         """Get a value from the dictionary using the subscript operator.
 
         Args:
             key: The key to get.
 
         Returns:
-            Any: The value associated with the key.
+            T: The value associated with the key.
 
         Raises:
             KeyError: If the key does not exist.
@@ -150,13 +159,13 @@ class Dict(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: K, value: V) -> None:
         """Set a value in the dictionary using the subscript operator."""
         self.set(key, value)
 
     @atomic_operation
     @handle_operation_error
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: K) -> None:
         """Delete a key-value pair from the dictionary using the subscript operator.
 
         Args:
@@ -171,7 +180,7 @@ class Dict(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[K]:
         """Iterate over the keys in the dictionary."""
         return iter(self.keys())
 
@@ -204,6 +213,6 @@ class Dict(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def to_dict(self) -> DictType[str, Any]:
+    def to_dict(self) -> DictType[K, V]:
         """Return a dictionary representation of the dictionary."""
         return {key: self.get(key) for key in self.keys()}

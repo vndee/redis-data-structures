@@ -1,12 +1,14 @@
 import logging
-from typing import Any, Optional
+from typing import Generic, Optional, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
-class Queue(RedisDataStructure):
+
+class Queue(RedisDataStructure, Generic[T]):
     """A Redis-backed FIFO (First-In-First-Out) queue implementation.
 
     This class implements a queue data structure using Redis lists, where elements
@@ -15,11 +17,11 @@ class Queue(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def push(self, data: Any) -> bool:
+    def push(self, data: T) -> bool:
         """Push an item to the back of the queue.
 
         Args:
-            data (Any): Data to be stored
+            data (T): Data to be stored
 
         Returns:
             bool: True if successful, False otherwise
@@ -29,22 +31,22 @@ class Queue(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def pop(self) -> Optional[Any]:
+    def pop(self) -> Optional[T]:
         """Pop an item from the front of the queue.
 
         Returns:
-            Optional[Any]: The data if successful, None otherwise
+            Optional[T]: The data if successful, None otherwise
         """
         data = self.connection_manager.execute("lpop", self.key)
         return self.serializer.deserialize(data) if data else None
 
     @atomic_operation
     @handle_operation_error
-    def peek(self) -> Optional[Any]:
+    def peek(self) -> Optional[T]:
         """Peek at the front item without removing it.
 
         Returns:
-            Optional[Any]: The data if successful, None otherwise
+            Optional[T]: The data if successful, None otherwise
         """
         data = self.connection_manager.execute("lindex", self.key, 0)
         return self.serializer.deserialize(data) if data else None

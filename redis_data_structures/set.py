@@ -1,12 +1,14 @@
 import logging
-from typing import Any, List, Optional
+from typing import Generic, List, Optional, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
-class Set(RedisDataStructure):
+
+class Set(RedisDataStructure, Generic[T]):
     """A Redis-backed set implementation.
 
     This class implements a set data structure using Redis sets, ensuring uniqueness
@@ -21,14 +23,14 @@ class Set(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def members(self) -> List[Any]:
+    def members(self) -> List[T]:
         """Get all members of the set.
 
         This operation is O(N) where N is the size of the set.
         All items are deserialized back to their original Python types.
 
         Returns:
-            Set[Any]: Set containing all members with their original types
+            List[T]: List of all members with their original types
         """
         items = self.connection_manager.execute("smembers", self.key)
         if not items:
@@ -38,20 +40,20 @@ class Set(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def pop(self) -> Optional[Any]:
+    def pop(self) -> Optional[T]:
         """Remove and return a random element from the set.
 
         This operation is O(1) as it uses Redis's SPOP command directly.
 
         Returns:
-            Optional[Any]: Random element if successful, None if set is empty
+            Optional[T]: Random element if successful, None if set is empty
         """
         data = self.connection_manager.execute("spop", self.key)
         return self.serializer.deserialize(data) if data else None
 
     @atomic_operation
     @handle_operation_error
-    def add(self, data: Any) -> bool:
+    def add(self, data: T) -> bool:
         """Add an item to the set.
 
         This operation is O(1) as it uses Redis's SADD command directly.
@@ -59,7 +61,7 @@ class Set(RedisDataStructure):
         deserialization later.
 
         Args:
-            data: Data to be stored. Can be any serializable Python object.
+            data (T): Data to be stored. Can be any serializable Python object.
 
         Returns:
             bool: True if the item was added, False if it was already present
@@ -70,14 +72,14 @@ class Set(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def remove(self, data: Any) -> bool:
+    def remove(self, data: T) -> bool:
         """Remove an item from the set.
 
         This operation is O(1) as it uses Redis's SREM command directly.
         The data is serialized to match the stored format for removal.
 
         Args:
-            data: Data to be removed
+            data (T): Data to be removed
 
         Returns:
             bool: True if the item was removed, False if it wasn't present
@@ -88,14 +90,14 @@ class Set(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def contains(self, data: Any) -> bool:
+    def contains(self, data: T) -> bool:
         """Check if an item exists in the set.
 
         This operation is O(1) as it uses Redis's SISMEMBER command directly.
         The data is serialized to match the stored format for comparison.
 
         Args:
-            data: Data to check for existence
+            data (T): Data to check for existence
 
         Returns:
             bool: True if the item exists, False otherwise
@@ -129,3 +131,7 @@ class Set(RedisDataStructure):
         """
         self.connection_manager.execute("delete", self.key)
         return True
+
+    def __contains__(self, item: T) -> bool:
+        """Check if an item exists in the set."""
+        return self.contains(item)

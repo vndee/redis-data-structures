@@ -2,7 +2,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue as PyQueue
-from typing import Set
+from typing import Any, Dict, List, Set
 
 import pytest
 
@@ -197,3 +197,14 @@ def test_concurrent_error_handling(queue):
 def test_pop_from_empty_queue(queue):
     """Test pop from an empty queue."""
     assert queue.pop() is None
+
+
+def test_generic_type_inference(queue):
+    """Test generic type inference."""
+    queue = Queue[Dict[str, Any]]("task_queue")
+    assert queue.push({"key": "value"})
+    assert queue.pop() == {"key": "value"}
+
+    queue = Queue[List[int]]("number_queue")
+    assert queue.push([1, 2, 3])
+    assert queue.pop() == [1, 2, 3]

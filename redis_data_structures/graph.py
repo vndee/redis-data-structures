@@ -1,12 +1,14 @@
 import logging
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Generic, Optional, Set, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
-class Graph(RedisDataStructure):
+
+class Graph(RedisDataStructure, Generic[T]):
     """A Redis-backed directed graph implementation using adjacency lists.
 
     This class implements a directed graph where vertices can store data and edges
@@ -24,7 +26,7 @@ class Graph(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def add_vertex(self, vertex: str, data: Any = None) -> bool:
+    def add_vertex(self, vertex: str, data: Optional[T] = None) -> bool:
         """Add a vertex to the graph.
 
         Args:

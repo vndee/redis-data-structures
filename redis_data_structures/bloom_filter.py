@@ -1,13 +1,15 @@
 import logging
 import math
-from typing import Any, List, Optional
+from typing import Any, Generic, List, Optional, TypeVar
 
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
-class BloomFilter(RedisDataStructure):
+
+class BloomFilter(RedisDataStructure, Generic[T]):
     """Redis-backed Bloom Filter implementation.
 
     A Bloom filter is a space-efficient probabilistic data structure used
@@ -85,7 +87,7 @@ class BloomFilter(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def get_hash_values(self, item: Any) -> List[int]:
+    def get_hash_values(self, item: T) -> List[int]:
         """Generate hash values for an item.
 
         Args:
@@ -107,7 +109,7 @@ class BloomFilter(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def add(self, item: Any) -> bool:
+    def add(self, item: T) -> bool:
         """Add an item to the Bloom filter.
 
         Args:
@@ -131,7 +133,7 @@ class BloomFilter(RedisDataStructure):
 
     @atomic_operation
     @handle_operation_error
-    def contains(self, item: Any) -> bool:
+    def contains(self, item: T) -> bool:
         """Check if an item might exist in the Bloom filter.
 
         Args:
