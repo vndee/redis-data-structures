@@ -1,3 +1,4 @@
+import redis
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
@@ -162,3 +163,23 @@ def test_connection_params_filtering():
     assert "password" not in manager.connection_params
     assert "socket_timeout" not in manager.connection_params
     assert manager.connection_params["custom_param"] == "value"
+
+
+def test_get_pipeline(connection_manager):
+    """Test getting a pipeline."""
+    pipeline = connection_manager.pipeline()
+    assert pipeline is not None
+
+
+def test_connection_with_username_password(connection_manager):
+    """Test connection with username and password."""
+    connection_manager = ConnectionManager(
+        host="localhost",
+        port=6379,
+        db=0,
+        username="default",
+        password="password",
+        socket_timeout=1,
+    )
+    assert connection_manager.client is not None
+
