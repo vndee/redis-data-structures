@@ -125,7 +125,7 @@ def test_priority_queue():
 
 
 def test_hash_map():
-    hash_map = HashMap[int, str]("test_hash_map")
+    hash_map: HashMap[int, str] = HashMap("test_hash_map")
     hash_map[1] = "one"
     hash_map[2] = "two"
     assert hash_map[1] == "one"

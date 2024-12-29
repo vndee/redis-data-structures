@@ -156,6 +156,133 @@ This is particularly important in scenarios like:
 - Monitoring or logging systems
 - Any process that doesn't write data but needs to read it
 
+## Complex Type Hints and Keys
+
+### Complex Types as Keys
+
+Our Redis data structures support using complex types (custom classes or Pydantic models) as keys with automatic serialization and type preservation. Unlike standard Python dictionaries, you don't need to implement `__hash__` or make your types immutable:
+
+```python
+class TestModel(BaseModel):
+    id: int
+    name: str
+
+# Complex types as keys with automatic serialization
+cache = LRUCache[TestModel, str]("test_cache", max_size=10)
+cache.put(TestModel(id=1, name="one"), "one")
+cache.put(TestModel(id=2, name="two"), "two")
+
+# Keys maintain their types when retrieved
+assert cache.get(TestModel(id=1, name="one")) == "one"
+assert cache.get(TestModel(id=2, name="two")) == "two"
+
+# Works with custom SerializableType classes too
+class User(SerializableType):
+    def __init__(self, id: int, name: str):
+        self.id = id
+        self.name = name
+    
+    def to_dict(self) -> dict:
+        return {"id": self.id, "name": self.name}
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "User":
+        return cls(data["id"], data["name"])
+
+hash_map = HashMap[User, dict]("user_data")
+hash_map[User(id=1, name="Alice")] = {"role": "admin"}
+hash_map[User(id=2, name="Bob")] = {"role": "user"}
+
+# Keys are automatically serialized and deserialized
+stored_data = hash_map[User(id=1, name="Alice")]
+assert stored_data["role"] == "admin"
+
+# You can get all keys with their original types
+keys = hash_map.keys()  # Returns list of User objects
+```
+
+### Type Hints Support
+
+The library supports Python's type hints system for better IDE support and runtime type checking:
+
+```python
+from typing import Optional, List, Dict, Set
+from datetime import datetime
+
+class UserProfile(BaseModel):
+    name: str
+    age: int
+    joined: datetime
+    tags: Set[str] = set()
+
+# Type hints provide IDE support and runtime checking
+cache: LRUCache[str, UserProfile] = LRUCache("user_profiles", max_size=1000)
+hash_map: HashMap[int, UserProfile] = HashMap("user_data")
+dict_map: Dict[str, List[UserProfile]] = Dict("user_groups")
+
+# Complex nested types are supported
+cache: LRUCache[UserProfile, Dict[str, List[UserProfile]]] = LRUCache("nested_data")
+hash_map: HashMap[UserProfile, List[Dict[str, Any]]] = HashMap("complex_data")
+```
+
+When using type hints:
+1. Both key and value types are automatically serialized and deserialized
+2. Type information is preserved across Redis operations
+3. IDE autocompletion and type checking work as expected
+4. No need to implement special methods like `__hash__` or `__eq__`
+
+### Best Practices for Complex Keys
+
+1. **Keep Keys Simple and Meaningful**
+   ```python
+   # Good: Key contains only necessary identifying information
+   class UserKey(SerializableType):
+       def __init__(self, id: int, department: str):
+           self.id = id
+           self.department = department
+   
+   # Bad: Key contains unnecessary data
+   class UserKeyBad(SerializableType):
+       def __init__(self, id: int, department: str, full_profile: dict):
+           self.id = id
+           self.department = department
+           self.full_profile = full_profile  # Unnecessary in key
+   ```
+
+2. **Use Appropriate Types**
+   ```python
+   # Good: Using proper types for key components
+   class SessionKey(BaseModel):
+       user_id: int
+       session_id: str
+       created_at: datetime
+   
+   # Bad: Using strings for everything
+   class SessionKeyBad(BaseModel):
+       user_id: str  # Should be int
+       session_id: str
+       created_at: str  # Should be datetime
+   ```
+
+3. **Consider Key Size**
+   - Keep keys concise to minimize storage and lookup overhead
+   - Include only fields necessary for uniquely identifying the data
+   ```python
+   # Good: Minimal key with essential fields
+   class DocumentKey(BaseModel):
+       doc_id: int
+       version: int
+   
+   # Bad: Bloated key
+   class DocumentKeyBad(BaseModel):
+       doc_id: int
+       version: int
+       title: str  # Unnecessary
+       author: str  # Unnecessary
+       created_at: datetime  # Unnecessary
+       tags: List[str]  # Unnecessary
+   ```
+
 ## Implementation Details
 
 ### Type Registry System
