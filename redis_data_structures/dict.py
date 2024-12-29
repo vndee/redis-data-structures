@@ -11,7 +11,7 @@ V = TypeVar("V")
 
 
 class Dict(RedisDataStructure, Generic[K, V]):
-    """A python-like dictionary data structure for Redis with separate redis key if you don't want to use HashMap with `HSET` and `HGET` commands."""  # noqa: E501
+    """A python-like dictionary data structure for Redis with separate redis key if you don't want to use HashMap with `HSET` and `HGET` commands."""
 
     def __init__(self, key: str, *args: Any, **kwargs: Any) -> None:
         """Initialize the Dict data structure.
@@ -23,6 +23,7 @@ class Dict(RedisDataStructure, Generic[K, V]):
         """
         super().__init__(key, *args, **kwargs)
         self.key = key
+        self.key_separator = "`"
 
     @atomic_operation
     @handle_operation_error
@@ -36,8 +37,8 @@ class Dict(RedisDataStructure, Generic[K, V]):
         Returns:
             bool: True if the key-value pair was set successfully, False otherwise.
         """
-        key = self.serializer.serialize(key, force_compression=True, decode=True)
-        actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
+        key = self.serializer.serialize(key, force_compression=False, decode=True)
+        actual_key = f"{self.config.data_structures.prefix}{self.key_separator}{self.key}{self.key_separator}{key}"
         serialized_value = self.serializer.serialize(value)
         return bool(self.connection_manager.execute("set", actual_key, serialized_value))
 
@@ -52,8 +53,8 @@ class Dict(RedisDataStructure, Generic[K, V]):
         Returns:
             Any: The value associated with the key.
         """
-        key = self.serializer.serialize(key, force_compression=True, decode=True)
-        actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
+        key = self.serializer.serialize(key, force_compression=False, decode=True)
+        actual_key = f"{self.config.data_structures.prefix}{self.key_separator}{self.key}{self.key_separator}{key}"
         serialized_value = self.connection_manager.execute("get", actual_key)
         return self.serializer.deserialize(serialized_value)  # type: ignore[no-any-return]
 
@@ -68,8 +69,8 @@ class Dict(RedisDataStructure, Generic[K, V]):
         Returns:
             bool: True if the key-value pair was deleted successfully, False otherwise.
         """
-        key = self.serializer.serialize(key, force_compression=True, decode=True)
-        actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
+        key = self.serializer.serialize(key, force_compression=False, decode=True)
+        actual_key = f"{self.config.data_structures.prefix}{self.key_separator}{self.key}{self.key_separator}{key}"
         return bool(self.connection_manager.execute("delete", actual_key))
 
     @atomic_operation
@@ -81,10 +82,10 @@ class Dict(RedisDataStructure, Generic[K, V]):
             List[str]: A list of all keys in the dictionary.
         """
         k = [
-            key.decode().split(":")[-1]
+            key.decode().split(self.key_separator)[-1]
             for key in self.connection_manager.execute(
                 "keys",
-                f"{self.config.data_structures.prefix}:{self.key}:*",
+                f"{self.config.data_structures.prefix}{self.key_separator}{self.key}{self.key_separator}*",
             )
         ]
 
@@ -108,7 +109,7 @@ class Dict(RedisDataStructure, Generic[K, V]):
         Returns:
             List[Tuple[str, T]]: A list of all key-value pairs in the dictionary.
         """
-        return [(key.split(":")[-1], self.get(key)) for key in self.keys()]  # type: ignore[attr-defined]
+        return [(key.split(self.key_separator)[-1], self.get(key)) for key in self.keys()]  # type: ignore[attr-defined]
 
     @atomic_operation
     @handle_operation_error
@@ -122,8 +123,8 @@ class Dict(RedisDataStructure, Generic[K, V]):
     @handle_operation_error
     def exists(self, key: K) -> bool:
         """Check if a key exists in the dictionary."""
-        key = self.serializer.serialize(key, force_compression=True, decode=True)
-        actual_key = f"{self.config.data_structures.prefix}:{self.key}:{key}"
+        key = self.serializer.serialize(key, force_compression=False, decode=True)
+        actual_key = f"{self.config.data_structures.prefix}{self.key_separator}{self.key}{self.key_separator}{key}"
         return bool(self.connection_manager.execute("exists", actual_key))
 
     @atomic_operation

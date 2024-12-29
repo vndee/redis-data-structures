@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
-    """Manages Redis connections with advanced features like connection pooling, automatic reconnection, and circuit breaking."""  # noqa: E501
+    """Manages Redis connections with advanced features like connection pooling, automatic reconnection, and circuit breaking."""
 
     def __init__(
         self,

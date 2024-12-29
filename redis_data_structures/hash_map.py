@@ -29,7 +29,7 @@ class HashMap(RedisDataStructure, Generic[K, V]):
             bool: True if successful, False otherwise
         """
         serialized = self.serializer.serialize(value)
-        key = self.serializer.serialize(key, force_compression=True, decode=True)
+        key = self.serializer.serialize(key, force_compression=False, decode=True)
 
         logger.debug(f"Setting key {key} with serialized value: {serialized}")
         return bool(self.connection_manager.execute("hset", self.key, key, serialized))
@@ -45,7 +45,7 @@ class HashMap(RedisDataStructure, Generic[K, V]):
         Returns:
             Optional[V]: The value if successful, None otherwise
         """
-        key = self.serializer.serialize(key, force_compression=True, decode=True)
+        key = self.serializer.serialize(key, force_compression=False, decode=True)
 
         data = self.connection_manager.execute("hget", self.key, key)
         return self.serializer.deserialize(data) if data else None
@@ -61,7 +61,7 @@ class HashMap(RedisDataStructure, Generic[K, V]):
         Returns:
             bool: True if successful, False otherwise
         """
-        key = self.serializer.serialize(key, force_compression=True, decode=True)
+        key = self.serializer.serialize(key, force_compression=False, decode=True)
         return bool(self.connection_manager.execute("hdel", self.key, key))
 
     @atomic_operation
@@ -75,7 +75,7 @@ class HashMap(RedisDataStructure, Generic[K, V]):
         Returns:
             bool: True if the key exists, False otherwise
         """
-        key = self.serializer.serialize(key, force_compression=True, decode=True)
+        key = self.serializer.serialize(key, force_compression=False, decode=True)
         return bool(self.connection_manager.execute("hexists", self.key, key))
 
     @atomic_operation

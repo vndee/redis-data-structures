@@ -257,7 +257,7 @@ class Serializer:
         """Deserialize data from a string."""
         if not data:
             return None
-
+        print(f"RAW DATA: {data}")
         data = data.decode()
         if self.is_compressed(data):
             data = zlib.decompress(bytes.fromhex(data[self.COMPRESSION_MARKER_LEN :]))

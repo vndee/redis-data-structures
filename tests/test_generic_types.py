@@ -20,6 +20,10 @@ class TestModel(BaseModel):
     id: int
     name: str
 
+    def __hash__(self) -> int:
+        """Hash the object."""
+        return hash((self.id, self.name))
+
 
 def test_queue():
     queue = Queue[TestModel]("test_queue")
@@ -79,7 +83,7 @@ def test_dict():
     assert dict[TestModel(id=1, name="one")] == "one"
     assert dict[TestModel(id=2, name="two")] == "two"
 
-    assert dict.keys() == [TestModel(id=1, name="one"), TestModel(id=2, name="two")]
+    assert set(dict.keys()) == {TestModel(id=1, name="one"), TestModel(id=2, name="two")}
 
     new_dict = Dict("dict_2")
     new_dict[1] = "one"
@@ -125,7 +129,7 @@ def test_priority_queue():
 
 
 def test_hash_map():
-    hash_map: HashMap[int, str] = HashMap("test_hash_map")
+    hash_map: HashMap = HashMap("test_hash_map")
     hash_map[1] = "one"
     hash_map[2] = "two"
     assert hash_map[1] == "one"
