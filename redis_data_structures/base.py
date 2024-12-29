@@ -18,10 +18,11 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=Union[BaseModel, SerializableType])
+R = TypeVar("R")
 
 
-def handle_operation_error(func: Callable[..., Any]) -> Callable[..., Any]:
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+def handle_operation_error(func: Callable[..., R]) -> Callable[..., R]:
+    def wrapper(*args: Any, **kwargs: Any) -> R:
         try:
             return func(*args, **kwargs)
         except RedisError as e:
