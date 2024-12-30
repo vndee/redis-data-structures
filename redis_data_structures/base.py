@@ -95,7 +95,7 @@ class RedisDataStructure:
         if PYDANTIC_AVAILABLE and issubclass(type_class, BaseModel):
             self.serializer.pydantic_type_registry.register(type_class.__name__, type_class)
         elif issubclass(type_class, SerializableType):
-            self.serializer.custom_type_registry.register(type_class.__name__, type_class)
+            self.serializer.serializable_type_registry.register(type_class.__name__, type_class)
         else:
             raise TypeError(
                 f"Type {type_class.__name__} must be a Pydantic model or "

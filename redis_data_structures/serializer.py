@@ -102,7 +102,7 @@ class Serializer:
         Args:
             compression_threshold: The threshold for compression.
         """
-        self.custom_type_registry = TypeRegistry()
+        self.serializable_type_registry = TypeRegistry()
         self.pydantic_type_registry = TypeRegistry()
         self.compression_threshold = compression_threshold
 
@@ -236,7 +236,7 @@ class Serializer:
                 "_type": data.__class__.__name__,
                 "_registry": "custom",
             }
-            self.custom_type_registry.register(data.__class__.__name__, data.__class__)
+            self.serializable_type_registry.register(data.__class__.__name__, data.__class__)
         else:
             raw_str_data = self._serialize_recursive(data)
 
@@ -257,7 +257,7 @@ class Serializer:
         """Deserialize data from a string."""
         if not data:
             return None
-        print(f"RAW DATA: {data}")
+
         data = data.decode()
         if self.is_compressed(data):
             data = zlib.decompress(bytes.fromhex(data[self.COMPRESSION_MARKER_LEN :]))
@@ -266,12 +266,12 @@ class Serializer:
         if "_registry" in data and data["_registry"] == "pydantic":
             return self.pydantic_type_registry.get(data["_type"]).model_validate(data["value"])  # type: ignore[union-attr]
         if "_registry" in data and data["_registry"] == "custom":
-            return self.custom_type_registry.get(data["_type"]).from_dict(data["value"])  # type: ignore[union-attr]
+            return self.serializable_type_registry.get(data["_type"]).from_dict(data["value"])  # type: ignore[union-attr]
         return self._deserialize_recursive(data)
 
     def get_registered_types(self) -> Dict[str, Type]:
         """Get all registered types."""
         return {
             **self.pydantic_type_registry._registry,  # noqa: SLF001
-            **self.custom_type_registry._registry,  # noqa: SLF001
+            **self.serializable_type_registry._registry,  # noqa: SLF001
         }
