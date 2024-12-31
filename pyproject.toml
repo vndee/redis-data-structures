@@ -30,17 +30,19 @@ dependencies = [
     "redis>=4.5.0",
 ]
 
-[project.optional-dependencies]
-orjson = ["orjson>=3.9.10"]
-pydantic = ["pydantic>=2.5.3"]
-
 [dependency-groups]
 dev = [
     "mmh3>=5.0.1",
     "pre-commit>=2.21.0",
     "pytest-cov>=5.0.0",
     "pytest>=8.3.4",
+    "pydantic>=2.5.3",
+    "orjson>=3.9.10",
 ]
+
+[project.optional-dependencies]
+orjson = ["orjson>=3.9.10"]
+pydantic = ["pydantic>=2.5.3"]
 
 [project.urls]
 Homepage = "https://github.com/vndee/redis-data-structures"
