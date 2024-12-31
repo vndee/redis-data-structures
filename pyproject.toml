@@ -26,15 +26,16 @@ classifiers = [
 ]
 dependencies = [
     "backoff>=2.2.1",
+    "pyyaml>=6.0.1",
     "redis>=4.5.0",
 ]
 
 [project.optional-dependencies]
 orjson = ["orjson>=3.9.10"]
+pydantic = ["pydantic>=2.5.3"]
 dev = [
     "mmh3>=5.0.1",
     "pre-commit>=2.21.0",
-    "pydantic>=2.5.3",
     "pytest-cov>=5.0.0",
     "pytest>=8.3.4",
 ]

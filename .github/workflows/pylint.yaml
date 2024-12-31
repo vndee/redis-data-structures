@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync 
+          uv sync --dev
           uv add ruff
           uv add black
           uv add mypy
