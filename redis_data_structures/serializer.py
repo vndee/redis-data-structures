@@ -1,3 +1,4 @@
+import logging
 import uuid
 import zlib
 from datetime import datetime, timedelta
@@ -9,7 +10,16 @@ from typing import (
     Type,
 )
 
-import orjson as json
+logger = logging.getLogger(__name__)
+
+try:
+    import orjson as json  # type: ignore[import-not-found]
+except ImportError:
+    logger.warning(
+        "[WARNING] orjson is not installed, using standard json. "
+        "You can install orjson to improve performance.",
+    )
+    import json
 
 try:
     from pydantic import BaseModel
@@ -241,6 +251,8 @@ class Serializer:
             raw_str_data = self._serialize_recursive(data)
 
         raw_bytes_data = json.dumps(raw_str_data)
+        if isinstance(raw_bytes_data, str):
+            raw_bytes_data = raw_bytes_data.encode()
 
         if len(raw_str_data) >= self.compression_threshold or force_compression:
             raw_bytes_data = (
@@ -251,6 +263,8 @@ class Serializer:
 
     def is_compressed(self, data: Any) -> bool:
         """Check if data is compressed."""
+        if isinstance(data, bytes):
+            data = data.decode()
         return data.startswith(self.COMPRESSION_MARKER)  # type: ignore[no-any-return]
 
     def deserialize(self, data: Any) -> Any:
@@ -258,9 +272,11 @@ class Serializer:
         if not data:
             return None
 
-        data = data.decode()
+        if isinstance(data, str):
+            data = data.encode()
+
         if self.is_compressed(data):
-            data = zlib.decompress(bytes.fromhex(data[self.COMPRESSION_MARKER_LEN :]))
+            data = zlib.decompress(bytes.fromhex(data.decode()[self.COMPRESSION_MARKER_LEN :]))
 
         data = json.loads(data)
         if "_registry" in data and data["_registry"] == "pydantic":
