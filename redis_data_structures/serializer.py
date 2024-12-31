@@ -13,7 +13,7 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 try:
-    import orjson as json  # type: ignore[import-not-found]
+    import orjson as json
 except ImportError:
     logger.warning(
         "[WARNING] orjson is not installed, using standard json. "
@@ -21,7 +21,7 @@ except ImportError:
         "`pip install redis-data-structures[orjson]` or "
         "`pip install orjson`",
     )
-    import json
+    import json  # type: ignore[no-redef]
 
 try:
     from pydantic import BaseModel
@@ -253,8 +253,8 @@ class Serializer:
             raw_str_data = self._serialize_recursive(data)
 
         raw_bytes_data = json.dumps(raw_str_data)
-        if isinstance(raw_bytes_data, str):
-            raw_bytes_data = raw_bytes_data.encode()
+        if isinstance(raw_bytes_data, str):  # type: ignore[unreachable]
+            raw_bytes_data = raw_bytes_data.encode()  # type: ignore[unreachable]
 
         if len(raw_str_data) >= self.compression_threshold or force_compression:
             raw_bytes_data = (
