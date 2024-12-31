@@ -43,6 +43,10 @@ dev = [
     "pytest>=8.3.4",
 ]
 
+orjson = [
+    "orjson>=3.9.10",
+]
+
 [tool.black]
 line-length = 100
 target-version = ["py37"]

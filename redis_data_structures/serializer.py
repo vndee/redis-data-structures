@@ -17,7 +17,8 @@ try:
 except ImportError:
     logger.warning(
         "[WARNING] orjson is not installed, using standard json. "
-        "You can install orjson to improve performance.",
+        "You can install orjson for better performance using: "
+        "pip install redis-data-structures[orjson]",
     )
     import json
 
