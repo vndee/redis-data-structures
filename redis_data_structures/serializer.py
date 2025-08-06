@@ -231,6 +231,16 @@ class Serializer:
             if type_name in self.type_handlers:
                 return self.type_handlers[type_name]["deserialize"](data)
 
+            # Check for registered custom types first (SerializableType)
+            custom_type = self.serializable_type_registry.get(type_name)
+            if custom_type and hasattr(custom_type, "from_dict"):
+                return custom_type.from_dict(data["value"])
+
+            # Check for registered Pydantic types
+            pydantic_type = self.pydantic_type_registry.get(type_name)
+            if pydantic_type and PYDANTIC_AVAILABLE and hasattr(pydantic_type, "model_validate"):
+                return pydantic_type.model_validate(data["value"])
+
         return data
 
     def serialize(self, data: Any, force_compression: bool = False, decode: bool = False) -> Any:
