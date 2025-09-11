@@ -31,6 +31,7 @@ class ConnectionManager:
         ssl: bool = False,
         ssl_cert_reqs: Optional[str] = None,
         ssl_ca_certs: Optional[str] = None,
+        connection_string: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the connection manager.
@@ -49,6 +50,10 @@ class ConnectionManager:
             ssl: Whether to use SSL/TLS for the connection
             ssl_cert_reqs: SSL certificate requirements ('none', 'optional', or 'required')
             ssl_ca_certs: Path to the CA certificate file
+            connection_string: Redis connection string in format:
+                redis://[username:password@]host:port/db
+                rediss://[username:password@]host:port/db (for SSL)
+                If provided, other connection parameters will be ignored
             **kwargs: Additional keyword arguments for the Redis connection
         """
         # Filter out None values to avoid passing them to Redis
@@ -58,7 +63,6 @@ class ConnectionManager:
             "db": db,
         }
 
-        # Add optional parameters only if they are not None
         if password is not None:
             connection_params["password"] = password
         if socket_timeout is not None:
@@ -70,14 +74,16 @@ class ConnectionManager:
             if ssl_ca_certs:
                 connection_params["ssl_ca_certs"] = ssl_ca_certs
 
-        # Add any remaining kwargs
         connection_params.update({k: v for k, v in kwargs.items() if v is not None})
 
         self.connection_params = connection_params
-        self._pool = connection_pool or ConnectionPool(
-            max_connections=max_connections,
-            **connection_params,  # type: ignore[arg-type]
-        )
+        if not connection_string:
+            self._pool = connection_pool or ConnectionPool(
+                max_connections=max_connections,
+                **connection_params,  # type: ignore[arg-type]
+            )
+        else:
+            self._pool = connection_pool or ConnectionPool.from_url(connection_string)
 
         self._client: Optional[redis.Redis] = None
         self._failure_count = 0
