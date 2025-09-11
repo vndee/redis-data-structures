@@ -2,8 +2,6 @@ import logging
 import math
 from typing import Any, Generic, List, Optional, TypeVar
 
-import mmh3
-
 from .base import RedisDataStructure, atomic_operation, handle_operation_error
 
 logger = logging.getLogger(__name__)
@@ -26,6 +24,8 @@ class BloomFilter(RedisDataStructure, Generic[T]):
         """Lazily import mmh3 module when needed."""
         if cls._mmh3 is None:
             try:
+                import mmh3
+
                 cls._mmh3 = mmh3
             except ImportError:
                 raise ImportError(
