@@ -27,7 +27,7 @@ class Dict(RedisDataStructure, Generic[K, V]):
 
     @atomic_operation
     @handle_operation_error
-    def set(self, key: K, value: V) -> bool:
+    def set_item(self, key: K, value: V) -> bool:
         """Set a key-value pair in the dictionary.
 
         Args:
@@ -217,3 +217,7 @@ class Dict(RedisDataStructure, Generic[K, V]):
     def to_dict(self) -> DictType[K, V]:
         """Return a dictionary representation of the dictionary."""
         return {key: self.get(key) for key in self.keys()}
+
+    def __hash__(self) -> int:
+        """Hash the instance."""
+        return hash(self.key)

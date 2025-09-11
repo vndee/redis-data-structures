@@ -7,7 +7,7 @@ from redis_data_structures.base import RedisDataStructure
 
 class TestSerialization:
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def _setup(self):
         """Setup a RedisDataStructure instance for testing."""
         self.rds = RedisDataStructure(key="test_key")
 

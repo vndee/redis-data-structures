@@ -221,14 +221,14 @@ def set_examples():
     from redis_data_structures import SerializableType
 
     class User(SerializableType):
-        id: str
+        user_id: str
         name: str
         joined: datetime
         metadata: dict
 
-        def __init__(self, id: str, name: str, joined: datetime, metadata: dict):  # noqa: A002
+        def __init__(self, user_id: str, name: str, joined: datetime, metadata: dict):
             """Initialize the User object."""
-            self.id = id
+            self.user_id = user_id
             self.name = name
             self.joined = joined
             self.metadata = metadata
@@ -253,7 +253,7 @@ def set_examples():
             }
 
     user = User(
-        id="user1",
+        user_id="user1",
         name="Alice",
         joined=datetime.now(timezone.utc),
         metadata={"role": "admin"},
@@ -265,13 +265,13 @@ def set_examples():
     from pydantic import BaseModel
 
     class User(BaseModel):
-        id: str
+        user_id: str
         name: str
         joined: datetime
         metadata: dict
 
     user = User(
-        id="user1",
+        user_id="user1",
         name="Alice",
         joined=datetime.now(timezone.utc),
         metadata={"role": "admin"},

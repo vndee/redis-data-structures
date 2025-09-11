@@ -36,7 +36,7 @@ def connection_manager(redis_config: dict) -> ConnectionManager:
 
 
 @pytest.fixture(autouse=True)
-def clean_redis(redis_client: redis.Redis) -> Generator[None, None, None]:
+def _clean_redis(redis_client: redis.Redis) -> Generator[None, None, None]:
     """Clean Redis database before and after each test."""
     redis_client.flushdb()
     yield

@@ -82,7 +82,7 @@ def test_custom_type_with_pydantic(serializer):
         street: str
         city: str
         state: str
-        zip: str
+        zip_code: str
         location: Location
 
     class User(BaseModel):

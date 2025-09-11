@@ -42,7 +42,7 @@ class User(SerializableType):
 
 class TestRedisDataStructure:
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def _setup(self):
         """Setup a RedisDataStructure instance for testing."""
         self.config = Config.from_env()
         mock_connection = Mock(spec=ConnectionManager)

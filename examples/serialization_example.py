@@ -37,7 +37,7 @@ if __name__ == "__main__":
         street: str
         city: str
         state: str
-        zip: str
+        zip_code: str
 
     class User(BaseModel):
         """A user with a name, age, joined date, and address."""

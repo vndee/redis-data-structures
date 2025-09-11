@@ -8,7 +8,7 @@ from redis_data_structures.health import check_redis_connection, get_redis_metri
 
 class TestHealthCheck:
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def _setup(self):
         """Setup any necessary resources for testing."""
         self.host = "localhost"
         self.port = 6379

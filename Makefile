@@ -73,13 +73,10 @@ publish-test: build  ## Publish package to TestPyPI
 	$(PYTHON) -m twine upload --repository testpypi dist/*
 
 format:  ## Format code using black and ruff
-	$(PIP) install black ruff
-	black .
 	ruff check --fix .
 
 check:  ## Run code quality checks
-	$(PIP) install black ruff mypy
-	black --check .
+	$(PIP) install ruff mypy
 	ruff check .
 	mypy .
 

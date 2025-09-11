@@ -170,3 +170,7 @@ class RedisDataStructure:
     def close(self) -> None:
         """Close Redis connection."""
         self.connection_manager.close()
+
+    def __hash__(self) -> int:
+        """Hash the instance."""
+        return hash(self.key)

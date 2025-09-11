@@ -17,20 +17,20 @@ from redis_data_structures import (
 
 
 class TestModel(BaseModel):
-    id: int
+    model_id: int
     name: str
 
     def __hash__(self) -> int:
         """Hash the object."""
-        return hash((self.id, self.name))
+        return hash((self.model_id, self.name))
 
 
 def test_queue():
     queue = Queue[TestModel]("test_queue")
-    queue.push(TestModel(id=1, name="one"))
-    queue.push(TestModel(id=2, name="two"))
-    assert queue.pop() == TestModel(id=1, name="one")
-    assert queue.pop() == TestModel(id=2, name="two")
+    queue.push(TestModel(model_id=1, name="one"))
+    queue.push(TestModel(model_id=2, name="two"))
+    assert queue.pop() == TestModel(model_id=1, name="one")
+    assert queue.pop() == TestModel(model_id=2, name="two")
 
 
 def test_deque():
@@ -50,10 +50,10 @@ def test_lru_cache():
     cache.clear()
 
     cache = LRUCache[TestModel, str]("test_cache", max_size=10)
-    cache.put(TestModel(id=1, name="one"), "one")
-    cache.put(TestModel(id=2, name="two"), "two")
-    assert cache.get(TestModel(id=1, name="one")) == "one"
-    assert cache.get(TestModel(id=2, name="two")) == "two"
+    cache.put(TestModel(model_id=1, name="one"), "one")
+    cache.put(TestModel(model_id=2, name="two"), "two")
+    assert cache.get(TestModel(model_id=1, name="one")) == "one"
+    assert cache.get(TestModel(model_id=2, name="two")) == "two"
 
 
 def test_bloom_filter():
@@ -78,12 +78,15 @@ def test_trie():
 
 def test_dict():
     dict = Dict[TestModel, str]("test_dict")  # noqa: A001
-    dict[TestModel(id=1, name="one")] = "one"
-    dict[TestModel(id=2, name="two")] = "two"
-    assert dict[TestModel(id=1, name="one")] == "one"
-    assert dict[TestModel(id=2, name="two")] == "two"
+    dict[TestModel(model_id=1, name="one")] = "one"
+    dict[TestModel(model_id=2, name="two")] = "two"
+    assert dict[TestModel(model_id=1, name="one")] == "one"
+    assert dict[TestModel(model_id=2, name="two")] == "two"
 
-    assert set(dict.keys()) == {TestModel(id=1, name="one"), TestModel(id=2, name="two")}
+    assert set(dict.keys()) == {
+        TestModel(model_id=1, name="one"),
+        TestModel(model_id=2, name="two"),
+    }
 
     new_dict = Dict("dict_2")
     new_dict[1] = "one"
@@ -144,5 +147,5 @@ def test_hash_map():
     assert 3 not in hash_map
 
     new_hash_map = HashMap("test_hash_map_2")
-    new_hash_map[TestModel(id=1, name="one")] = "one"
-    assert new_hash_map.keys() == [TestModel(id=1, name="one")]
+    new_hash_map[TestModel(model_id=1, name="one")] = "one"
+    assert new_hash_map.keys() == [TestModel(model_id=1, name="one")]
