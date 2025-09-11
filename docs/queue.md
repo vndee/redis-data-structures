@@ -81,7 +81,7 @@ import time
 class TaskProcessor:
     def __init__(self):
         self.queue = Queue("task_queue")
-    
+
     def add_task(self, task_type: str, action: str, data: dict):
         """Add a task to the queue."""
         task = {
@@ -90,7 +90,7 @@ class TaskProcessor:
             "data": data
         }
         return self.queue.push(task)
-    
+
     def process_tasks(self):
         """Process all tasks in the queue."""
         while self.queue.size() > 0:
@@ -118,7 +118,7 @@ from typing import Dict, Any
 class MessageQueue:
     def __init__(self):
         self.queue = Queue("messages")
-    
+
     def send_message(self, message_type: str, data: Dict[str, Any]):
         """Send a message to the queue."""
         message = {
@@ -126,11 +126,11 @@ class MessageQueue:
             "data": data
         }
         return self.queue.push(message)
-    
+
     def get_next_message(self) -> Dict[str, Any]:
         """Get next message from queue."""
         return self.queue.pop()
-    
+
     def preview_next_message(self) -> Dict[str, Any]:
         """Preview next message without removing."""
         return self.queue.peek()

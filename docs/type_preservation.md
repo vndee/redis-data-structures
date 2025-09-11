@@ -181,10 +181,10 @@ class User(SerializableType):
     def __init__(self, id: int, name: str):
         self.id = id
         self.name = name
-    
+
     def to_dict(self) -> dict:
         return {"id": self.id, "name": self.name}
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "User":
         return cls(data["id"], data["name"])
@@ -240,7 +240,7 @@ When using type hints:
        def __init__(self, id: int, department: str):
            self.id = id
            self.department = department
-   
+
    # Bad: Key contains unnecessary data
    class UserKeyBad(SerializableType):
        def __init__(self, id: int, department: str, full_profile: dict):
@@ -256,7 +256,7 @@ When using type hints:
        user_id: int
        session_id: str
        created_at: datetime
-   
+
    # Bad: Using strings for everything
    class SessionKeyBad(BaseModel):
        user_id: str  # Should be int
@@ -272,7 +272,7 @@ When using type hints:
    class DocumentKey(BaseModel):
        doc_id: int
        version: int
-   
+
    # Bad: Bloated key
    class DocumentKeyBad(BaseModel):
        doc_id: int
@@ -317,7 +317,7 @@ graph TD
     J --> K{Is data large enough for compression?}
     K -- Yes --> L[Compress data]
     K -- No --> M[Return raw_str_data]
-    
+
     M --> N[End Serialization]
 ```
 

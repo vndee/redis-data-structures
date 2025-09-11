@@ -60,30 +60,30 @@ class MetricsCollector:
             **metrics
         }
         return self.buffer.push(data)
-    
+
     def get_metrics_window(self, seconds: int) -> List[Dict[str, Any]]:
         """Get metrics for the last n seconds."""
         count = min(seconds, self.buffer.capacity)
         return self.buffer.get_latest(count)
-    
+
     def get_average_metrics(self, seconds: int) -> Dict[str, float]:
         """Calculate average metrics over the specified window."""
         metrics = self.get_metrics_window(seconds)
         if not metrics:
             return {}
-        
+
         # Initialize sums
         sums = {}
         for metric_name in metrics[0].keys():
             if metric_name != "timestamp":
                 sums[metric_name] = 0.0
-        
+
         # Calculate sums
         for metric in metrics:
             for name, value in metric.items():
                 if name != "timestamp" and isinstance(value, (int, float)):
                     sums[name] += value
-        
+
         # Calculate averages
         return {
             name: value / len(metrics)
@@ -117,7 +117,7 @@ import json
 class LogRotator:
     def __init__(self, max_logs: int = 1000):
         self.buffer = RingBuffer("my_logs", capacity=max_logs)
-    
+
     def log(self, level: str, message: str, metadata: Optional[Dict[str, Any]] = None):
         """Add a log entry."""
         entry = {
@@ -127,11 +127,11 @@ class LogRotator:
             "metadata": metadata or {}
         }
         return self.buffer.push(entry)
-    
+
     def get_recent_logs(self, count: int = 100) -> List[Dict[str, Any]]:
         """Get most recent log entries."""
         return self.buffer.get_latest(count)
-    
+
     def get_logs_by_level(self, level: str, count: int = 100) -> List[Dict[str, Any]]:
         """Get recent logs of specific level."""
         logs = self.get_recent_logs(count)
@@ -139,7 +139,7 @@ class LogRotator:
             log for log in logs
             if log["level"] == level.upper()
         ]
-    
+
     def search_logs(self, query: str, count: int = 100) -> List[Dict[str, Any]]:
         """Search recent logs for query string."""
         logs = self.get_recent_logs(count)
@@ -154,7 +154,7 @@ rotator = LogRotator(max_logs=1000)
 # Add logs
 rotator.log("INFO", "Application started")
 rotator.log(
-    "ERROR", 
+    "ERROR",
     "Database connection failed",
     {"attempt": 1, "database": "users"}
 )
@@ -178,7 +178,7 @@ class TimeSeriesBuffer:
     def __init__(self, window_size: int):
         """Initialize with window size in data points."""
         self.buffer = RingBuffer("my_time_series", capacity=window_size)
-    
+
     def record_value(self, value: float, timestamp: Optional[datetime] = None):
         """Record a value with timestamp."""
         data = {
@@ -186,17 +186,17 @@ class TimeSeriesBuffer:
             "value": value
         }
         return self.buffer.push(data)
-    
+
     def get_window(self, points: int) -> List[Dict[str, Any]]:
         """Get latest n data points."""
         return self.buffer.get_latest(points)
-    
+
     def calculate_statistics(self, window: int) -> Dict[str, float]:
         """Calculate statistics for the window."""
         data = self.get_window(window)
         if not data:
             return {}
-            
+
         values = [point["value"] for point in data]
         return {
             "mean": statistics.mean(values),
@@ -205,17 +205,17 @@ class TimeSeriesBuffer:
             "min": min(values),
             "max": max(values)
         }
-    
+
     def detect_anomalies(self, window: int, threshold: float) -> List[Dict[str, Any]]:
         """Detect anomalies using standard deviation."""
         data = self.get_window(window)
         if len(data) < 2:
             return []
-            
+
         values = [point["value"] for point in data]
         mean = statistics.mean(values)
         std_dev = statistics.stdev(values)
-        
+
         return [
             point for point in data
             if abs(point["value"] - mean) > threshold * std_dev
@@ -236,4 +236,3 @@ stats = ts_buffer.calculate_statistics(window=10)
 # Detect anomalies (3 standard deviations)
 anomalies = ts_buffer.detect_anomalies(window=10, threshold=3)
 ```
-

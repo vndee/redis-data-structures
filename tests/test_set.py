@@ -3,7 +3,7 @@ import pytest
 from redis_data_structures import Set
 
 
-@pytest.fixture()
+@pytest.fixture
 def set_ds() -> Set:
     """Create a Set instance for testing."""
     s = Set("test_set")

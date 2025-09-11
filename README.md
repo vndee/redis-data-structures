@@ -203,8 +203,8 @@ class User(SerializableType):
     def __eq__(self, other) -> bool:
         """Override __eq__ for proper equality comparison."""
         return (
-            isinstance(other, User) and 
-            self.name == other.name and 
+            isinstance(other, User) and
+            self.name == other.name and
             self.joined == other.joined
         )
 
@@ -317,10 +317,10 @@ result = hash_map.get("nested")
 > **Important Note for Distributed Systems**: In scenarios where some processes only consume data (without storing any), you need to manually register types before deserializing since the type registering is only automatically done when storing data. This is common in worker processes, read-only replicas, or monitoring systems. Example:
 > ```python
 > from redis_data_structures import RedisDataStructure
-> 
+>
 > # In consumer processes, register types before reading data
 > redis_structure = RedisDataStructure(key="my_key")
-> 
+>
 > # Register your custom types
 > redis_structure.register_types(User)  # For SerializableType classes
 > redis_structure.register_types(UserModel)  # For Pydantic models

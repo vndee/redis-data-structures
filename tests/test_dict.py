@@ -1,4 +1,5 @@
 import ast
+import threading
 
 import pytest
 
@@ -6,7 +7,7 @@ from redis_data_structures import Dict
 from redis_data_structures.exceptions import RedisDataStructureError
 
 
-@pytest.fixture()
+@pytest.fixture
 def dict_instance() -> Dict:
     """Create a Dict instance for testing."""
     d = Dict("test_dict")
@@ -124,8 +125,6 @@ def test_special_characters(dict_instance):
 
 
 def test_concurrent_access(dict_instance):
-    import threading
-
     def add_items():
         for i in range(5):
             dict_instance.set(f"key_{i}", f"value_{i}")

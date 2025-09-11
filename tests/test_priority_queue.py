@@ -1,9 +1,11 @@
+import threading
+
 import pytest
 
 from redis_data_structures import PriorityQueue
 
 
-@pytest.fixture()
+@pytest.fixture
 def priority_queue() -> PriorityQueue:
     """Create a PriorityQueue instance for testing."""
     pq = PriorityQueue("test_priority_queue", host="localhost", port=6379, db=0)
@@ -154,7 +156,6 @@ def test_pop_from_empty_priority_queue(priority_queue):
 
 def test_concurrent_access(priority_queue):
     """Test concurrent access to the priority queue."""
-    import threading
 
     def push_items():
         for i in range(1000):

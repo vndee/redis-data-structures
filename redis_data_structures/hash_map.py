@@ -18,7 +18,7 @@ class HashMap(RedisDataStructure, Generic[K, V]):
 
     @atomic_operation
     @handle_operation_error
-    def set_item(self, key: K, value: V) -> bool:
+    def set(self, key: K, value: V) -> bool:
         """Set a key in the hash map.
 
         Args:

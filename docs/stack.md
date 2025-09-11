@@ -82,7 +82,7 @@ from typing import Dict, Any
 class UndoSystem:
     def __init__(self):
         self.stack = Stack(key="undo_operations")
-    
+
     def add_operation(self, operation_type: str, data: Dict[str, Any]):
         """Add an operation to the undo stack."""
         operation = {
@@ -90,11 +90,11 @@ class UndoSystem:
             "data": data
         }
         return self.stack.push(operation)
-    
+
     def undo(self) -> Dict[str, Any]:
         """Undo the last operation."""
         return self.stack.pop()
-    
+
     def peek_last_operation(self) -> Dict[str, Any]:
         """Preview the last operation without undoing."""
         return self.stack.peek()
@@ -115,7 +115,7 @@ from typing import Dict, Any
 class NavigationHistory:
     def __init__(self):
         self.stack = Stack(key="navigation")
-    
+
     def visit_page(self, url: str, title: str):
         """Record a page visit."""
         page = {
@@ -123,11 +123,11 @@ class NavigationHistory:
             "title": title
         }
         return self.stack.push(page)
-    
+
     def go_back(self) -> Dict[str, Any]:
         """Navigate to previous page."""
         return self.stack.pop()
-    
+
     def current_page(self) -> Dict[str, Any]:
         """Get current page without navigating away."""
         return self.stack.peek()

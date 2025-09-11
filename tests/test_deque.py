@@ -3,7 +3,7 @@ import pytest
 from redis_data_structures import Deque
 
 
-@pytest.fixture()
+@pytest.fixture
 def deque() -> "Deque":
     """Create a Deque instance for testing."""
     dq = Deque("test_deque")
@@ -13,7 +13,7 @@ def deque() -> "Deque":
     dq.close()
 
 
-@pytest.mark.unit()
+@pytest.mark.unit
 def test_push_front_and_pop_front(deque):
     # Test push_front and pop_front operations
     deque.push_front("item1")

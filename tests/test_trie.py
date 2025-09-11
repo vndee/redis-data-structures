@@ -3,7 +3,7 @@ import pytest
 from redis_data_structures import Trie
 
 
-@pytest.fixture()
+@pytest.fixture
 def trie_ds() -> Trie:
     """Create a Trie instance for testing."""
     trie = Trie(key="test_trie")

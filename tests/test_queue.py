@@ -9,7 +9,7 @@ import pytest
 from redis_data_structures import Queue
 
 
-@pytest.fixture()
+@pytest.fixture
 def queue() -> Queue:
     """Create a Queue instance for testing."""
     q = Queue(key="test_queue")

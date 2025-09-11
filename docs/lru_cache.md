@@ -70,7 +70,7 @@ from datetime import datetime, timedelta
 class QueryCache:
     def __init__(self, capacity: int = 1000, key: str = "db_queries"):
         self.cache = LRUCache(capacity=capacity, key=key)
-    
+
     def get_result(self, query: str) -> Optional[Dict[str, Any]]:
         """Get cached query result."""
         result = self.cache.get(query)
@@ -82,11 +82,11 @@ class QueryCache:
             # Result expired, remove it
             self.cache.remove(query)
         return None
-    
+
     def cache_result(
-        self, 
-        query: str, 
-        data: Dict[str, Any], 
+        self,
+        query: str,
+        data: Dict[str, Any],
         ttl: int = 3600
     ) -> bool:
         """Cache a query result with TTL."""
@@ -96,7 +96,7 @@ class QueryCache:
             "ttl": ttl
         }
         return self.cache.put(query, cache_data)
-    
+
     def invalidate(self, pattern: str = None):
         """Invalidate cache entries."""
         if pattern:
@@ -108,34 +108,34 @@ class QueryCache:
         else:
             # Clear entire cache
             self.cache.clear()
-    
+
     def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         entries = self.cache.get_all()
         current_time = datetime.now()
-        
+
         stats = {
             "total_entries": len(entries),
             "expired_entries": 0,
             "active_entries": 0,
             "avg_age": timedelta(0)
         }
-        
+
         ages = []
         for _, result in entries.items():
             cached_at = datetime.fromisoformat(result["cached_at"])
             age = current_time - cached_at
             is_expired = age > timedelta(seconds=result["ttl"])
-            
+
             if is_expired:
                 stats["expired_entries"] += 1
             else:
                 stats["active_entries"] += 1
                 ages.append(age)
-        
+
         if ages:
             stats["avg_age"] = sum(ages, timedelta(0)) / len(ages)
-        
+
         return stats
 
 # Usage
@@ -168,17 +168,17 @@ import json
 class SessionCache:
     def __init__(self, max_sessions: int = 10000, key: str = "user_sessions"):
         self.cache = LRUCache(capacity=max_sessions, key=key)
-    
+
     def create_session(
-        self, 
-        user_id: str, 
-        data: Dict[str, Any], 
+        self,
+        user_id: str,
+        data: Dict[str, Any],
         ttl: int = 3600
     ) -> str:
         """Create a new session."""
         import secrets
         session_id = secrets.token_urlsafe(32)
-        
+
         session_data = {
             "user_id": user_id,
             "data": data,
@@ -186,58 +186,58 @@ class SessionCache:
             "last_accessed": datetime.now().isoformat(),
             "ttl": ttl
         }
-        
+
         if self.cache.put(session_id, session_data):
             return session_id
         return ""
-    
+
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get and validate session."""
         session = self.cache.peek(session_id)
         if not session:
             return None
-            
+
         # Check if session is expired
         last_accessed = datetime.fromisoformat(session["last_accessed"])
         if last_accessed + timedelta(seconds=session["ttl"]) < datetime.now():
             self.cache.remove(session_id)
             return None
-            
+
         # Update last accessed time
         session["last_accessed"] = datetime.now().isoformat()
         self.cache.put(session_id, session)
-        
+
         return session["data"]
-    
+
     def update_session(
-        self, 
-        session_id: str, 
+        self,
+        session_id: str,
         data: Dict[str, Any]
     ) -> bool:
         """Update session data."""
         session = self.cache.peek(session_id)
         if not session:
             return False
-            
+
         session["data"] = data
         session["last_accessed"] = datetime.now().isoformat()
         return self.cache.put(session_id, session)
-    
+
     def end_session(self, session_id: str) -> bool:
         """End a session."""
         return self.cache.remove(session_id)
-    
+
     def cleanup_expired(self) -> int:
         """Clean up expired sessions."""
         sessions = self.cache.get_all()
         removed = 0
-        
+
         for session_id, session in sessions.items():
             last_accessed = datetime.fromisoformat(session["last_accessed"])
             if last_accessed + timedelta(seconds=session["ttl"]) < datetime.now():
                 if self.cache.remove(session_id):
                     removed += 1
-                    
+
         return removed
 
 # Usage
@@ -275,10 +275,10 @@ import hashlib
 class APICache:
     def __init__(self, capacity: int = 10000):
         self.cache = LRUCache(capacity=capacity, key="api_responses")
-    
+
     def _generate_cache_key(
-        self, 
-        endpoint: str, 
+        self,
+        endpoint: str,
         params: Dict[str, Any]
     ) -> str:
         """Generate a unique cache key."""
@@ -288,27 +288,27 @@ class APICache:
         }
         key_str = json.dumps(key_data, sort_keys=True)
         return hashlib.sha256(key_str.encode()).hexdigest()
-    
+
     def get_response(
-        self, 
-        endpoint: str, 
+        self,
+        endpoint: str,
         params: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """Get cached API response."""
         cache_key = self._generate_cache_key(endpoint, params)
         cached = self.cache.peek(cache_key)
-        
+
         if not cached:
             return None
-            
+
         # Check if response is still valid
         cached_at = datetime.fromisoformat(cached["cached_at"])
         if cached_at + timedelta(seconds=cached["ttl"]) < datetime.now():
             self.cache.remove(cache_key)
             return None
-            
+
         return cached["response"]
-    
+
     def cache_response(
         self,
         endpoint: str,
@@ -326,14 +326,14 @@ class APICache:
             "params": params
         }
         return self.cache.put(cache_key, cache_data)
-    
+
     def invalidate_endpoint(self, endpoint: str):
         """Invalidate all cached responses for an endpoint."""
         all_cached = self.cache.get_all()
         for cache_key, cached in all_cached.items():
             if cached["endpoint"] == endpoint:
                 self.cache.remove(cache_key)
-    
+
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         all_cached = self.cache.get_all()
@@ -343,19 +343,19 @@ class APICache:
             "expired": 0,
             "active": 0
         }
-        
+
         now = datetime.now()
         for cached in all_cached.values():
             endpoint = cached["endpoint"]
             stats["by_endpoint"][endpoint] = \
                 stats["by_endpoint"].get(endpoint, 0) + 1
-                
+
             cached_at = datetime.fromisoformat(cached["cached_at"])
             if cached_at + timedelta(seconds=cached["ttl"]) < now:
                 stats["expired"] += 1
             else:
                 stats["active"] += 1
-        
+
         return stats
 
 # Usage
@@ -391,7 +391,7 @@ import hashlib
 class ComputationCache:
     def __init__(self, capacity: int = 1000, key: str = "computation_results"):
         self.cache = LRUCache(capacity=capacity, key=key)
-    
+
     def _generate_cache_key(self, func_name: str, args: tuple, kwargs: dict) -> str:
         """Generate a unique cache key for computation."""
         key_data = {
@@ -401,30 +401,30 @@ class ComputationCache:
         }
         key_str = json.dumps(key_data, sort_keys=True)
         return hashlib.sha256(key_str.encode()).hexdigest()
-    
+
     def memoize(
-        self, 
+        self,
         ttl: int = 3600
     ) -> Callable:
         """Decorator to memoize function results."""
         def decorator(func: Callable) -> Callable:
             def wrapper(*args, **kwargs):
                 cache_key = self._generate_cache_key(
-                    func.__name__, 
-                    args, 
+                    func.__name__,
+                    args,
                     kwargs
                 )
-                
+
                 # Try to get cached result
                 cached = self.cache.peek(cache_key)
                 if cached:
                     cached_at = datetime.fromisoformat(cached["cached_at"])
                     if cached_at + timedelta(seconds=cached["ttl"]) > datetime.now():
                         return cached["result"]
-                
+
                 # Compute result
                 result = func(*args, **kwargs)
-                
+
                 # Cache result
                 cache_data = {
                     "result": result,
@@ -435,18 +435,18 @@ class ComputationCache:
                     "kwargs": kwargs
                 }
                 self.cache.put(cache_key, cache_data)
-                
+
                 return result
             return wrapper
         return decorator
-    
+
     def invalidate_function(self, func_name: str):
         """Invalidate all cached results for a function."""
         all_cached = self.cache.get_all()
         for cache_key, cached in all_cached.items():
             if cached["func"] == func_name:
                 self.cache.remove(cache_key)
-    
+
     def get_computation_stats(self) -> Dict[str, Any]:
         """Get statistics about cached computations."""
         all_cached = self.cache.get_all()
@@ -456,19 +456,19 @@ class ComputationCache:
             "expired": 0,
             "active": 0
         }
-        
+
         now = datetime.now()
         for cached in all_cached.values():
             func_name = cached["func"]
             stats["by_function"][func_name] = \
                 stats["by_function"].get(func_name, 0) + 1
-                
+
             cached_at = datetime.fromisoformat(cached["cached_at"])
             if cached_at + timedelta(seconds=cached["ttl"]) < now:
                 stats["expired"] += 1
             else:
                 stats["active"] += 1
-        
+
         return stats
 
 # Usage

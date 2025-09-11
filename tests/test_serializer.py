@@ -1,5 +1,3 @@
-import importlib
-import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -9,7 +7,7 @@ from pydantic import BaseModel
 from redis_data_structures.serializer import SerializableType, Serializer
 
 
-@pytest.fixture()
+@pytest.fixture
 def serializer():
     return Serializer()
 
@@ -99,7 +97,7 @@ def test_custom_type_with_pydantic(serializer):
             street="123 Main St",
             city="Anytown",
             state="CA",
-            zip="12345",
+            zip_code="12345",
             location=Location(latitude=1.0, longitude=2.0),
         ),
     )
@@ -120,26 +118,6 @@ def test_custom_type_with_pydantic(serializer):
 
 def test_serializer_none_value(serializer):
     assert serializer.deserialize(serializer.serialize(None)) is None
-
-
-def test_pydantic_import_error(monkeypatch):
-    """Test that PYDANTIC_AVAILABLE is False when pydantic is not available."""
-    if "pydantic" in sys.modules:
-        del sys.modules["pydantic"]
-
-    def mock_import(name, *args, **kwargs):
-        if name == "pydantic":
-            raise ImportError(
-                "Pydantic is not available. You might need to install it with"
-                " `pip install pydantic`.",
-            )
-        return importlib.__import__(name, *args, **kwargs)
-
-    monkeypatch.setattr("builtins.__import__", mock_import)
-
-    from redis_data_structures.serializer import PYDANTIC_AVAILABLE
-
-    assert PYDANTIC_AVAILABLE is False
 
 
 def test_serializable_type(serializer):

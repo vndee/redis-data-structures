@@ -1,3 +1,4 @@
+import threading
 from datetime import datetime, timezone
 
 import pytest
@@ -5,7 +6,7 @@ import pytest
 from redis_data_structures import HashMap
 
 
-@pytest.fixture()
+@pytest.fixture
 def hash_map() -> HashMap:
     """Create a HashMap instance for testing."""
     hm = HashMap("test_hash_map")
@@ -226,7 +227,6 @@ def test_exists_with_special_characters(hash_map):
 
 def test_concurrent_access(hash_map):
     """Test hash map behavior under concurrent access (if applicable)."""
-    import threading
 
     def add_items():
         for i in range(5):

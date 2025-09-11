@@ -63,25 +63,25 @@ class DuplicateDetector:
         # Convert complex objects to JSON for consistent hashing
         if not isinstance(item, (str, int, float, bool)):
             item = json.dumps(item, sort_keys=True)
-            
+
         return self.bloom.contains(item)
-    
+
     def mark_seen(self, item: any) -> None:
         """Mark item as seen."""
         if not isinstance(item, (str, int, float, bool)):
             item = json.dumps(item, sort_keys=True)
 
         self.bloom.add(item)
-    
+
     def process_items(self, items: List[any]) -> Set[any]:
         """Process items and return unique ones."""
         unique_items = set()
-        
+
         for item in items:
             if not self.is_duplicate(item):
                 unique_items.add(item)
                 self.mark_seen(item)
-                
+
         return unique_items
 ```
 
@@ -105,17 +105,17 @@ class URLDeduplicator:
         """Normalize URL for consistent checking."""
         parsed = urlparse(url.lower())
         return f"{parsed.netloc}{parsed.path}"
-    
+
     def is_crawled(self, url: str) -> bool:
         """Check if URL has been crawled."""
         normalized = self.normalize_url(url)
         return self.bloom.contains(normalized)
-    
+
     def mark_crawled(self, url: str) -> None:
         """Mark URL as crawled."""
         normalized = self.normalize_url(url)
         self.bloom.add(normalized)
-    
+
     def filter_urls(self, urls: Set[str]) -> Set[str]:
         """Filter out previously crawled URLs."""
         return {url for url in urls if not self.is_crawled(url)}
@@ -147,7 +147,7 @@ class UserActivityTracker:
             expected_elements=expected_users,
             false_positive_rate=0.01
         )
-    
+
     def record_activity(self, user_id: str, activity: str) -> None:
         """Record user activity."""
         self.bloom.add(f"{user_id}:{activity}")
@@ -160,7 +160,7 @@ class UserActivityTracker:
         """Clean up activity data older than specified days."""
         cutoff_date = datetime.now() - timedelta(days=days_to_keep)
         current = cutoff_date
-        
+
         while current < datetime.now():
             key = self.get_daily_key(current)
             self.bloom.clear(key)
@@ -195,30 +195,30 @@ class ContentFilter:
             expected_elements=expected_patterns,
             false_positive_rate=0.0001  # Very low false positive rate for content filtering
         )
-    
+
     def generate_patterns(self, content: str, pattern_length: int = 4) -> Set[str]:
         """Generate n-gram patterns from content."""
         content = content.lower()
         return {
-            content[i:i+pattern_length] 
+            content[i:i+pattern_length]
             for i in range(len(content) - pattern_length + 1)
         }
-    
+
     def add_inappropriate_content(self, content: str):
         """Add inappropriate content patterns to filter."""
         patterns = self.generate_patterns(content)
         for pattern in patterns:
             self.bloom.add(pattern)
-    
+
     def is_inappropriate(self, content: str, threshold: float = 0.1) -> bool:
         """Check if content might be inappropriate."""
         patterns = self.generate_patterns(content)
         if not patterns:
             return False
-            
+
         matches = sum(1 for p in patterns if self.bloom.contains(p))
         return (matches / len(patterns)) > threshold
-    
+
     def add_batch_content(self, content_list: List[str]):
         """Add multiple pieces of inappropriate content."""
         for content in content_list:

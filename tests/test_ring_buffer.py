@@ -3,7 +3,7 @@ import pytest
 from redis_data_structures import RingBuffer
 
 
-@pytest.fixture()
+@pytest.fixture
 def ring_buffer() -> RingBuffer:
     """Create a RingBuffer instance for testing."""
     buffer = RingBuffer("test_ring_buffer", capacity=3)

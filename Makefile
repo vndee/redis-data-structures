@@ -73,15 +73,14 @@ publish-test: build  ## Publish package to TestPyPI
 	$(PYTHON) -m twine upload --repository testpypi dist/*
 
 format:  ## Format code using black and ruff
-	ruff check --fix .
+	$(UV) run ruff check --fix .
 
 check:  ## Run code quality checks
-	$(PIP) install ruff mypy
-	ruff check .
-	mypy .
+	$(UV) run ruff check .
+	$(UV) run mypy .
 
 lint:  ## Run pre-commit hooks on all files
-	pre-commit run --all-files
+	$(UV) run pre-commit run --all-files
 
 install-dev: setup-dev  ## Install package in development mode
 	$(PIP) install -e .
@@ -100,4 +99,4 @@ help:  ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # Default target
-.DEFAULT_GOAL := help 
+.DEFAULT_GOAL := help

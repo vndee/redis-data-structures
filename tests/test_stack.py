@@ -3,7 +3,7 @@ import pytest
 from redis_data_structures import Stack
 
 
-@pytest.fixture()
+@pytest.fixture
 def stack_ds() -> Stack:
     """Create a Stack instance for testing."""
     stack = Stack(key="test_stack")

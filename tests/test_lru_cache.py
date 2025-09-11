@@ -1,11 +1,13 @@
+import threading
 import time
+from queue import Queue
 
 import pytest
 
 from redis_data_structures import LRUCache
 
 
-@pytest.fixture()
+@pytest.fixture
 def lru_cache() -> LRUCache:
     """Create an LRUCache instance for testing."""
     cache = LRUCache(capacity=3, key="test_lru_cache")
@@ -219,9 +221,6 @@ def test_large_data_handling(lru_cache):
 
 def test_concurrent_access(lru_cache):
     """Test cache behavior under concurrent access."""
-    import threading
-    from queue import Queue
-
     # Use a queue to track successful operations
     results = Queue()
 
@@ -270,9 +269,9 @@ def test_concurrent_access(lru_cache):
     # Verify that we can retrieve the values
     for key, expected_value in successful_operations:
         actual_value = lru_cache.get(key)
-        assert (
-            actual_value == expected_value
-        ), f"Value mismatch for key {key}: expected {expected_value}, got {actual_value}"
+        assert actual_value == expected_value, (
+            f"Value mismatch for key {key}: expected {expected_value}, got {actual_value}"
+        )
 
     # Verify the cache size is within capacity
     assert lru_cache.size() <= lru_cache.capacity

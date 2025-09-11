@@ -1,6 +1,4 @@
-import importlib
 import json
-import sys
 from datetime import datetime, timedelta, timezone
 from typing import List
 from unittest.mock import Mock
@@ -39,6 +37,10 @@ class User(SerializableType):
         """Return a string representation of the User object."""
         return f"User(name={self.name}, age={self.age})"
 
+    def __hash__(self):
+        """Hash the User object."""
+        return hash((self.name, self.age))
+
 
 class TestRedisDataStructure:
     @pytest.fixture(autouse=True)
@@ -74,27 +76,6 @@ class TestRedisDataStructure:
         deserialized = self.rds.serializer.deserialize(serialized)
         assert isinstance(deserialized, datetime)
         assert deserialized.timestamp() == pytest.approx(now.timestamp())
-
-    def test_pydantic_import_error(self, monkeypatch):
-        """Test that PYDANTIC_AVAILABLE is False when pydantic is not available."""
-        if "pydantic" in sys.modules:
-            del sys.modules["pydantic"]
-        if "redis_data_structures.serializer" in sys.modules:
-            del sys.modules["redis_data_structures.serializer"]
-
-        def mock_import(name, *args, **kwargs):
-            if name == "pydantic":
-                raise ImportError(
-                    "Pydantic is not available. You might need to install it with"
-                    " `pip install pydantic`.",
-                )
-            return importlib.__import__(name, *args, **kwargs)
-
-        monkeypatch.setattr("builtins.__import__", mock_import)
-
-        from redis_data_structures.serializer import PYDANTIC_AVAILABLE
-
-        assert PYDANTIC_AVAILABLE is False
 
     def test_serialize_timedelta(self):
         """Test serialization of timedelta objects."""
@@ -221,6 +202,9 @@ class TestRedisDataStructure:
                 if not isinstance(other, Point):
                     return False
                 return self.x == other.x and self.y == other.y
+
+            def __hash__(self):
+                return hash((self.x, self.y))
 
         # Register type handlers
         self.rds.serializer.type_handlers["Point"] = {

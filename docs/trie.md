@@ -61,7 +61,7 @@ class AutocompleteSystem:
     def __init__(self):
         self.trie = Trie()
         self.suggestions_key = "autocomplete"
-    
+
     def add_phrase(self, phrase: str, metadata: Optional[dict] = None) -> bool:
         """Add a phrase to the autocomplete system."""
         success = self.trie.insert(self.suggestions_key, phrase.lower())
@@ -78,19 +78,19 @@ class AutocompleteSystem:
                 })
             )
         return success
-    
+
     def get_suggestions(
-        self, 
-        prefix: str, 
+        self,
+        prefix: str,
         max_results: int = 10
     ) -> List[dict]:
         """Get autocomplete suggestions for a prefix."""
         matches = self.trie.starts_with(self.suggestions_key, prefix.lower())
         suggestions = []
-        
+
         for phrase in matches[:max_results]:
             suggestion = {"phrase": phrase}
-            
+
             # Get metadata if exists
             meta_key = f"{self.suggestions_key}:meta:{phrase}"
             meta_data = self.trie.connection_manager.execute(
@@ -102,11 +102,11 @@ class AutocompleteSystem:
                 if isinstance(meta_data, bytes):
                     meta_data = meta_data.decode('utf-8')
                 suggestion["metadata"] = json.loads(meta_data)
-            
+
             suggestions.append(suggestion)
-        
+
         return suggestions
-    
+
     def remove_phrase(self, phrase: str) -> bool:
         """Remove a phrase from autocomplete."""
         success = self.trie.delete(self.suggestions_key, phrase.lower())
@@ -115,7 +115,7 @@ class AutocompleteSystem:
             meta_key = f"{self.suggestions_key}:meta:{phrase.lower()}"
             self.trie.connection_manager.execute("delete", meta_key)
         return success
-    
+
     def clear_suggestions(self) -> bool:
         """Clear all suggestions."""
         # Clear metadata
@@ -131,7 +131,7 @@ class AutocompleteSystem:
                 self.trie.connection_manager.execute("delete", *keys)
             if cursor == 0:
                 break
-                
+
         # Clear trie
         return self.trie.clear(self.suggestions_key)
 
@@ -165,30 +165,30 @@ class SpellChecker:
     def __init__(self):
         self.trie = Trie()
         self.dictionary_key = "dictionary"
-    
+
     def add_words(self, words: List[str]):
         """Add words to dictionary."""
         for word in words:
             self.trie.insert(self.dictionary_key, word.lower())
-    
+
     def check_word(self, word: str) -> bool:
         """Check if word is spelled correctly."""
         return self.trie.search(self.dictionary_key, word.lower())
-    
+
     def get_suggestions(self, word: str, max_distance: int = 2) -> List[str]:
         """Get spelling suggestions for a word."""
         word = word.lower()
         suggestions = set()
-        
+
         # Check exact match
         if self.check_word(word):
             return [word]
-            
+
         # Generate possible corrections
         for candidate in self._generate_candidates(word):
             if self.check_word(candidate):
                 suggestions.add(candidate)
-            
+
             # Check similar words with prefix
             if len(suggestions) < 5:  # Limit prefix search
                 prefix = candidate[:3]  # Use first 3 chars as prefix
@@ -196,30 +196,30 @@ class SpellChecker:
                 for s in similar:
                     if self._edit_distance(word, s) <= max_distance:
                         suggestions.add(s)
-        
+
         return sorted(list(suggestions))
-    
+
     def _generate_candidates(self, word: str) -> Set[str]:
         """Generate possible corrections for a word."""
         letters = 'abcdefghijklmnopqrstuvwxyz'
         splits = [(word[:i], word[i:]) for i in range(len(word) + 1)]
-        
+
         # Various possible corrections
         deletes = [L + R[1:] for L, R in splits if R]
         transposes = [L + R[1] + R[0] + R[2:] for L, R in splits if len(R) > 1]
         replaces = [L + c + R[1:] for L, R in splits if R for c in letters]
         inserts = [L + c + R for L, R in splits for c in letters]
-        
+
         return set(deletes + transposes + replaces + inserts)
-    
+
     def _edit_distance(self, s1: str, s2: str) -> int:
         """Calculate Levenshtein distance between strings."""
         if len(s1) < len(s2):
             return self._edit_distance(s2, s1)
-        
+
         if len(s2) == 0:
             return len(s1)
-        
+
         previous_row = range(len(s2) + 1)
         for i, c1 in enumerate(s1):
             current_row = [i + 1]
@@ -229,7 +229,7 @@ class SpellChecker:
                 substitutions = previous_row[j] + (c1 != c2)
                 current_row.append(min(insertions, deletions, substitutions))
             previous_row = current_row
-        
+
         return previous_row[-1]
 
 # Usage
@@ -258,17 +258,17 @@ class CommandCompleter:
     def __init__(self):
         self.trie = Trie()
         self.commands_key = "cli_commands"
-    
+
     def add_command(
-        self, 
-        command: str, 
-        description: str, 
+        self,
+        command: str,
+        description: str,
         usage: str,
         aliases: Optional[List[str]] = None
     ):
         """Add a command with metadata."""
         self.trie.insert(self.commands_key, command)
-        
+
         # Store command metadata
         meta_key = f"{self.commands_key}:meta:{command}"
         metadata = {
@@ -282,7 +282,7 @@ class CommandCompleter:
             meta_key,
             json.dumps(metadata)
         )
-        
+
         # Add aliases
         if aliases:
             for alias in aliases:
@@ -293,19 +293,19 @@ class CommandCompleter:
                     alias_key,
                     json.dumps({**metadata, "is_alias": True})
                 )
-    
+
     def get_completions(
-        self, 
+        self,
         partial: str
     ) -> List[Dict[str, str]]:
         """Get command completions with metadata."""
         matches = self.trie.starts_with(self.commands_key, partial)
         completions = []
-        
+
         for command in matches:
             meta_key = f"{self.commands_key}:meta:{command}"
             meta_data = self.trie.connection_manager.execute("get", meta_key)
-            
+
             if meta_data:
                 if isinstance(meta_data, bytes):
                     meta_data = meta_data.decode('utf-8')
@@ -314,17 +314,17 @@ class CommandCompleter:
                     "command": command,
                     **metadata
                 })
-        
+
         return completions
-    
+
     def get_command_help(self, command: str) -> Optional[Dict[str, str]]:
         """Get detailed help for a command."""
         if not self.trie.search(self.commands_key, command):
             return None
-            
+
         meta_key = f"{self.commands_key}:meta:{command}"
         meta_data = self.trie.connection_manager.execute("get", meta_key)
-        
+
         if meta_data:
             if isinstance(meta_data, bytes):
                 meta_data = meta_data.decode('utf-8')
@@ -368,10 +368,10 @@ class URLRouter:
     def __init__(self):
         self.trie = Trie()
         self.routes_key = "url_routes"
-    
+
     def add_route(
-        self, 
-        path: str, 
+        self,
+        path: str,
         handler_name: str,
         methods: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Any]] = None
@@ -380,7 +380,7 @@ class URLRouter:
         # Normalize path
         path = self._normalize_path(path)
         self.trie.insert(self.routes_key, path)
-        
+
         # Store route metadata
         meta_key = f"{self.routes_key}:meta:{path}"
         route_data = {
@@ -395,15 +395,15 @@ class URLRouter:
             meta_key,
             json.dumps(route_data)
         )
-    
+
     def match_route(self, path: str, method: str = "GET") -> Optional[Dict[str, Any]]:
         """Match a URL path to a route."""
         path = self._normalize_path(path)
-        
+
         # Check exact match first
         if self.trie.search(self.routes_key, path):
             return self._get_route_data(path, method)
-        
+
         # Check pattern matches
         possible_routes = self.trie.get_all_words(self.routes_key)
         for route in possible_routes:
@@ -416,14 +416,14 @@ class URLRouter:
                         **route_data,
                         "params": params
                     }
-        
+
         return None
-    
+
     def _normalize_path(self, path: str) -> str:
         """Normalize URL path."""
         path = path.strip().lower()
         return path if path.startswith("/") else f"/{path}"
-    
+
     def _path_to_pattern(self, path: str) -> str:
         """Convert URL path to regex pattern."""
         # Convert path params to regex groups
@@ -431,10 +431,10 @@ class URLRouter:
         # Convert wildcards
         pattern = pattern.replace("*", r"[^/]+")
         return f"^{pattern}$"
-    
+
     def _get_route_data(
-        self, 
-        path: str, 
+        self,
+        path: str,
         method: str
     ) -> Optional[Dict[str, Any]]:
         """Get route data if method is allowed."""

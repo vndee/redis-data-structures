@@ -4,6 +4,7 @@ from typing import Any, Optional, Set
 from pydantic import BaseModel, Field
 
 from redis_data_structures import HashMap, LRUCache, SerializableType
+from redis_data_structures import Set as RedisSet
 
 
 class User(SerializableType):
@@ -201,11 +202,7 @@ def print_nested_structure(obj: Any, indent: int = 2) -> None:
 
 def set_examples():
     """Demonstrate the usage of the Set data structure."""
-    from datetime import datetime
-
-    from redis_data_structures import Set
-
-    set_ds = Set("users")
+    set_ds = RedisSet("users")
 
     # Any JSON-serializable object
     user = {
@@ -216,9 +213,6 @@ def set_examples():
     }
 
     set_ds.add(user)
-
-    # Custom types
-    from redis_data_structures import SerializableType
 
     class User(SerializableType):
         user_id: str
@@ -260,9 +254,6 @@ def set_examples():
     )
     set_ds.add(user)
     print(set_ds.contains(user))
-
-    # Pydantic models
-    from pydantic import BaseModel
 
     class User(BaseModel):
         user_id: str

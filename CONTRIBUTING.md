@@ -180,4 +180,4 @@ tests/
 
 Feel free to open an issue with the tag `question` if you have any questions about contributing.
 
-Thank you for your contributions! 🎉 
+Thank you for your contributions! 🎉

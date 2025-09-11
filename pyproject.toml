@@ -8,11 +8,22 @@ version = "0.1.26"
 description = "Redis-backed data structures for building scalable and resilient applications"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {file = "LICENSE"}
-authors = [
-    {name = "Duy V. Huynh", email = "vndee.huynh@gmail.com"},
+license = { file = "LICENSE" }
+authors = [{ name = "Duy V. Huynh", email = "vndee.huynh@gmail.com" }]
+keywords = [
+    "redis",
+    "data-structures",
+    "queue",
+    "stack",
+    "priority-queue",
+    "set",
+    "hash-map",
+    "deque",
+    "bloom-filter",
+    "graph",
+    "lru-cache",
+    "ring-buffer",
 ]
-keywords = ["redis", "data-structures", "queue", "stack", "priority-queue", "set", "hash-map", "deque", "bloom-filter", "graph", "lru-cache", "ring-buffer"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -24,11 +35,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Database",
 ]
-dependencies = [
-    "backoff>=2.2.1",
-    "pyyaml>=6.0.1",
-    "redis>=4.5.0",
-]
+dependencies = ["backoff>=2.2.1", "pyyaml>=6.0.1", "redis>=4.5.0"]
 
 [dependency-groups]
 dev = [
@@ -38,6 +45,8 @@ dev = [
     "pytest>=8.3.4",
     "pydantic>=2.5.3",
     "orjson>=3.9.10",
+    "ruff>=0.13.0",
+    "mypy>=1.14.1",
 ]
 
 [project.optional-dependencies]
@@ -72,10 +81,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
-exclude = [
-    "examples/.*",
-    "tests/.*",
-]
+exclude = ["examples/.*", "tests/.*"]
 disable_error_code = ["import-untyped"]
 
 [tool.ruff]
@@ -84,8 +90,61 @@ target-version = "py37"
 indent-width = 4
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "C4", "UP", "N", "W", "D", "S", "BLE", "FBT", "A", "COM", "C90", "T10", "ICN", "Q", "RET", "SIM", "TID", "ARG", "DTZ", "ERA", "PD", "PGH", "PIE", "PL", "PT", "RSE", "RUF", "SLF", "TCH", "TRY"]
-ignore = ["E501", "DTZ005", "S110", "D100", "D104", "PLR2004", "BLE001", "TRY300", "D103", "PT009", "PLW2901", "FBT001", "FBT002", "PLR", "TRY003", "FBT003"]  # Ignore missing docstrings and magic numbers
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+    "N",
+    "W",
+    "D",
+    "S",
+    "BLE",
+    "FBT",
+    "A",
+    "COM",
+    "C90",
+    "T10",
+    "ICN",
+    "Q",
+    "RET",
+    "SIM",
+    "TID",
+    "ARG",
+    "DTZ",
+    "ERA",
+    "PD",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "RSE",
+    "RUF",
+    "SLF",
+    "TCH",
+    "TRY",
+]
+ignore = [
+    "A003",
+    "E501",
+    "DTZ005",
+    "S110",
+    "D100",
+    "D104",
+    "PLR2004",
+    "BLE001",
+    "TRY300",
+    "D103",
+    "PT009",
+    "PLW2901",
+    "FBT001",
+    "FBT002",
+    "PLR",
+    "TRY003",
+    "FBT003",
+] # Ignore missing docstrings and magic numbers
 
 fixable = ["ALL"]
 unfixable = []
@@ -97,4 +156,10 @@ max-complexity = 10
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "D100", "D101", "D102", "D103"]  # Allow assert statements and missing docstrings in tests
+"tests/*" = [
+    "S101",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+] # Allow assert statements and missing docstrings in tests

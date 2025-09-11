@@ -97,7 +97,7 @@ import time
 class TimeBasedScheduler:
     def __init__(self):
         self.pq = PriorityQueue("scheduled_tasks")
-    
+
     def schedule_task(self, task_type: str, data: Dict[str, Any], execute_at: datetime):
         """Schedule a task for execution at a specific time."""
         task = {
@@ -108,16 +108,16 @@ class TimeBasedScheduler:
         # Use timestamp as priority (earlier time = higher priority)
         priority = execute_at.timestamp()
         return self.pq.push(task, priority=priority)
-    
-    def schedule_recurring(self, task_type: str, data: Dict[str, Any], 
+
+    def schedule_recurring(self, task_type: str, data: Dict[str, Any],
                          interval: timedelta, start_time: Optional[datetime] = None):
         """Schedule a recurring task with a fixed interval."""
         if start_time is None:
             start_time = datetime.now()
-        
+
         # Schedule the first occurrence
         self.schedule_task(task_type, data, start_time)
-        
+
         # Schedule the next occurrence
         next_time = start_time + interval
         task = {
@@ -127,36 +127,36 @@ class TimeBasedScheduler:
             "is_recurring": True
         }
         return self.pq.push(task, priority=next_time.timestamp())
-    
+
     def get_due_task(self) -> Optional[tuple[Dict[str, Any], float]]:
         """Get task if it's due for execution."""
         result = self.pq.peek()
         if not result:
             return None
-        
+
         task, priority = result
         now = datetime.now().timestamp()
-        
+
         # Check if task is due
         if priority <= now:
             # Remove and return the task
             return self.pq.pop()
         return None
-    
+
     def process_tasks(self, stop_time: Optional[datetime] = None):
         """Process tasks until stop_time (if specified)."""
         while True:
             if stop_time and datetime.now() >= stop_time:
                 break
-                
+
             result = self.get_due_task()
             if not result:
                 time.sleep(1)  # Wait if no tasks are due
                 continue
-                
+
             task, priority = result
             print(f"Executing task: {task['type']} (Scheduled for: {task['scheduled_for']})")
-            
+
             # Reschedule if it's a recurring task
             if task.get('is_recurring'):
                 next_time = datetime.fromtimestamp(priority) + \
@@ -208,7 +208,7 @@ class TaskPriority(IntEnum):
 class TaskScheduler:
     def __init__(self):
         self.pq = PriorityQueue("scheduled_tasks")
-    
+
     def add_task(self, task_type: str, data: Dict[str, Any], priority: TaskPriority):
         """Add a task with priority."""
         task = {
@@ -216,15 +216,15 @@ class TaskScheduler:
             "data": data
         }
         return self.pq.push(task, priority=priority)
-    
+
     def get_next_task(self) -> tuple[Dict[str, Any], int]:
         """Get highest priority task."""
         return self.pq.pop()
-    
+
     def peek_next_task(self) -> tuple[Dict[str, Any], int]:
         """Preview next task without removing."""
         return self.pq.peek()
-    
+
     def get_all_tasks(self) -> list[tuple[Dict[str, Any], int]]:
         """Get all tasks in priority order."""
         return self.pq.get_all()
@@ -259,7 +259,7 @@ class RequestPriority(IntEnum):
 class ServiceRequestHandler:
     def __init__(self):
         self.pq = PriorityQueue("service_requests")
-    
+
     def add_request(self, user_id: str, request_type: str, data: Dict[str, Any], user_tier: str):
         """Add a service request with priority based on user tier."""
         request = {
@@ -269,11 +269,11 @@ class ServiceRequestHandler:
         }
         priority = RequestPriority[user_tier.upper()]
         return self.pq.push(request, priority=priority)
-    
+
     def process_next_request(self) -> tuple[Dict[str, Any], int]:
         """Process highest priority request."""
         return self.pq.pop()
-    
+
     def get_pending_requests(self) -> list[tuple[Dict[str, Any], int]]:
         """Get all pending requests in priority order."""
         return self.pq.get_all()
@@ -328,7 +328,7 @@ class TaskConsumer:
             if task:
                 data, priority = task
                 print(f"Consumed task: {data['type']} with priority {priority}")
-            
+
             time.sleep(0.25)
 
 if __name__ == "__main__":
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     if args.producer:
         # Create producer and consumer
         producer = TaskProducer(pq)
-        
+
         # Produce some tasks
         producer.produce("task1", {"info": "data1"}, priority=2)
         producer.produce("task2", {"info": "data2"}, priority=1)
