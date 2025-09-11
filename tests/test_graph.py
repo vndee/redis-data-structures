@@ -3,7 +3,7 @@ import pytest
 from redis_data_structures import Graph
 
 
-@pytest.fixture
+@pytest.fixture()
 def graph() -> Graph:
     """Create a Graph instance for testing."""
     g = Graph("test_graph")

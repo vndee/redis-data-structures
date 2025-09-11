@@ -1,11 +1,16 @@
-from pydantic import BaseModel
 from typing import List
+
+from pydantic import BaseModel
+
 from redis_data_structures import LRUCache
 
 
 class Child(BaseModel):
+    """Child model."""
+
     name: str
     age: int
+
 
 list_of_children = [Child(name="child1", age=10), Child(name="child2", age=20)]
 

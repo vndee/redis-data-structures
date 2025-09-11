@@ -8,7 +8,7 @@ from redis_data_structures.connection import ConnectionManager
 from redis_data_structures.exceptions import CircuitBreakerError
 
 
-@pytest.fixture
+@pytest.fixture()
 def connection_manager():
     """Create a ConnectionManager instance with mocked Redis."""
     with patch("redis.Redis") as mock_redis:

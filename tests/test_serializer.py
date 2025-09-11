@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from redis_data_structures.serializer import SerializableType, Serializer
 
 
-@pytest.fixture
+@pytest.fixture()
 def serializer():
     return Serializer()
 

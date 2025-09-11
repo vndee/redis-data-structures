@@ -3,7 +3,7 @@ import pytest
 from redis_data_structures import PriorityQueue
 
 
-@pytest.fixture
+@pytest.fixture()
 def priority_queue() -> PriorityQueue:
     """Create a PriorityQueue instance for testing."""
     pq = PriorityQueue("test_priority_queue", host="localhost", port=6379, db=0)

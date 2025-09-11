@@ -28,7 +28,7 @@ jobs:
           uv add ruff
           uv add black
           uv add mypy
-    
+
       - name: Run code linting check
         run: |
           uv run black --check .

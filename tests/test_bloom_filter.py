@@ -12,7 +12,7 @@ from redis.exceptions import RedisError
 from redis_data_structures.bloom_filter import BloomFilter
 
 
-@pytest.fixture
+@pytest.fixture()
 def bloom_filter(connection_manager) -> "BloomFilter":
     """Create a BloomFilter instance for testing."""
     return BloomFilter(
@@ -23,13 +23,13 @@ def bloom_filter(connection_manager) -> "BloomFilter":
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def test_key() -> str:
     """Get test key for BloomFilter."""
     return "test_bloom_filter"
 
 
-@pytest.fixture
+@pytest.fixture()
 def sample_items() -> List:
     """Get sample items of different types for testing."""
     return [
@@ -43,7 +43,7 @@ def sample_items() -> List:
     ]
 
 
-@pytest.mark.integration
+@pytest.mark.integration()
 class TestBloomFilter:
     """Test cases for BloomFilter implementation."""
 
@@ -109,7 +109,7 @@ class TestBloomFilter:
         for item in items:
             assert not bloom_filter.contains(item)
 
-    @pytest.mark.slow
+    @pytest.mark.slow()
     def test_false_positive_rate(self, bloom_filter: BloomFilter):
         """Test false positive rate is within expected bounds."""
         n = 1000  # number of elements

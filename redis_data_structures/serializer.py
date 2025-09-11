@@ -2,13 +2,7 @@ import logging
 import uuid
 import zlib
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    ClassVar,
-    Dict,
-    Optional,
-    Type,
-)
+from typing import Any, ClassVar, Dict, Optional, Type
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +71,10 @@ class SerializableType:
             bool: True if the instances are equal, False otherwise.
         """
         return isinstance(other, self.__class__) and self.to_dict() == other.to_dict()
+
+    def __hash__(self) -> int:
+        """Hash the instance."""
+        return hash(self.to_dict())
 
 
 class TypeRegistry:

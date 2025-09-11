@@ -6,7 +6,7 @@ from redis_data_structures import Dict
 from redis_data_structures.exceptions import RedisDataStructureError
 
 
-@pytest.fixture
+@pytest.fixture()
 def dict_instance() -> Dict:
     """Create a Dict instance for testing."""
     d = Dict("test_dict")

@@ -5,7 +5,7 @@ import pytest
 from redis_data_structures import HashMap
 
 
-@pytest.fixture
+@pytest.fixture()
 def hash_map() -> HashMap:
     """Create a HashMap instance for testing."""
     hm = HashMap("test_hash_map")

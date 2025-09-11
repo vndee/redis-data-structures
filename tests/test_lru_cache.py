@@ -5,7 +5,7 @@ import pytest
 from redis_data_structures import LRUCache
 
 
-@pytest.fixture
+@pytest.fixture()
 def lru_cache() -> LRUCache:
     """Create an LRUCache instance for testing."""
     cache = LRUCache(capacity=3, key="test_lru_cache")
