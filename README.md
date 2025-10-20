@@ -8,6 +8,8 @@
 [![tests](https://github.com/vndee/redis-data-structures/actions/workflows/pytest.yaml/badge.svg)](https://github.com/vndee/redis-data-structures/actions/workflows/pytest.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[![BuyMeACoffee](https://raw.githubusercontent.com/pachadotdev/buymeacoffee-badges/main/bmc-yellow.svg)](https://www.buymeacoffee.com/vndee)
+
 A Python library providing high-level, Redis-backed data structures with a clean, Pythonic interface. Perfect for distributed systems, microservices, and any application requiring persistent, thread-safe data structures, especially in environments where multiple workers share the same data structure.
 
 ![Redis Data Structures (1)](assets/Redis%20Data%20Structures%20(1).png)
